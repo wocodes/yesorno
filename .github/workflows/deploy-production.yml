@@ -78,15 +78,33 @@ jobs:
           name: production-dist
           path: ./dist
 
-      - name: Deploy dist/ to Hostinger via FTPS
+      - name: Normalize FTP_SERVER and FTP_SERVER_DIR
+        id: ftp-config
+        env:
+          RAW_SERVER: ${{ secrets.FTP_SERVER }}
+          RAW_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          # Strip any leading ftp://, ftps://, sftp://, or trailing slashes/spaces from FTP_SERVER
+          CLEAN_HOST=$(echo "$RAW_SERVER" | sed -E 's#^(ftps?|sftp)://##i' | sed -E 's#/.*$##' | xargs)
+          echo "host=$CLEAN_HOST" >> "$GITHUB_OUTPUT"
+
+          # Ensure server-dir ends with a trailing slash and defaults to ./
+          if [ -z "$RAW_DIR" ]; then
+            echo "dir=./" >> "$GITHUB_OUTPUT"
+          else
+            CLEAN_DIR=$(echo "$RAW_DIR" | sed -E 's#/*$#/#')
+            echo "dir=$CLEAN_DIR" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy dist/ to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp-config.outputs.host }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: ${{ vars.FTP_PORT || 21 }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
+          port: ${{ fromJSON(vars.FTP_PORT || '21') }}
           local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
+          server-dir: ${{ steps.ftp-config.outputs.dir }}
           dangerous-clean-slate: false
 
