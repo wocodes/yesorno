@@ -1,14 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { 
   ThumbsUp, ThumbsDown, MessageSquare, Mic, CheckCircle2, 
-  Lock, Globe, Clock, Image as ImageIcon, ArrowUpRight, Share2,
-  MapPin, Sparkles, UserCheck, Trash2, Send, ShieldCheck, Square, X,
+  Lock, Clock, Image as ImageIcon, ArrowUpRight, Share2,
+  UserCheck, Trash2, Send, ShieldCheck, Square, X,
   Heart, Bookmark
 } from 'lucide-react';
 import { Issue, UserProfile, VoteChoice, VoteSubmission } from '../types';
 import { computeIssueMetrics } from '../utils/summary';
 import { canUserAccessIssue, isIssueCreator, TOP_CREATORS_AND_VOTERS } from '../utils/auth';
-import { inferIssueRegion } from './DiscoveryHub';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
@@ -77,7 +76,6 @@ export const IssueCard: React.FC<Props> = ({
   const hasImages = !isDeleted && issue.images && issue.images.length > 0;
   const catEmoji = CATEGORY_ICONS[issue.category] || '🗳️';
   const shortCat = SHORT_CATEGORIES[issue.category] || issue.category;
-  const issueRegion = inferIssueRegion(issue);
 
   // Inline Social Reply Drawer State (X / Instagram / Facebook style instant reply)
   const [showInlineComposer, setShowInlineComposer] = useState(false);
@@ -215,19 +213,6 @@ export const IssueCard: React.FC<Props> = ({
     setShowInlineComposer(false);
   };
 
-  const isRegionPriority = Boolean(
-    currentUser?.region &&
-    currentUser.region !== 'Global / Remote' &&
-    issueRegion === currentUser.region
-  );
-  const isWorldwideMix = Boolean(
-    currentUser?.region &&
-    currentUser.region !== 'Global / Remote' &&
-    issueRegion === 'Global / Remote'
-  );
-  const isInterestPriority = Boolean(
-    currentUser?.interests && currentUser.interests.includes(issue.category)
-  );
   const isFollowedCreator = Boolean(
     currentUser?.followingCreators &&
     currentUser.followingCreators.some(followed => {
@@ -316,11 +301,6 @@ export const IssueCard: React.FC<Props> = ({
                   <span>{shortCat}</span>
                 </span>
 
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 whitespace-nowrap shrink-0">
-                  <MapPin className="w-2.5 h-2.5 text-brand-500 shrink-0" />
-                  <span>{issueRegion === 'Global / Remote' ? 'Worldwide' : issueRegion}</span>
-                </span>
-
                 {issue.visibility === 'private' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 whitespace-nowrap shrink-0">
                     <Lock className="w-3 h-3 shrink-0" /> Private
@@ -341,29 +321,12 @@ export const IssueCard: React.FC<Props> = ({
             </div>
           )}
 
-          {/* Personalized Match Indicator Strip — single-line horizontal scroll */}
-          {(isRegionPriority || isWorldwideMix || isInterestPriority || isFollowedCreator) && (
+          {/* Followed Creator Indicator Strip */}
+          {isFollowedCreator && (
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-              {isRegionPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0">
-                  <MapPin className="w-2.5 h-2.5 shrink-0" /> {issueRegion}
-                </span>
-              )}
-              {isWorldwideMix && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 whitespace-nowrap shrink-0">
-                  <Globe className="w-2.5 h-2.5 shrink-0" /> Worldwide
-                </span>
-              )}
-              {isInterestPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 whitespace-nowrap shrink-0">
-                  <Sparkles className="w-2.5 h-2.5 shrink-0" /> Your Interest
-                </span>
-              )}
-              {isFollowedCreator && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
-                  <UserCheck className="w-2.5 h-2.5 shrink-0" /> Following {issue.author.split(' ')[0]}
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
+                <UserCheck className="w-2.5 h-2.5 shrink-0" /> Following {issue.author.split(' ')[0]}
+              </span>
             </div>
           )}
 

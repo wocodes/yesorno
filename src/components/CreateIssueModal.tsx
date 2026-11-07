@@ -180,9 +180,12 @@ export const CreateIssueModal: React.FC<Props> = ({
     const now = Date.now();
     const closingTime = new Date(now + duration.hours * 60 * 60 * 1000).toISOString();
 
+    // Normalize question mark: strip any trailing ? or . or whitespace and append a single ?
+    const normalizedTitle = title.trim().replace(/[?.!\s]+$/, '') + '?';
+
     const newIssue: Issue = {
       id: `issue-${Date.now()}`,
-      title: title.trim(),
+      title: normalizedTitle,
       description: description.trim(),
       category: visibility === 'private' ? 'Private & Internal' : category,
       region: userRegion,
@@ -631,14 +634,14 @@ export const CreateIssueModal: React.FC<Props> = ({
           )}
 
           {/* Bottom Icon Action Bar (X / Instagram / Facebook Style) + Post Button */}
-          <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
+          <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
               {/* Photo Icon */}
               <button
                 type="button"
                 onClick={() => toggleTool('photos')}
                 title="Add Photos"
-                className={`p-2.5 rounded-full transition-colors cursor-pointer relative ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer relative shrink-0 ${
                   activeTool === 'photos' || images.length > 0
                     ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-emerald-500'
@@ -657,7 +660,7 @@ export const CreateIssueModal: React.FC<Props> = ({
                 type="button"
                 onClick={() => toggleTool('audio')}
                 title="Record 60s Audio Briefing"
-                className={`p-2.5 rounded-full transition-colors cursor-pointer relative ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer relative shrink-0 ${
                   activeTool === 'audio' || creatorVoice
                     ? 'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-amber-500'
@@ -674,7 +677,7 @@ export const CreateIssueModal: React.FC<Props> = ({
                 type="button"
                 onClick={() => toggleTool('deadline')}
                 title={`Voting Deadline (${duration.label})`}
-                className={`p-2.5 rounded-full transition-colors cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
                   activeTool === 'deadline'
                     ? 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-brand-500'
@@ -688,7 +691,7 @@ export const CreateIssueModal: React.FC<Props> = ({
                 type="button"
                 onClick={() => toggleTool('privacy')}
                 title={`Privacy (${visibility === 'private' ? 'Private Circle' : 'Public Poll'})`}
-                className={`p-2.5 rounded-full transition-colors cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
                   activeTool === 'privacy' || visibility === 'private'
                     ? 'bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-purple-500'
@@ -702,7 +705,7 @@ export const CreateIssueModal: React.FC<Props> = ({
                 type="button"
                 onClick={() => toggleTool('category')}
                 title={`Category (${activeCategoryObj.label})`}
-                className={`p-2.5 rounded-full transition-colors cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
                   activeTool === 'category'
                     ? 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-brand-500'
@@ -711,26 +714,12 @@ export const CreateIssueModal: React.FC<Props> = ({
                 <Layers className="w-4 h-4" />
               </button>
 
-              {/* Tags Icon */}
-              <button
-                type="button"
-                onClick={() => toggleTool('tags')}
-                title="Add Tags"
-                className={`p-2.5 rounded-full transition-colors cursor-pointer ${
-                  activeTool === 'tags' || tagsInput.trim()
-                    ? 'bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
-                    : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-sky-500'
-                }`}
-              >
-                <Tag className="w-4 h-4" />
-              </button>
-
               {/* Anonymous Identity Shield Toggle Icon */}
               <button
                 type="button"
                 onClick={() => setIsAnonymous(!isAnonymous)}
                 title={isAnonymous ? `Posting Anonymously as ${alias}` : 'Click to Post Anonymously'}
-                className={`p-2.5 rounded-full transition-colors cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
                   isAnonymous
                     ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-emerald-500'
@@ -744,7 +733,7 @@ export const CreateIssueModal: React.FC<Props> = ({
               <button
                 type="submit"
                 disabled={!isValid}
-                className={`py-2.5 px-5 rounded-full font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap ${
+                className={`py-2 px-4 sm:py-2.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
                   isValid
                     ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-glow cursor-pointer active:scale-95'
                     : 'bg-slate-200 dark:bg-ink-800 text-slate-400 dark:text-zinc-500 cursor-not-allowed'

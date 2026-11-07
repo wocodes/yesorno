@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
   RotateCcw, User, Home, Lock, Download, Sun, Moon, Settings, Compass 
@@ -19,12 +19,13 @@ interface Props {
   onOpenCreateModal: () => void;
   onOpenProfileSettings: () => void;
   onResetData: () => void;
-  categoryCounts: Record<string, number>;
+  categoryCounts?: Record<string, number>;
   currentView: AppView;
   onNavigate: (view: AppView) => void;
   currentUser: UserProfile | null;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  showSearchMobile?: boolean;
 }
 
 const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
@@ -52,15 +53,13 @@ export const Navbar: React.FC<Props> = ({
   onOpenCreateModal,
   onOpenProfileSettings,
   onResetData,
-  categoryCounts,
   currentView,
   onNavigate,
   currentUser,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  showSearchMobile = false
 }) => {
-  const [showSearchMobile, setShowSearchMobile] = useState(false);
-
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors">
       {/* Top Bar */}
@@ -121,15 +120,6 @@ export const Navbar: React.FC<Props> = ({
             >
               <Compass className="w-4 h-4" />
               <span className="hidden lg:inline">Discovery</span>
-            </button>
-
-            {/* Mobile Search Toggle */}
-            <button
-              onClick={() => setShowSearchMobile(!showSearchMobile)}
-              className="md:hidden p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-ink-800 rounded-xl transition-colors"
-              aria-label="Toggle search"
-            >
-              <Search className="w-4 h-4" />
             </button>
 
             {/* Dark / Light Mode Toggle */}
@@ -230,9 +220,6 @@ export const Navbar: React.FC<Props> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             {CATEGORIES.map(({ key, shortLabel, emoji }) => {
               const isSelected = selectedCategory === key;
-              const count = key === 'All' 
-                ? categoryCounts['All'] || 0
-                : categoryCounts[key] || 0;
 
               return (
                 <button
@@ -250,13 +237,6 @@ export const Navbar: React.FC<Props> = ({
                     <span>{emoji}</span>
                   )}
                   <span>{shortLabel}</span>
-                  {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-ink-800 text-zinc-500 dark:text-zinc-400'
-                    }`}>
-                      {count}
-                    </span>
-                  )}
                 </button>
               );
             })}

@@ -35,9 +35,7 @@ const REGION_OPTIONS: { region: IssueRegion; emoji: string; desc: string }[] = [
 export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], onComplete }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedInterests, setSelectedInterests] = useState<IssueCategory[]>(
-    user.interests && user.interests.length > 0
-      ? user.interests
-      : ['Workplace & Career', 'Community & Neighborhood', 'Education & Campus']
+    user.interests && user.interests.length > 0 ? user.interests : []
   );
   const [selectedRegion, setSelectedRegion] = useState<IssueRegion>(
     user.region || 'North America'
