@@ -1,4 +1,4 @@
-# CivicPulse 🗳️
+# YesOrNo 🗳️
 
 A modern, mobile-responsive Progressive Web Application (PWA) that empowers individuals, families, teams, and communities to vote with a simple **YES** or **NO** on issues that matter to them: **Family, Workplace, Communal, Religious, Group, Political, Environmental, Economical, Educational, and Policy** decisions.
 
@@ -21,7 +21,7 @@ Designed to world-class product standards, featuring haptic sound chimes, celebr
 
 ## 🌐 Spheres & Decision Categories
 
-CivicPulse is designed for any collective group reaching a decision:
+YesOrNo is designed for any collective group reaching a decision:
 - 💼 **Workplace & Career**: 4-day work weeks, remote vs. hybrid policies, equipment stipends, sprint workflows.
 - 👨‍👩‍👧 **Family & Home**: Device-free dinner rules, family vacation picks, chore covenants, curfew agreements.
 - 🏡 **Community & Neighborhood**: Weekend pedestrian zones, neighborhood solar lighting, noise curfews.

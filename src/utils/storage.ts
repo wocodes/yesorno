@@ -2,10 +2,10 @@ import { Issue } from '../types';
 import { INITIAL_ISSUES } from '../data/initialIssues';
 import { isLocalEnvironment } from './auth';
 
-const STORAGE_KEY_ISSUES = 'civicpulse_issues_v1';
-const STORAGE_KEY_USER_VOTES = 'civicpulse_user_votes_v1';
-const STORAGE_KEY_USER_LIKES = 'civicpulse_user_likes_v1';
-const STORAGE_KEY_USER_FAVORITES = 'civicpulse_user_favorites_v1';
+const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
+const STORAGE_KEY_USER_VOTES = 'yesorno_user_votes_v1';
+const STORAGE_KEY_USER_LIKES = 'yesorno_user_likes_v1';
+const STORAGE_KEY_USER_FAVORITES = 'yesorno_user_favorites_v1';
 
 /**
  * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).

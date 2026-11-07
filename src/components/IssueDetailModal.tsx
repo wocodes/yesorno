@@ -211,38 +211,38 @@ export const IssueDetailModal: React.FC<Props> = ({
         {/* Dark Executive Header */}
         <div className="p-5 sm:p-6 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-950 text-white sticky top-0 z-10">
           <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-300 border border-brand-400/30">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-300 whitespace-nowrap shrink-0">
                 {issue.category}
               </span>
               {issue.visibility === 'private' ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-400/30">
-                  <Lock className="w-3 h-3" /> Private Circle
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 whitespace-nowrap shrink-0">
+                  <Lock className="w-3 h-3 shrink-0" /> Private
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-zinc-300">
-                  <Globe className="w-3 h-3 text-emerald-400" /> Public
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-zinc-300 whitespace-nowrap shrink-0">
+                  <Globe className="w-3 h-3 text-emerald-400 shrink-0" /> Public
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-400/25">
-                <Clock className="w-3 h-3" /> {metrics.timeRemaining.text}
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 whitespace-nowrap shrink-0">
+                <Clock className="w-3 h-3 shrink-0" /> {metrics.timeRemaining.text}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Like / Heart Issue Button */}
               {onToggleLikeIssue && (
                 <button
                   type="button"
                   onClick={() => onToggleLikeIssue(issue.id)}
                   title={isLiked ? 'Unlike issue' : 'Like issue'}
-                  className={`px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  className={`px-2 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                     isLiked
                       ? 'bg-rose-500 text-white shadow-glow-rose'
                       : 'bg-white/10 hover:bg-white/20 text-zinc-200'
                   }`}
                 >
-                  <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                  <Heart className={`w-3.5 h-3.5 shrink-0 ${isLiked ? 'fill-current' : ''}`} />
                   <span>{issue.likesCount || 0}</span>
                 </button>
               )}
@@ -253,13 +253,13 @@ export const IssueDetailModal: React.FC<Props> = ({
                   type="button"
                   onClick={() => onToggleFavoriteIssue(issue.id)}
                   title={isFavorited ? 'Remove from Favourites' : 'Save to Favourites'}
-                  className={`px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  className={`px-2 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                     isFavorited
                       ? 'bg-amber-500 text-ink-950 shadow-glow'
                       : 'bg-white/10 hover:bg-white/20 text-zinc-200'
                   }`}
                 >
-                  <Bookmark className={`w-3.5 h-3.5 ${isFavorited ? 'fill-current' : ''}`} />
+                  <Bookmark className={`w-3.5 h-3.5 shrink-0 ${isFavorited ? 'fill-current' : ''}`} />
                   <span>{issue.favoritesCount || 0}</span>
                 </button>
               )}
@@ -268,9 +268,9 @@ export const IssueDetailModal: React.FC<Props> = ({
                 <button
                   onClick={() => onDeleteIssue(issue.id)}
                   title="Delete issue topic & description (keeps community responses)"
-                  className="px-3 py-1.5 text-rose-200 hover:text-white rounded-full bg-rose-500/20 hover:bg-rose-600 border border-rose-400/30 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1.5"
+                  className="px-2.5 py-1.5 text-rose-200 hover:text-white rounded-full bg-rose-500/20 hover:bg-rose-600 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 whitespace-nowrap"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="hidden sm:inline">Delete Topic</span>
                 </button>
               )}
@@ -278,16 +278,16 @@ export const IssueDetailModal: React.FC<Props> = ({
                 <button
                   onClick={() => onShareIssue(issue)}
                   title="Share issue to social media"
-                  className="px-3 py-1.5 text-white rounded-full bg-brand-600 hover:bg-brand-500 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-glow"
+                  className="px-2.5 py-1.5 text-white rounded-full bg-brand-600 hover:bg-brand-500 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 shadow-glow whitespace-nowrap"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Share</span>
+                  <Share2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Share</span>
                 </button>
               )}
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="p-2 text-zinc-300 hover:text-white rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                className="p-2 text-zinc-300 hover:text-white rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -328,42 +328,42 @@ export const IssueDetailModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Segmented Navigation Tabs */}
-          <div className="flex items-center gap-1.5 mt-4 bg-white/[0.07] p-1 rounded-xl border border-white/10">
+          {/* Segmented Navigation Tabs — guaranteed single line */}
+          <div className="flex items-center gap-1 mt-4 bg-white/[0.07] p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setActiveTab('perspectives')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === 'perspectives'
                   ? 'bg-white text-ink-950 shadow-soft'
                   : 'text-zinc-300 hover:text-white'
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Perspectives ({issue.responses.length})</span>
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+              <span>Replies ({issue.responses.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('digest')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === 'digest'
                   ? 'bg-white text-ink-950 shadow-soft'
                   : 'text-zinc-300 hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Digest &amp; Stats</span>
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>AI Digest</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('brief')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === 'brief'
                   ? 'bg-white text-ink-950 shadow-soft'
                   : 'text-zinc-300 hover:text-white'
               }`}
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className="w-3.5 h-3.5 shrink-0" />
               <span>Brief &amp; Media</span>
             </button>
           </div>

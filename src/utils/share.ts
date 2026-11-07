@@ -40,10 +40,10 @@ export function buildIssueSharePayload(issue: Issue): SharePayload {
 export function updateDocumentMetaForIssue(issue: Issue | null): void {
   if (typeof document === 'undefined') return;
 
-  const defaultTitle = 'CivicPulse | Vote YES or NO on Issues That Matter to You';
+  const defaultTitle = 'YesOrNo | Vote YES or NO on Issues That Matter to You';
   const defaultDesc = 'It takes less than 1 min to make your voice heard and make an impact. Vote YES or NO on family, workplace, communal, religious, group, and policy decisions.';
 
-  const title = issue ? `${issue.title} | CivicPulse` : defaultTitle;
+  const title = issue ? `${issue.title} | YesOrNo` : defaultTitle;
   const desc = issue ? issue.description : defaultDesc;
 
   document.title = title;

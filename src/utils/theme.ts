@@ -1,6 +1,6 @@
 export type ThemeMode = 'dark' | 'light';
 
-const STORAGE_KEY_THEME = 'civicpulse_theme_v1';
+const STORAGE_KEY_THEME = 'yesorno_theme_v1';
 
 export function getInitialTheme(): ThemeMode {
   try {

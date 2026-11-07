@@ -61,7 +61,7 @@ export const Navbar: React.FC<Props> = ({
   const [showSearchMobile, setShowSearchMobile] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] shadow-soft transition-colors">
+    <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors">
       {/* Top Bar */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
         <div className="flex items-center justify-between gap-3">
@@ -74,7 +74,7 @@ export const Navbar: React.FC<Props> = ({
               <Vote className="w-5 h-5" />
             </div>
             <span className="font-extrabold text-lg sm:text-xl tracking-tight text-ink-950 dark:text-white font-sans">
-              Civic<span className="text-gradient">Pulse</span>
+              Yes<span className="text-gradient">Or</span>No
             </span>
           </div>
 
@@ -87,7 +87,7 @@ export const Navbar: React.FC<Props> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search issues, tags, or circles..."
-                className="w-full text-xs pl-10 pr-3 py-2 bg-zinc-50 dark:bg-ink-950 hover:bg-zinc-100/70 dark:hover:bg-ink-950/80 focus:bg-white dark:focus:bg-ink-900 border border-black/[0.06] dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder:text-zinc-400 dark:text-white"
+                className="w-full text-xs pl-10 pr-3 py-2 bg-zinc-100/80 dark:bg-ink-950 hover:bg-zinc-100 dark:hover:bg-ink-950/80 focus:bg-white dark:focus:bg-ink-900 rounded-xl focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-zinc-400 dark:text-white"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@ export const Navbar: React.FC<Props> = ({
             {/* Install PWA Button */}
             <button
               onClick={() => {
-                localStorage.removeItem('civicpulse_pwa_dismissed_v1');
+                localStorage.removeItem('yesorno_pwa_dismissed_v1');
                 window.dispatchEvent(new Event('show-pwa-install'));
               }}
               className="p-2 text-zinc-600 dark:text-zinc-300 hover:text-brand-600 hover:bg-zinc-100 dark:hover:bg-ink-800 rounded-xl transition-colors hidden lg:flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
@@ -147,7 +147,7 @@ export const Navbar: React.FC<Props> = ({
             {/* User Profile & Settings Button */}
             <button
               onClick={() => (currentUser ? onOpenProfileSettings() : onNavigate('auth'))}
-              className="flex items-center gap-2 py-1.5 px-3 rounded-xl border border-black/[0.08] dark:border-white/10 hover:border-brand-300 dark:hover:border-brand-400/50 bg-white dark:bg-ink-800 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-2 py-1.5 px-3 rounded-xl bg-zinc-100/90 dark:bg-ink-800 hover:bg-zinc-200/80 dark:hover:bg-ink-700 text-xs font-semibold transition-all cursor-pointer"
               title="Profile, Preferences & Settings"
             >
               {currentUser?.avatar ? (
@@ -205,7 +205,7 @@ export const Navbar: React.FC<Props> = ({
       </div>
 
       {/* Categories & Filter Bar */}
-      <div className="border-t border-black/[0.04] dark:border-white/[0.06] bg-slate-50/70 dark:bg-ink-950/70 backdrop-blur-md">
+      <div className="bg-slate-100/60 dark:bg-ink-950/60 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
           {/* Scrollable Categories Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -222,7 +222,7 @@ export const Navbar: React.FC<Props> = ({
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                     isSelected
                       ? 'bg-ink-950 dark:bg-brand-600 text-white shadow-soft'
-                      : 'bg-white dark:bg-ink-900 hover:bg-zinc-100 dark:hover:bg-ink-800 text-zinc-600 dark:text-zinc-300 border border-black/[0.06] dark:border-white/10 hover:text-ink-900 dark:hover:text-white'
+                      : 'bg-white/90 dark:bg-ink-900 hover:bg-white dark:hover:bg-ink-800 text-zinc-600 dark:text-zinc-300 hover:text-ink-900 dark:hover:text-white'
                   }`}
                 >
                   {key === 'Private & Internal' ? (
@@ -249,7 +249,7 @@ export const Navbar: React.FC<Props> = ({
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value as FeedSortOption)}
-              className="text-xs bg-white dark:bg-ink-900 border border-black/[0.08] dark:border-white/10 rounded-xl px-2.5 py-1.5 text-ink-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500 cursor-pointer"
+              className="text-xs bg-white/90 dark:bg-ink-900 rounded-xl px-2.5 py-1.5 text-ink-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500 cursor-pointer"
             >
               <option value="for-you">✨ For You (Priority)</option>
               <option value="active">Most Active</option>

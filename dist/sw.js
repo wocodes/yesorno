@@ -1,5 +1,5 @@
-// CivicPulse Service Worker v1
-const CACHE_NAME = 'civicpulse-cache-v1';
+// YesOrNo Service Worker v1
+const CACHE_NAME = 'yesorno-cache-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

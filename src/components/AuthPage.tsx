@@ -15,6 +15,7 @@ interface Props {
   theme: ThemeMode;
   onToggleTheme: () => void;
   authPromptMessage?: string | null;
+  onOpenLegal?: (tab: 'terms' | 'privacy') => void;
 }
 
 declare global {
@@ -40,7 +41,8 @@ export const AuthPage: React.FC<Props> = ({
   onNavigate,
   theme,
   onToggleTheme,
-  authPromptMessage
+  authPromptMessage,
+  onOpenLegal
 }) => {
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -158,7 +160,7 @@ export const AuthPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Top Bar */}
-      <div className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] px-4 sm:px-8 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between">
         <div 
           onClick={() => onNavigate('landing')}
           className="flex items-center gap-2 cursor-pointer"
@@ -167,7 +169,7 @@ export const AuthPage: React.FC<Props> = ({
             <Vote className="w-4 h-4" />
           </div>
           <span className="font-extrabold text-base tracking-tight text-ink-950 dark:text-white">
-            Civic<span className="text-gradient">Pulse</span>
+            Yes<span className="text-gradient">Or</span>No
           </span>
         </div>
 
@@ -195,7 +197,7 @@ export const AuthPage: React.FC<Props> = ({
       <div className="max-w-md mx-auto px-4 py-8 sm:py-12 w-full space-y-5 flex-1 flex flex-col justify-center">
         {/* Protected Gate Notice */}
         {authPromptMessage && !currentUser && (
-          <div className="p-3.5 rounded-2xl bg-brand-50 dark:bg-brand-500/15 border border-brand-200 dark:border-brand-400/30 flex items-center gap-2.5 text-xs text-brand-800 dark:text-brand-200 font-semibold">
+          <div className="p-3.5 rounded-2xl bg-brand-50 dark:bg-brand-500/15 flex items-center gap-2.5 text-xs text-brand-800 dark:text-brand-200 font-semibold">
             <ShieldCheck className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
             <span>{authPromptMessage}</span>
           </div>
@@ -203,11 +205,11 @@ export const AuthPage: React.FC<Props> = ({
 
         {/* Header */}
         <div className="text-center space-y-1.5">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-200/70 dark:border-brand-400/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
             <Lock className="w-3 h-3" /> Authenticated Member Access
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Sign in to <span className="font-serif italic font-normal text-brand-600 dark:text-brand-400">CivicPulse</span>
+            Sign in to <span className="font-serif italic font-normal text-brand-600 dark:text-brand-400">YesOrNo</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-zinc-400">
             Only verified members can view, create, and vote on issues.
@@ -216,9 +218,9 @@ export const AuthPage: React.FC<Props> = ({
 
         {/* Active Profile Card if Signed In */}
         {currentUser && (
-          <div className="card p-5 space-y-3.5 border-brand-200/80 dark:border-brand-500/30 shadow-soft">
+          <div className="card p-5 space-y-3.5 shadow-soft">
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-400/30 px-2.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2.5 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Signed In
               </span>
@@ -231,7 +233,7 @@ export const AuthPage: React.FC<Props> = ({
             </div>
 
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-lg overflow-hidden border border-brand-200 dark:border-brand-400/30 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-lg overflow-hidden shrink-0">
                 {currentUser.avatar ? (
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 ) : (
@@ -467,7 +469,7 @@ export const AuthPage: React.FC<Props> = ({
 
         {/* LOCAL-ONLY Quick-Switch Demo Profiles (Automatically hidden in production!) */}
         {isLocal && (
-          <div className="border border-amber-300/60 dark:border-amber-500/30 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 overflow-hidden">
+          <div className="rounded-2xl bg-amber-50/50 dark:bg-amber-950/25 overflow-hidden">
             <button
               type="button"
               onClick={() => setShowDemoProfiles(!showDemoProfiles)}
@@ -481,7 +483,7 @@ export const AuthPage: React.FC<Props> = ({
             </button>
 
             {showDemoProfiles && (
-              <div className="p-3 border-t border-amber-200/60 dark:border-amber-500/20 space-y-2 animate-fade-in bg-white dark:bg-ink-900">
+              <div className="p-3 space-y-2 animate-fade-in bg-white dark:bg-ink-900">
                 {DEMO_USERS.map((demo) => {
                   const isSelected = currentUser?.id === demo.id;
                   return (
@@ -491,10 +493,10 @@ export const AuthPage: React.FC<Props> = ({
                         selectUserWithSavedPrefs(demo);
                         onNavigate('app');
                       }}
-                      className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                      className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between ${
                         isSelected
-                          ? 'border-brand-600 bg-brand-50/60 dark:bg-brand-500/20'
-                          : 'border-slate-200/80 dark:border-white/10 hover:border-brand-300 hover:bg-slate-50 dark:hover:bg-ink-800'
+                          ? 'bg-brand-50 dark:bg-brand-500/20 ring-1 ring-brand-500'
+                          : 'bg-slate-50 dark:bg-ink-800/70 hover:bg-slate-100 dark:hover:bg-ink-800'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -516,12 +518,36 @@ export const AuthPage: React.FC<Props> = ({
             )}
           </div>
         )}
+
+        {/* Legal Links Footer */}
+        <div className="pt-2 text-center text-[11px] text-slate-400 dark:text-zinc-500 flex flex-wrap items-center justify-center gap-3">
+          <span>By continuing, you agree to YesOrNo&apos;s</span>
+          {onOpenLegal && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('terms')}
+                className="font-semibold text-slate-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 underline cursor-pointer"
+              >
+                Terms of Use
+              </button>
+              <span>and</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('privacy')}
+                className="font-semibold text-slate-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 underline cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* GOOGLE OAUTH ACCOUNT CHOOSER MODAL */}
       {showGoogleChooser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-sm bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200 dark:border-white/10 overflow-hidden animate-slide-up">
+          <div className="w-full max-w-sm bg-white dark:bg-ink-900 rounded-3xl shadow-lift overflow-hidden animate-slide-up">
             <div className="p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -532,7 +558,7 @@ export const AuthPage: React.FC<Props> = ({
                 </svg>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Sign in with Google</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">to continue to CivicPulse</p>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">to continue to YesOrNo</p>
                 </div>
               </div>
               <button
