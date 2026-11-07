@@ -309,9 +309,10 @@ export const LandingPage: React.FC<Props> = ({
             
             {/* Left Column: Crisp, High-Impact Pitch (7 cols) */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 text-xs font-semibold text-emerald-300 backdrop-blur-xl">
-                <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>It takes less than 1 min to make your voice heard and make an impact</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-[11px] sm:text-xs font-semibold text-emerald-300 backdrop-blur-xl whitespace-nowrap max-w-full">
+                <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="sm:hidden">Make your voice heard in under 1 min</span>
+                <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
               </div>
 
               <h1 className="text-4xl sm:text-6xl xl:text-[64px] font-extrabold tracking-tight leading-[1.05] text-white">

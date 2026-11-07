@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
@@ -58,6 +58,8 @@ export function App() {
   const [sortBy, setSortBy] = useState<FeedSortOption>('for-you');
   const [regionScope, setRegionScope] = useState<'my-region-worldwide' | 'all-regions'>('my-region-worldwide');
   const [interestScope, setInterestScope] = useState<'my-interests-mixed' | 'all-categories'>('my-interests-mixed');
+  const [visibleCount, setVisibleCount] = useState(6);
+  const feedSentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Modals state
   const [activeVoteIssue, setActiveVoteIssue] = useState<Issue | null>(null);
@@ -626,6 +628,32 @@ export function App() {
     return result;
   }, [issues, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope, showFavoritesOnly, userFavorites]);
 
+  // Reset visible batch size when filters/search change
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [selectedCategory, searchQuery, sortBy, regionScope, interestScope, showFavoritesOnly]);
+
+  // Infinite Scroll Auto-Loader using IntersectionObserver
+  useEffect(() => {
+    const sentinel = feedSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 6, filteredIssues.length));
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredIssues.length, visibleCount]);
+
+  const visibleIssues = useMemo(
+    () => filteredIssues.slice(0, visibleCount),
+    [filteredIssues, visibleCount]
+  );
+
   // Landing view
   if (currentView === 'landing') {
     return (
@@ -708,45 +736,46 @@ export function App() {
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
         {/* Sleek, Compact Command Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-5 sm:p-6 text-white shadow-soft">
+        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-4 sm:p-6 text-white shadow-soft">
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
           <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold">
-                <Clock className="w-3 h-3 text-emerald-400" />
-                <span>It takes less than 1 min to make your voice heard and make an impact</span>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
+            <div className="space-y-1.5 min-w-0">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold whitespace-nowrap max-w-full">
+                <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="sm:hidden">Make your voice heard in under 1 min</span>
+                <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
                 Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
               </h1>
             </div>
 
-            {/* Compact Telemetry Strip + Action */}
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <div className="flex items-center gap-4 bg-white/[0.08] rounded-2xl px-4 py-2.5 backdrop-blur-md text-xs">
+            {/* Compact Telemetry Strip + Action — single-line horizontal fit on mobile */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-4 bg-white/[0.08] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 backdrop-blur-md text-[11px] sm:text-xs whitespace-nowrap">
                 <div>
-                  <span className="font-mono font-bold text-emerald-400 text-sm">{stats.totalVotes}</span>
+                  <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">{stats.totalVotes}</span>
                   <span className="text-zinc-400 ml-1">votes</span>
                 </div>
                 <span className="text-white/15">|</span>
                 <div>
-                  <span className="font-mono font-bold text-brand-300 text-sm">{stats.totalVoiceNotes}</span>
-                  <span className="text-zinc-400 ml-1">audio notes</span>
+                  <span className="font-mono font-bold text-brand-300 text-xs sm:text-sm">{stats.totalVoiceNotes}</span>
+                  <span className="text-zinc-400 ml-1">audio</span>
                 </div>
                 <span className="text-white/15">|</span>
                 <div>
-                  <span className="font-mono font-bold text-amber-300 text-sm">{stats.totalIssues}</span>
+                  <span className="font-mono font-bold text-amber-300 text-xs sm:text-sm">{stats.totalIssues}</span>
                   <span className="text-zinc-400 ml-1">issues</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="btn-brand text-xs py-2.5 px-4 shadow-glow cursor-pointer"
+                className="btn-brand text-xs py-2 sm:py-2.5 px-3.5 sm:px-4 shadow-glow cursor-pointer whitespace-nowrap shrink-0"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 <span>New Issue</span>
               </button>
             </div>
@@ -761,26 +790,26 @@ export function App() {
           onFilterByCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* Personalized Feed Priority & Region/Interests Control Bar */}
-        <div className="card p-3.5 sm:p-4 bg-white/90 dark:bg-ink-900/90 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink-950 dark:text-white mr-1">
-              <Sparkles className="w-4 h-4 text-brand-500" />
-              <span>Your Feed Priority:</span>
+        {/* Personalized Feed Priority & Region/Interests Control Bar — single-line horizontal scroll on mobile */}
+        <div className="card p-3 sm:p-4 bg-white/90 dark:bg-ink-900/90 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-950 dark:text-white whitespace-nowrap shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+              <span>Feed Priority:</span>
             </span>
 
             {/* Region + Worldwide Toggle */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-ink-950">
+            <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 shrink-0">
               <button
                 type="button"
                 onClick={() => setRegionScope('my-region-worldwide')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                   regionScope === 'my-region-worldwide'
                     ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
                     : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <MapPin className="w-3 h-3" />
+                <MapPin className="w-3 h-3 shrink-0" />
                 <span>
                   {currentUser.region && currentUser.region !== 'Global / Remote'
                     ? `${currentUser.region} + Worldwide`
@@ -790,36 +819,36 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setRegionScope('all-regions')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                   regionScope === 'all-regions'
                     ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
                     : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Globe className="w-3 h-3" />
+                <Globe className="w-3 h-3 shrink-0" />
                 <span>All Regions</span>
               </button>
             </div>
 
             {/* Interests + Worldwide Mix Toggle */}
             {currentUser.interests && currentUser.interests.length > 0 && (
-              <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-ink-950">
+              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 shrink-0">
                 <button
                   type="button"
                   onClick={() => setInterestScope('my-interests-mixed')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                     interestScope === 'my-interests-mixed'
                       ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <Sparkles className="w-3 h-3" />
-                  <span>My Interests ({currentUser.interests.length}) + Worldwide</span>
+                  <Sparkles className="w-3 h-3 shrink-0" />
+                  <span>Interests ({currentUser.interests.length}) + Worldwide</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setInterestScope('all-categories')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
                     interestScope === 'all-categories'
                       ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
@@ -832,8 +861,8 @@ export function App() {
 
             {/* Following badge */}
             {currentUser.followingCreators && currentUser.followingCreators.length > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
-                <UserCheck className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
+                <UserCheck className="w-3 h-3 shrink-0" />
                 <span>Following {currentUser.followingCreators.length}</span>
               </span>
             )}
@@ -842,13 +871,13 @@ export function App() {
             <button
               type="button"
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 showFavoritesOnly
                   ? 'bg-amber-500 text-ink-950 shadow-2xs'
                   : 'bg-slate-100 dark:bg-ink-950 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15'
               }`}
             >
-              <Bookmark className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
+              <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
               <span>Favourites ({Object.keys(userFavorites).length})</span>
             </button>
           </div>
@@ -857,17 +886,17 @@ export function App() {
             <button
               type="button"
               onClick={() => setIsOnboardingOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-700 dark:text-slate-200 whitespace-nowrap transition-colors cursor-pointer"
             >
               Setup Wizard
             </button>
             <button
               type="button"
               onClick={() => setIsProfileSettingsOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
             >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Profile &amp; Preferences</span>
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span>Preferences</span>
             </button>
           </div>
         </div>
@@ -942,29 +971,43 @@ export function App() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {filteredIssues.map((issue) => {
-              const voteRecord = userVotes[issue.id];
-              return (
-                <IssueCard
-                  key={issue.id}
-                  issue={issue}
-                  currentUser={currentUser}
-                  onOpenDetails={(iss) => setActiveDetailIssue(iss)}
-                  onQuickVote={handleOpenQuickVote}
-                  onInlineSubmitVote={handleVoteSubmit}
-                  onDeleteIssue={handleDeleteIssueByAuthor}
-                  onToggleLikeIssue={handleToggleLikeIssue}
-                  onToggleFavoriteIssue={handleToggleFavoriteIssue}
-                  onShareIssue={(iss) => setActiveShareIssue(iss)}
-                  hasUserVoted={!!voteRecord}
-                  userVoteChoice={voteRecord?.choice}
-                  isLiked={!!userLikes[issue.id]}
-                  isFavorited={!!userFavorites[issue.id]}
-                />
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {visibleIssues.map((issue) => {
+                const voteRecord = userVotes[issue.id];
+                return (
+                  <IssueCard
+                    key={issue.id}
+                    issue={issue}
+                    currentUser={currentUser}
+                    onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+                    onQuickVote={handleOpenQuickVote}
+                    onInlineSubmitVote={handleVoteSubmit}
+                    onDeleteIssue={handleDeleteIssueByAuthor}
+                    onToggleLikeIssue={handleToggleLikeIssue}
+                    onToggleFavoriteIssue={handleToggleFavoriteIssue}
+                    onShareIssue={(iss) => setActiveShareIssue(iss)}
+                    hasUserVoted={!!voteRecord}
+                    userVoteChoice={voteRecord?.choice}
+                    isLiked={!!userLikes[issue.id]}
+                    isFavorited={!!userFavorites[issue.id]}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Infinite Scroll Auto-Load Sentinel */}
+            {visibleCount < filteredIssues.length ? (
+              <div ref={feedSentinelRef} className="py-6 flex flex-col items-center justify-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
+                <div className="w-5 h-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+                <span>Loading more ballots ({visibleCount} of {filteredIssues.length})...</span>
+              </div>
+            ) : filteredIssues.length > 6 ? (
+              <div className="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
+                You&apos;ve reached the end of the feed ({filteredIssues.length} ballots)
+              </div>
+            ) : null}
+          </>
         )}
         {/* Workspace Footer with Terms of Use & Privacy Policy */}
         <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex flex-col sm:flex-row items-center justify-between gap-3">

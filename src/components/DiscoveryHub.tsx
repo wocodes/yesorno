@@ -152,70 +152,70 @@ export const DiscoveryHub: React.FC<Props> = ({
         </div>
 
         {/* Lens Switcher Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-xl text-xs">
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 w-full sm:w-auto">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-xl text-[11px] sm:text-xs overflow-x-auto no-scrollbar max-w-full">
             <button
               type="button"
               onClick={() => setMode('trending')}
-              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 mode === 'trending'
                   ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-2xs'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
               }`}
             >
-              <Flame className="w-3.5 h-3.5 text-amber-500" />
+              <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>Overall Top</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMode('region')}
-              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 mode === 'region'
                   ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-2xs'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
               }`}
             >
-              <Globe2 className="w-3.5 h-3.5 text-emerald-500" />
+              <Globe2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>By Region</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMode('category')}
-              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 mode === 'category'
                   ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-2xs'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
               }`}
             >
-              <Layers className="w-3.5 h-3.5 text-brand-500" />
+              <Layers className="w-3.5 h-3.5 text-brand-500 shrink-0" />
               <span>By Category</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMode('closing')}
-              className={`px-2.5 py-1 rounded-lg font-bold hidden sm:flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold hidden sm:flex items-center gap-1 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 mode === 'closing'
                   ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-2xs'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-rose-500" />
+              <Clock className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               <span>Closing Soon</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMode('debated')}
-              className={`px-2.5 py-1 rounded-lg font-bold hidden md:flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold hidden md:flex items-center gap-1 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 mode === 'debated'
                   ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-2xs'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
               }`}
             >
-              <Scale className="w-3.5 h-3.5 text-purple-500" />
+              <Scale className="w-3.5 h-3.5 text-purple-500 shrink-0" />
               <span>Hotly Debated</span>
             </button>
           </div>
@@ -223,7 +223,7 @@ export const DiscoveryHub: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-ink-800 text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-ink-800 text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer shrink-0"
             title={isExpanded ? 'Collapse Discovery Hub' : 'Expand Discovery Hub'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

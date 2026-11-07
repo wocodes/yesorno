@@ -305,63 +305,63 @@ export const IssueCard: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between">
+      <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
         <div className="space-y-2">
-          {/* Top Badges when NO image is present */}
+          {/* Top Badges when NO image is present — strictly single-line horizontal scroll on small mobile */}
           {!hasImages && (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 whitespace-nowrap shrink-0">
                   <span>{catEmoji}</span>
                   <span>{shortCat}</span>
                 </span>
 
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300">
-                  <MapPin className="w-2.5 h-2.5 text-brand-500" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 whitespace-nowrap shrink-0">
+                  <MapPin className="w-2.5 h-2.5 text-brand-500 shrink-0" />
                   <span>{issueRegion === 'Global / Remote' ? 'Worldwide' : issueRegion}</span>
                 </span>
 
                 {issue.visibility === 'private' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300">
-                    <Lock className="w-3 h-3" /> Private
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 whitespace-nowrap shrink-0">
+                    <Lock className="w-3 h-3 shrink-0" /> Private
                   </span>
                 ) : null}
 
                 {issue.creatorVoiceNote && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
-                    <Mic className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" /> Audio
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
+                    <Mic className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" /> Audio
                   </span>
                 )}
               </div>
 
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${metrics.timeRemaining.badgeColor}`}>
-                <Clock className="w-3 h-3" />
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold whitespace-nowrap shrink-0 ${metrics.timeRemaining.badgeColor}`}>
+                <Clock className="w-3 h-3 shrink-0" />
                 {metrics.timeRemaining.text}
               </span>
             </div>
           )}
 
-          {/* Personalized Match Indicator Strip (when matched by Region, Interest, or Followed Creator) */}
+          {/* Personalized Match Indicator Strip — single-line horizontal scroll */}
           {(isRegionPriority || isWorldwideMix || isInterestPriority || isFollowedCreator) && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
               {isRegionPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                  <MapPin className="w-2.5 h-2.5" /> Your Region Priority ({issueRegion})
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0">
+                  <MapPin className="w-2.5 h-2.5 shrink-0" /> {issueRegion}
                 </span>
               )}
               {isWorldwideMix && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                  <Globe className="w-2.5 h-2.5" /> Worldwide Feed
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 whitespace-nowrap shrink-0">
+                  <Globe className="w-2.5 h-2.5 shrink-0" /> Worldwide
                 </span>
               )}
               {isInterestPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
-                  <Sparkles className="w-2.5 h-2.5" /> Matches Your Interest
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 whitespace-nowrap shrink-0">
+                  <Sparkles className="w-2.5 h-2.5 shrink-0" /> Your Interest
                 </span>
               )}
               {isFollowedCreator && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
-                  <UserCheck className="w-2.5 h-2.5" /> Following {issue.author}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
+                  <UserCheck className="w-2.5 h-2.5 shrink-0" /> Following {issue.author.split(' ')[0]}
                 </span>
               )}
             </div>
@@ -422,20 +422,20 @@ export const IssueCard: React.FC<Props> = ({
       </div>
 
       {/* Card Footer with Replies, Like/Heart, Favourite/Bookmark, Share, Delete & 1-Tap Voting */}
-      <div className="px-5 py-3 bg-slate-50/70 dark:bg-ink-950/50 flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-slate-50/70 dark:bg-ink-950/50 flex items-center justify-between gap-1.5 text-xs overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
           <button 
             type="button"
             onClick={() => onOpenDetails(issue)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/50 dark:hover:bg-ink-800 cursor-pointer transition-colors font-semibold"
+            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/50 dark:hover:bg-ink-800 cursor-pointer transition-colors font-semibold whitespace-nowrap"
             title="View perspectives & audio notes"
           >
             <span className="flex items-center gap-1">
-              <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+              <MessageSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>{issue.responses.length}</span>
             </span>
             {metrics.voiceNotesCount > 0 && (
-              <span className="flex items-center gap-1 text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/15 px-1.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-400/30 font-bold text-[10px]">
+              <span className="hidden sm:flex items-center gap-1 text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/15 px-1.5 py-0.5 rounded-full font-bold text-[10px]">
                 <Mic className="w-2.5 h-2.5" />
                 <span>{metrics.voiceNotesCount}</span>
               </span>
@@ -448,13 +448,13 @@ export const IssueCard: React.FC<Props> = ({
               type="button"
               onClick={() => onToggleLikeIssue(issue.id)}
               title={isLiked ? 'Unlike issue' : 'Like issue'}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold transition-all cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                 isLiked
                   ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200/50 dark:hover:bg-ink-800'
               }`}
             >
-              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
+              <Heart className={`w-3.5 h-3.5 shrink-0 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
               <span>{issue.likesCount || 0}</span>
             </button>
           )}
@@ -465,13 +465,13 @@ export const IssueCard: React.FC<Props> = ({
               type="button"
               onClick={() => onToggleFavoriteIssue(issue.id)}
               title={isFavorited ? 'Remove from Favourites' : 'Save to Favourites'}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold transition-all cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                 isFavorited
                   ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-200/50 dark:hover:bg-ink-800'
               }`}
             >
-              <Bookmark className={`w-3.5 h-3.5 ${isFavorited ? 'fill-current text-amber-500' : ''}`} />
+              <Bookmark className={`w-3.5 h-3.5 shrink-0 ${isFavorited ? 'fill-current text-amber-500' : ''}`} />
               <span>{issue.favoritesCount || 0}</span>
             </button>
           )}
@@ -482,85 +482,83 @@ export const IssueCard: React.FC<Props> = ({
               type="button"
               onClick={() => onShareIssue(issue)}
               title="Share issue title & description to social media"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/60 dark:hover:bg-ink-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/60 dark:hover:bg-ink-800 transition-colors cursor-pointer shrink-0"
             >
               <Share2 className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {/* Creator Delete Issue Button (Preserves responses, replaces topic & description with 'Deleted by Author') */}
+          {/* Creator Delete Issue Button */}
           {isCreator && !isDeleted && onDeleteIssue && (
             <button
               type="button"
               onClick={() => onDeleteIssue(issue.id)}
               title="Delete issue topic & description (keeps community responses)"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors cursor-pointer shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1.5">
+        {/* Action Buttons — guaranteed single line */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {!access.canAccess ? (
             <button
               onClick={() => onOpenDetails(issue)}
-              className="flex items-center gap-1.5 py-1.5 px-3 bg-slate-200 dark:bg-ink-800 hover:bg-slate-300 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 bg-slate-200 dark:bg-ink-800 hover:bg-slate-300 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-[11px] sm:text-xs whitespace-nowrap transition-colors cursor-pointer"
             >
-              <Lock className="w-3 h-3" />
-              <span>Private Circle</span>
+              <Lock className="w-3 h-3 shrink-0" />
+              <span>Private</span>
             </button>
           ) : isDeleted ? (
             <button
               onClick={() => onOpenDetails(issue)}
-              className="flex items-center gap-1 py-1.5 px-3 bg-slate-200 dark:bg-ink-800 hover:bg-slate-300 dark:hover:bg-ink-700 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-xs transition-all cursor-pointer"
+              className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 bg-slate-200 dark:bg-ink-800 hover:bg-slate-300 dark:hover:bg-ink-700 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer"
             >
-              <span>View {issue.responses.length} Responses</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>{issue.responses.length} Replies</span>
+              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           ) : metrics.isClosed ? (
             <button
               onClick={() => onOpenDetails(issue)}
-              className="flex items-center gap-1 py-1.5 px-3 bg-ink-950 dark:bg-brand-600 hover:bg-ink-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+              className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 bg-ink-950 dark:bg-brand-600 hover:bg-ink-800 text-white font-bold rounded-xl text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer"
             >
-              <span>Final Digest</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>Digest</span>
+              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           ) : hasUserVoted ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setInlineChoice(userVoteChoice || 'YES');
-                  setShowInlineComposer(!showInlineComposer);
-                }}
-                className={`flex items-center gap-1.5 py-1.5 px-3 font-bold rounded-xl text-xs transition-colors cursor-pointer ${
-                  userVoteChoice === 'YES'
-                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-rose-50 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300'
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Voted {userVoteChoice} • Reply</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setInlineChoice(userVoteChoice || 'YES');
+                setShowInlineComposer(!showInlineComposer);
+              }}
+              className={`flex items-center gap-1 py-1.5 px-2.5 sm:px-3 font-bold rounded-xl text-[11px] sm:text-xs whitespace-nowrap transition-colors cursor-pointer ${
+                userVoteChoice === 'YES'
+                  ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>{userVoteChoice} • Reply</span>
+            </button>
           ) : (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('YES')}
-                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white font-extrabold text-xs transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95"
               >
-                <ThumbsUp className="w-3 h-3" />
+                <ThumbsUp className="w-3 h-3 shrink-0" />
                 <span>YES</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('NO')}
-                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-extrabold text-xs transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95"
               >
-                <ThumbsDown className="w-3 h-3" />
+                <ThumbsDown className="w-3 h-3 shrink-0" />
                 <span>NO</span>
               </button>
             </div>
