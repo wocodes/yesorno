@@ -3,7 +3,7 @@ import {
   X, Share2, Copy, Check, ExternalLink, Download, 
   Sparkles, Image as ImageIcon, Smartphone, Monitor, Loader2 
 } from 'lucide-react';
-import { Issue } from '../types';
+import { Issue, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
 import { buildIssueSharePayload } from '../utils/share';
 import { 
@@ -14,19 +14,22 @@ import {
   shareIssueCardFile 
 } from '../utils/cardGenerator';
 import { recordEngagementAction } from '../utils/analytics';
+import { notifyAdminIssueShared } from '../utils/emailNotifier';
 
 interface Props {
   issue: Issue | null;
   isOpen: boolean;
   onClose: () => void;
   colorTone?: ColorTone;
+  currentUser?: UserProfile | null;
 }
 
 export const ShareIssueModal: React.FC<Props> = ({ 
   issue, 
   isOpen, 
   onClose, 
-  colorTone = 'vibrant' 
+  colorTone = 'vibrant',
+  currentUser
 }) => {
   const [format, setFormat] = useState<CardFormat>('landscape');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -89,6 +92,7 @@ export const ShareIssueModal: React.FC<Props> = ({
       setIsDownloading(true);
       await downloadIssueCard(issue, { format, colorTone });
       recordEngagementAction('card_download', issue.title);
+      notifyAdminIssueShared(issue, 'Downloaded Social Image Card (.PNG)', currentUser);
     } catch (err) {
       console.error('Failed to download card:', err);
     } finally {
@@ -104,6 +108,7 @@ export const ShareIssueModal: React.FC<Props> = ({
       if (ok) {
         setCopiedImage(true);
         recordEngagementAction('card_copy', issue.title);
+        notifyAdminIssueShared(issue, 'Copied Image Card to Clipboard', currentUser);
         setTimeout(() => setCopiedImage(false), 3000);
       } else {
         // Fallback to text copy if image clipboard write is blocked
@@ -121,6 +126,7 @@ export const ShareIssueModal: React.FC<Props> = ({
       const shared = await shareIssueCardFile(issue, { format, colorTone });
       if (shared) {
         recordEngagementAction('share', `${issue.title} (Image File)`);
+        notifyAdminIssueShared(issue, 'Native Image File Share', currentUser);
       }
     } catch {
       // User cancelled
@@ -133,6 +139,7 @@ export const ShareIssueModal: React.FC<Props> = ({
       await navigator.clipboard.writeText(`${payload.fullText}\n${payload.url}`);
       setCopiedLink(true);
       recordEngagementAction('share', `${issue.title} (Copied Link)`);
+      notifyAdminIssueShared(issue, 'Copied Question & Direct Link', currentUser);
       setTimeout(() => setCopiedLink(false), 2500);
     } catch {
       // Fallback
@@ -148,6 +155,7 @@ export const ShareIssueModal: React.FC<Props> = ({
           url: payload.url,
         });
         recordEngagementAction('share', `${issue.title} (Native Web Share)`);
+        notifyAdminIssueShared(issue, 'Native Device Share Sheet', currentUser);
       } catch {
         // User cancelled
       }
@@ -315,7 +323,10 @@ export const ShareIssueModal: React.FC<Props> = ({
               href={`https://wa.me/?text=${encodedText}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordEngagementAction('share', `${issue.title} (WhatsApp)`)}
+              onClick={() => {
+                recordEngagementAction('share', `${issue.title} (WhatsApp)`);
+                notifyAdminIssueShared(issue, 'WhatsApp', currentUser);
+              }}
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs"
             >
               <span>WhatsApp</span>
@@ -326,7 +337,10 @@ export const ShareIssueModal: React.FC<Props> = ({
               href={`https://twitter.com/intent/tweet?text=${encodedTweet}&url=${encodedUrl}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordEngagementAction('share', `${issue.title} (Twitter/X)`)}
+              onClick={() => {
+                recordEngagementAction('share', `${issue.title} (Twitter/X)`);
+                notifyAdminIssueShared(issue, '𝕏 / Twitter', currentUser);
+              }}
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-ink-950 hover:bg-ink-800 dark:bg-white/10 dark:hover:bg-white/15 text-white transition-all shadow-2xs"
             >
               <span>𝕏 / Twitter</span>
@@ -337,7 +351,10 @@ export const ShareIssueModal: React.FC<Props> = ({
               href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordEngagementAction('share', `${issue.title} (LinkedIn)`)}
+              onClick={() => {
+                recordEngagementAction('share', `${issue.title} (LinkedIn)`);
+                notifyAdminIssueShared(issue, 'LinkedIn', currentUser);
+              }}
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0A66C2] hover:bg-[#0958a8] text-white transition-all shadow-2xs"
             >
               <span>LinkedIn</span>
@@ -348,7 +365,10 @@ export const ShareIssueModal: React.FC<Props> = ({
               href={`https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(`${payload.title}\n\n${payload.description}`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordEngagementAction('share', `${issue.title} (Telegram)`)}
+              onClick={() => {
+                recordEngagementAction('share', `${issue.title} (Telegram)`);
+                notifyAdminIssueShared(issue, 'Telegram', currentUser);
+              }}
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec4] text-white transition-all shadow-2xs"
             >
               <span>Telegram</span>
@@ -359,7 +379,10 @@ export const ShareIssueModal: React.FC<Props> = ({
               href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodeURIComponent(`${payload.title} — ${payload.description}`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordEngagementAction('share', `${issue.title} (Facebook)`)}
+              onClick={() => {
+                recordEngagementAction('share', `${issue.title} (Facebook)`);
+                notifyAdminIssueShared(issue, 'Facebook', currentUser);
+              }}
               className="col-span-2 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-2xs"
             >
               <span>Share on Facebook</span>
