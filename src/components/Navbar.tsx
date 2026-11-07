@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Sun, Moon, Settings, Compass 
+  RotateCcw, User, Home, Lock, Download, Settings, Compass, Palette, BarChart3 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
-import { ThemeMode } from '../utils/theme';
+import { ColorTone } from '../utils/theme';
+import { isAdminUser } from '../utils/auth';
 
 export type FeedSortOption = 'for-you' | 'active' | 'closing' | 'yes' | 'perspectives';
 
@@ -19,12 +20,13 @@ interface Props {
   onOpenCreateModal: () => void;
   onOpenProfileSettings: () => void;
   onResetData: () => void;
-  categoryCounts: Record<string, number>;
+  categoryCounts?: Record<string, number>;
   currentView: AppView;
   onNavigate: (view: AppView) => void;
   currentUser: UserProfile | null;
-  theme: ThemeMode;
-  onToggleTheme: () => void;
+  showSearchMobile?: boolean;
+  colorTone: ColorTone;
+  onToggleColorTone: () => void;
 }
 
 const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
@@ -52,15 +54,13 @@ export const Navbar: React.FC<Props> = ({
   onOpenCreateModal,
   onOpenProfileSettings,
   onResetData,
-  categoryCounts,
   currentView,
   onNavigate,
   currentUser,
-  theme,
-  onToggleTheme
+  showSearchMobile = false,
+  colorTone,
+  onToggleColorTone
 }) => {
-  const [showSearchMobile, setShowSearchMobile] = useState(false);
-
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors">
       {/* Top Bar */}
@@ -123,23 +123,35 @@ export const Navbar: React.FC<Props> = ({
               <span className="hidden lg:inline">Discovery</span>
             </button>
 
-            {/* Mobile Search Toggle */}
-            <button
-              onClick={() => setShowSearchMobile(!showSearchMobile)}
-              className="md:hidden p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-ink-800 rounded-xl transition-colors"
-              aria-label="Toggle search"
-            >
-              <Search className="w-4 h-4" />
-            </button>
+            {/* Admin Analytics link (Restricted to Admin Email Only) */}
+            {isAdminUser(currentUser) && (
+              <button
+                onClick={() => onNavigate('analytics')}
+                className={`p-2 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                  currentView === 'analytics'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                    : 'text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-ink-800'
+                }`}
+                title="Admin Analytics & Growth Telemetry"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden lg:inline">Analytics</span>
+              </button>
+            )}
 
-            {/* Dark / Light Mode Toggle */}
+            {/* Color Tone Switch (Full-Coloured vs Toned-Down) */}
             <button
-              onClick={onToggleTheme}
-              className="p-2 rounded-xl bg-zinc-100 dark:bg-ink-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-ink-700 transition-colors cursor-pointer"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label="Toggle theme"
+              onClick={onToggleColorTone}
+              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                colorTone === 'toned'
+                  ? 'bg-slate-200 dark:bg-ink-800 text-slate-700 dark:text-slate-200'
+                  : 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30'
+              }`}
+              title={colorTone === 'vibrant' ? 'Switch to Toned-Down Palette' : 'Switch to Full-Coloured Palette'}
+              aria-label="Toggle color palette tone"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-brand-600" />}
+              <Palette className="w-4 h-4 shrink-0" />
+              <span className="hidden xl:inline">{colorTone === 'vibrant' ? 'Vibrant' : 'Toned'}</span>
             </button>
 
             {/* Install PWA Button */}
@@ -230,9 +242,6 @@ export const Navbar: React.FC<Props> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             {CATEGORIES.map(({ key, shortLabel, emoji }) => {
               const isSelected = selectedCategory === key;
-              const count = key === 'All' 
-                ? categoryCounts['All'] || 0
-                : categoryCounts[key] || 0;
 
               return (
                 <button
@@ -250,13 +259,6 @@ export const Navbar: React.FC<Props> = ({
                     <span>{emoji}</span>
                   )}
                   <span>{shortLabel}</span>
-                  {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-ink-800 text-zinc-500 dark:text-zinc-400'
-                    }`}>
-                      {count}
-                    </span>
-                  )}
                 </button>
               );
             })}

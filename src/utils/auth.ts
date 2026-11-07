@@ -274,3 +274,26 @@ export function canUserAccessIssue(issue: Issue, user: UserProfile | null): {
 
   return { canAccess: false, reason: 'restricted' };
 }
+
+/**
+ * Authorized Admin Emails allowed to view the Admin Analytics & Growth Telemetry page (#analytics)
+ */
+export const ADMIN_EMAILS: string[] = [
+  'william.odiomonafe@gmail.com',
+  'odiomonafe@gmail.com',
+  'admin@yesorno.chillon.top',
+  'admin@chillon.top',
+];
+
+/**
+ * Checks whether the current user is an authorized platform administrator.
+ * In local dev (`npm run dev`), also allows the local dev sample accounts for testing.
+ */
+export function isAdminUser(user: UserProfile | null): boolean {
+  if (!user || !user.email) return false;
+  const emailLower = user.email.trim().toLowerCase();
+  if (ADMIN_EMAILS.includes(emailLower)) return true;
+  if (emailLower.endsWith('@chillon.top')) return true;
+  if (isLocalEnvironment()) return true;
+  return false;
+}

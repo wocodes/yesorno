@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, Mail, Check, ArrowRight, Lock, 
   Sparkles, LogOut, Vote, ChevronDown, ChevronUp,
-  Sun, Moon, ShieldCheck, X
+  Sun, Moon, ShieldCheck, X, Palette
 } from 'lucide-react';
 import { UserProfile, AppView } from '../types';
 import { DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, isLocalEnvironment, decodeGoogleJwt, getSavedProfileByEmail } from '../utils/auth';
-import { ThemeMode } from '../utils/theme';
+import { ThemeMode, ColorTone } from '../utils/theme';
 
 interface Props {
   currentUser: UserProfile | null;
@@ -14,6 +14,8 @@ interface Props {
   onNavigate: (view: AppView) => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  colorTone?: ColorTone;
+  onToggleColorTone?: () => void;
   authPromptMessage?: string | null;
   onOpenLegal?: (tab: 'terms' | 'privacy') => void;
 }
@@ -41,6 +43,8 @@ export const AuthPage: React.FC<Props> = ({
   onNavigate,
   theme,
   onToggleTheme,
+  colorTone = 'vibrant',
+  onToggleColorTone,
   authPromptMessage,
   onOpenLegal
 }) => {
@@ -186,6 +190,19 @@ export const AuthPage: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onToggleColorTone && (
+            <button
+              onClick={onToggleColorTone}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                colorTone === 'toned'
+                  ? 'bg-slate-200 dark:bg-ink-800 text-slate-700 dark:text-slate-200'
+                  : 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300'
+              }`}
+              title={colorTone === 'vibrant' ? 'Switch to Toned-Down Palette' : 'Switch to Full-Coloured Palette'}
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={onToggleTheme}
             className="p-2 rounded-xl bg-slate-100 dark:bg-ink-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-ink-700 transition-colors cursor-pointer"

@@ -35,9 +35,7 @@ const REGION_OPTIONS: { region: IssueRegion; emoji: string; desc: string }[] = [
 export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], onComplete }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedInterests, setSelectedInterests] = useState<IssueCategory[]>(
-    user.interests && user.interests.length > 0
-      ? user.interests
-      : ['Workplace & Career', 'Community & Neighborhood', 'Education & Campus']
+    user.interests && user.interests.length > 0 ? user.interests : []
   );
   const [selectedRegion, setSelectedRegion] = useState<IssueRegion>(
     user.region || 'North America'
@@ -103,11 +101,11 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], on
 
   return (
     <div 
-      className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-ink-950/80 backdrop-blur-lg animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-ink-950/80 backdrop-blur-lg animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-xl bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
+      <div className="relative w-full max-w-xl bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden flex flex-col max-h-[92vh] animate-slide-up overscroll-contain">
         {/* Top Progress Header */}
         <div className="p-5 sm:p-6 bg-gradient-to-r from-ink-950 via-ink-900 to-brand-950 text-white space-y-3">
           <div className="flex items-center justify-between">
@@ -172,7 +170,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], on
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-4">
           {/* STEP 1: INTERESTS */}
           {step === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

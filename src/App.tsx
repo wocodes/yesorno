@@ -3,9 +3,22 @@ import {
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
 } from './utils/storage';
-import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
-import { getInitialTheme, applyTheme, ThemeMode } from './utils/theme';
-import { updateDocumentMetaForIssue } from './utils/share';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser } from './utils/auth';
+import { 
+  getInitialTheme, applyTheme, ThemeMode, 
+  getInitialColorTone, applyColorTone, ColorTone 
+} from './utils/theme';
+import { updateDocumentMetaForIssue, findIssueFromUrl, buildIssueSlug } from './utils/share';
+import {
+  recordSessionStart,
+  recordActiveTimeTick,
+  recordPageView,
+  recordElementClick,
+  recordSearchQuery,
+  recordColorToneSwitch,
+  recordThemeModeSwitch,
+  recordEngagementAction,
+} from './utils/analytics';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -16,6 +29,7 @@ import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal'
 import { LegalModal, LegalDocTab } from './components/LegalModal';
 import { ShareIssueModal } from './components/ShareIssueModal';
 import { DiscoveryHub, inferIssueRegion } from './components/DiscoveryHub';
+import { AdminAnalyticsPage } from './components/AdminAnalyticsPage';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { LandingPage } from './components/LandingPage';
@@ -23,22 +37,24 @@ import { AuthPage } from './components/AuthPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { 
-  ShieldCheck, Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass
+  Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles
 } from 'lucide-react';
 
 function getInitialView(user: UserProfile | null): AppView {
   const hash = window.location.hash.replace('#', '');
   const params = new URLSearchParams(window.location.search);
-  const hasSharedIssue = params.has('issue');
+  const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  const hasSharedIssue = params.has('issue') || Boolean(rawPath && rawPath !== 'index.html');
 
   if (hash === 'landing') {
     return 'landing';
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
+    if (hash === 'analytics' && isAdminUser(user)) return 'analytics';
     return 'app';
   }
-  if (hash === 'app' || hash === 'discovery' || hasSharedIssue || hash === 'auth') {
+  if (hash === 'app' || hash === 'discovery' || hash === 'analytics' || hasSharedIssue || hash === 'auth') {
     return 'auth';
   }
   return 'landing';
@@ -48,6 +64,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredUser());
   const [currentView, setCurrentView] = useState<AppView>(() => getInitialView(getStoredUser()));
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [colorTone, setColorTone] = useState<ColorTone>(() => getInitialColorTone());
   const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
@@ -58,6 +75,7 @@ export function App() {
   
   const [selectedCategory, setSelectedCategory] = useState<IssueCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchMobile, setShowSearchMobile] = useState(false);
   const [sortBy, setSortBy] = useState<FeedSortOption>('for-you');
   const [regionScope, setRegionScope] = useState<'my-region-worldwide' | 'all-regions'>('my-region-worldwide');
   const [interestScope, setInterestScope] = useState<'my-interests-mixed' | 'all-categories'>('my-interests-mixed');
@@ -83,25 +101,180 @@ export function App() {
     applyTheme(theme);
   }, [theme]);
 
+  // Apply color tone class (Full-Coloured vs Toned-Down) to <html>
+  useEffect(() => {
+    applyColorTone(colorTone);
+  }, [colorTone]);
+
   const handleToggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      recordThemeModeSwitch(next);
+      return next;
+    });
   };
 
-  // Sync OpenGraph / document meta tags when an issue is opened or shared
+  const handleToggleColorTone = () => {
+    setColorTone(prev => {
+      const next = prev === 'vibrant' ? 'toned' : 'vibrant';
+      recordColorToneSwitch(next);
+      return next;
+    });
+  };
+
+  // Analytics: Record session start (and return visit detection) once on mount
   useEffect(() => {
-    updateDocumentMetaForIssue(activeDetailIssue || activeShareIssue || null);
+    recordSessionStart(colorTone, theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Analytics: 1-second active dwell-time ticker (only while tab is visible)
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        recordActiveTimeTick(1, currentView, colorTone, theme);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [currentView, colorTone, theme]);
+
+  // Analytics: Track page views whenever currentView changes
+  useEffect(() => {
+    recordPageView(currentView);
+  }, [currentView]);
+
+  // Analytics: Track modal opens as views
+  useEffect(() => {
+    if (activeDetailIssue) recordPageView('modal:detail');
+  }, [activeDetailIssue]);
+  useEffect(() => {
+    if (activeVoteIssue) recordPageView('modal:vote');
+  }, [activeVoteIssue]);
+  useEffect(() => {
+    if (isCreateModalOpen) recordPageView('modal:create');
+  }, [isCreateModalOpen]);
+  useEffect(() => {
+    if (isProfileSettingsOpen) recordPageView('modal:profile');
+  }, [isProfileSettingsOpen]);
+  useEffect(() => {
+    if (activeShareIssue) recordPageView('modal:share');
+  }, [activeShareIssue]);
+  useEffect(() => {
+    if (isGuidelinesOpen) recordPageView('modal:guidelines');
+  }, [isGuidelinesOpen]);
+  useEffect(() => {
+    if (legalModalTab) recordPageView('modal:legal');
+  }, [legalModalTab]);
+  useEffect(() => {
+    if (isOnboardingOpen) recordPageView('modal:onboarding');
+  }, [isOnboardingOpen]);
+
+  // Analytics: Debounced search query telemetry
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+    const timer = window.setTimeout(() => {
+      recordSearchQuery(trimmed);
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Analytics: Global delegated click tracker for all buttons and links
+  useEffect(() => {
+    const onDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const clickable = target.closest('button, a, [role="button"]') as HTMLElement | null;
+      if (!clickable) return;
+
+      const tag = clickable.tagName.toLowerCase();
+      const kind: 'button' | 'link' = tag === 'a' ? 'link' : 'button';
+
+      const rawLabel =
+        clickable.getAttribute('data-analytics-label') ||
+        clickable.getAttribute('aria-label') ||
+        clickable.getAttribute('title') ||
+        clickable.textContent ||
+        '';
+
+      const cleanLabel = rawLabel.replace(/\s+/g, ' ').trim().slice(0, 56);
+      if (!cleanLabel) return;
+
+      let location = 'Main Workspace';
+      if (clickable.closest('header')) location = 'Header Navbar';
+      else if (clickable.closest('footer')) location = 'Footer';
+      else if (clickable.closest('[role="dialog"], .fixed.inset-0')) location = 'Modal Dialog';
+      else if (clickable.closest('article')) location = 'Issue Card';
+
+      const slugId = `${kind}:${location.toLowerCase().replace(/\s+/g, '-')}:${cleanLabel
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 36)}`;
+
+      recordElementClick(slugId, cleanLabel, kind, location);
+    };
+
+    document.addEventListener('click', onDocumentClick, true);
+    return () => document.removeEventListener('click', onDocumentClick, true);
+  }, []);
+
+  // Lock background page scroll whenever any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      activeVoteIssue ||
+      activeDetailIssue ||
+      activeShareIssue ||
+      isGuidelinesOpen ||
+      legalModalTab !== null ||
+      isCreateModalOpen ||
+      isProfileSettingsOpen ||
+      isOnboardingOpen
+    );
+
+    if (isAnyModalOpen) {
+      const prevBodyOverflow = document.body.style.overflow;
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevBodyOverflow;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+      };
+    }
+  }, [
+    activeVoteIssue,
+    activeDetailIssue,
+    activeShareIssue,
+    isGuidelinesOpen,
+    legalModalTab,
+    isCreateModalOpen,
+    isProfileSettingsOpen,
+    isOnboardingOpen,
+  ]);
+
+  // Sync OpenGraph / document meta tags and clean slug URL when an issue is opened or shared
+  useEffect(() => {
+    const targetIssue = activeDetailIssue || activeShareIssue || null;
+    updateDocumentMetaForIssue(targetIssue);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      if (targetIssue) {
+        const slugPath = `/${buildIssueSlug(targetIssue)}`;
+        if (window.location.pathname !== slugPath) {
+          window.history.replaceState(null, '', `${slugPath}${window.location.hash}`);
+        }
+      } else if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+        window.history.replaceState(null, '', `/${window.location.hash || '#app'}`);
+      }
+    }
   }, [activeDetailIssue, activeShareIssue]);
 
-  // If URL has ?issue=<id> and user is authenticated, auto-open that issue
+  // If URL has /{slug-of-the-issue-question}-{id} or ?issue=<id> and user is authenticated, auto-open that issue
   useEffect(() => {
     if (!currentUser) return;
-    const params = new URLSearchParams(window.location.search);
-    const sharedId = params.get('issue');
-    if (sharedId) {
-      const found = issues.find(i => i.id === sharedId);
-      if (found) {
-        setActiveDetailIssue(found);
-      }
+    const found = findIssueFromUrl(issues);
+    if (found) {
+      setActiveDetailIssue(found);
     }
   }, [currentUser, issues]);
 
@@ -119,10 +292,16 @@ export function App() {
 
   // Strict Auth-Protected Navigation
   const handleNavigate = (view: AppView) => {
-    if ((view === 'app' || view === 'discovery') && !currentUser) {
+    if ((view === 'app' || view === 'discovery' || view === 'analytics') && !currentUser) {
       setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
       setCurrentView('auth');
       window.location.hash = 'auth';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (view === 'analytics' && !isAdminUser(currentUser)) {
+      setCurrentView('app');
+      window.location.hash = 'app';
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -135,11 +314,14 @@ export function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'app' || hash === 'discovery') {
+      if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
         if (!currentUser) {
           setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
           setCurrentView('auth');
           window.location.hash = 'auth';
+        } else if (hash === 'analytics' && !isAdminUser(currentUser)) {
+          setCurrentView('app');
+          window.location.hash = 'app';
         } else {
           setCurrentView(hash as AppView);
         }
@@ -208,6 +390,21 @@ export function App() {
     addToast('success', 'Preferences Saved', 'Your feed priority & profile settings are updated.');
   };
 
+  // Automatically build user's interest profile as they interact with issues
+  const recordUserInterestFromIssue = (issue: Issue | undefined | null) => {
+    if (!currentUser || !issue) return;
+    if (issue.category === 'All' || issue.category === 'Private & Internal') return;
+    const currentInterests = currentUser.interests || [];
+    if (!currentInterests.includes(issue.category)) {
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        interests: [...currentInterests, issue.category],
+      };
+      setCurrentUser(updatedUser);
+      saveStoredUser(updatedUser);
+    }
+  };
+
   // Open Vote Modal with auth check
   const handleOpenQuickVote = (issue: Issue, choice?: VoteChoice) => {
     if (!currentUser) {
@@ -215,12 +412,15 @@ export function App() {
       handleNavigate('auth');
       return;
     }
+    recordUserInterestFromIssue(issue);
     setInitialVoteChoice(choice || null);
     setActiveVoteIssue(issue);
   };
 
   // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies)
   const handleVoteSubmit = (submission: VoteSubmission) => {
+    const targetIssue = issues.find(i => i.id === submission.issueId);
+    recordUserInterestFromIssue(targetIssue);
     const existingVote = userVotes[submission.issueId];
     const hasExistingVote = Boolean(existingVote);
     const hasContent = Boolean(submission.note || submission.voiceNote);
@@ -255,6 +455,17 @@ export function App() {
     recordUserVote(submission.issueId, submission.choice, submission.id);
     setUserVotes(getUserVotesMap());
 
+    // Record telemetry for vote / reply / voice note
+    if (!hasExistingVote || existingVote.choice !== submission.choice) {
+      recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
+    }
+    if (submission.note) {
+      recordEngagementAction('inline_reply', targetIssue?.title);
+    }
+    if (submission.voiceNote) {
+      recordEngagementAction('voice_note', targetIssue?.title);
+    }
+
     // Update activeDetailIssue if open
     if (activeDetailIssue && activeDetailIssue.id === submission.issueId) {
       setActiveDetailIssue(prev => {
@@ -278,17 +489,18 @@ export function App() {
       });
     }
 
-    addToast(
-      'success',
-      hasExistingVote && hasContent
-        ? `Reply added to your ${submission.choice} vote`
-        : `Your ${submission.choice} vote was recorded`,
-      submission.voiceNote 
-        ? 'Voice note attached.'
-        : submission.note
-        ? 'Perspective posted to the thread.'
-        : 'Tap Reply below the card if you want to add a quick note or voice clip.'
-    );
+    // Do not show a toast when the user is adding a reply to an existing vote (since the reply appears instantly)
+    if (!(hasExistingVote && hasContent)) {
+      addToast(
+        'success',
+        `Your ${submission.choice} vote was recorded`,
+        submission.voiceNote 
+          ? 'Voice note attached.'
+          : submission.note
+          ? 'Perspective posted to the thread.'
+          : 'Tap Reply below the card if you want to add a quick note or voice clip.'
+      );
+    }
   };
 
   // Handle creator deleting an issue topic & description while preserving all responses & votes
@@ -329,11 +541,13 @@ export function App() {
       'Issue Deleted by Author',
       'Topic and description now show "Deleted by Author" while keeping all responses.'
     );
+    recordEngagementAction('issue_deleted');
   };
 
   // Handle new issue creation
   const handleCreateIssue = (newIssue: Issue) => {
     setIssues(prev => [newIssue, ...prev]);
+    recordEngagementAction('issue_created', newIssue.title);
     addToast(
       'success', 
       'Issue Published', 
@@ -404,6 +618,11 @@ export function App() {
   // Toggle Like / Heart on an issue
   const handleToggleLikeIssue = (issueId: string) => {
     const currentlyLiked = Boolean(userLikes[issueId]);
+    if (!currentlyLiked) {
+      const targetIssue = issues.find(i => i.id === issueId);
+      recordUserInterestFromIssue(targetIssue);
+      recordEngagementAction('like', targetIssue?.title);
+    }
     const nextLikes = { ...userLikes };
     if (currentlyLiked) {
       delete nextLikes[issueId];
@@ -439,6 +658,11 @@ export function App() {
   // Toggle Favourite / Bookmark on an issue
   const handleToggleFavoriteIssue = (issueId: string) => {
     const currentlyFav = Boolean(userFavorites[issueId]);
+    if (!currentlyFav) {
+      const targetIssue = issues.find(i => i.id === issueId);
+      recordUserInterestFromIssue(targetIssue);
+      recordEngagementAction('favorite', targetIssue?.title);
+    }
     const nextFavs = { ...userFavorites };
     if (currentlyFav) {
       delete nextFavs[issueId];
@@ -580,6 +804,17 @@ export function App() {
       if (!matchesCategory || !matchesSearch) return false;
       if (showFavoritesOnly && !userFavorites[issue.id]) return false;
 
+      // If a user hasn't selected any interests yet (and isn't actively searching, filtering by category, or viewing Favourites),
+      // show them nothing in the default homepage feed so they are encouraged to use Search or Discovery.
+      if (
+        userInterests.length === 0 &&
+        selectedCategory === 'All' &&
+        !query &&
+        !showFavoritesOnly
+      ) {
+        return false;
+      }
+
       // Region Scope filter: When 'my-region-worldwide' is active and user selected a specific region,
       // show issues from that region AND issues from users who selected Worldwide ('Global / Remote')
       if (
@@ -594,16 +829,14 @@ export function App() {
       }
 
       // Interest Scope filter: When 'my-interests-mixed' is active and selectedCategory === 'All' and user has interests,
-      // show issues matching their selected interests OR issues marked Worldwide ('Global / Remote') so they stay mixed
+      // show issues matching their selected interests (plus Private Circle issues they have access to)
       if (
         interestScope === 'my-interests-mixed' &&
         selectedCategory === 'All' &&
         userInterests.length > 0
       ) {
-        const issueReg = inferIssueRegion(issue);
-        const matchesInterest = userInterests.includes(issue.category);
-        const isWorldwideIssue = issueReg === 'Global / Remote';
-        if (!matchesInterest && !isWorldwideIssue) {
+        const matchesInterest = userInterests.includes(issue.category) || issue.category === 'Private & Internal';
+        if (!matchesInterest) {
           return false;
         }
       }
@@ -641,20 +874,41 @@ export function App() {
     setVisibleCount(6);
   }, [selectedCategory, searchQuery, sortBy, regionScope, interestScope, showFavoritesOnly]);
 
-  // Infinite Scroll Auto-Loader using IntersectionObserver
+  // Pre-Bottom Infinite Scroll Auto-Loader (IntersectionObserver with 600px lookahead + passive scroll listener)
   useEffect(() => {
+    if (visibleCount >= filteredIssues.length) return;
+
+    const loadMore = () => {
+      setVisibleCount((prev) => Math.min(prev + 6, filteredIssues.length));
+    };
+
     const sentinel = feedSentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + 6, filteredIssues.length));
-        }
-      },
-      { rootMargin: '250px' }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    let observer: IntersectionObserver | null = null;
+    if (sentinel) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) {
+            loadMore();
+          }
+        },
+        { rootMargin: '600px 0px' }
+      );
+      observer.observe(sentinel);
+    }
+
+    const onWindowScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const docHeight = document.documentElement.scrollHeight;
+      if (docHeight - scrollBottom <= 600) {
+        loadMore();
+      }
+    };
+
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener('scroll', onWindowScroll);
+    };
   }, [filteredIssues.length, visibleCount]);
 
   const visibleIssues = useMemo(
@@ -674,6 +928,8 @@ export function App() {
           currentUser={currentUser}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
         />
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}
@@ -700,6 +956,8 @@ export function App() {
           onNavigate={handleNavigate}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
           authPromptMessage={authPromptMessage || (!currentUser ? 'Sign in required to view, create, and vote on issues.' : null)}
           onOpenLegal={(tab) => setLegalModalTab(tab)}
         />
@@ -724,7 +982,10 @@ export function App() {
       {/* Navigation */}
       <Navbar
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          recordEngagementAction('category_select', cat);
+        }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
@@ -737,16 +998,32 @@ export function App() {
         currentView={currentView}
         onNavigate={handleNavigate}
         currentUser={currentUser}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
+        showSearchMobile={showSearchMobile}
+        colorTone={colorTone}
+        onToggleColorTone={handleToggleColorTone}
       />
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'discovery' ? (
+        {currentView === 'analytics' && isAdminUser(currentUser) ? (
+          <AdminAnalyticsPage
+            issues={issues}
+            currentUser={currentUser}
+            colorTone={colorTone}
+            theme={theme}
+            onNavigate={handleNavigate}
+            onOpenIssue={(iss) => {
+              recordUserInterestFromIssue(iss);
+              setActiveDetailIssue(iss);
+            }}
+          />
+        ) : currentView === 'discovery' ? (
           <DiscoveryHub
             issues={issues}
-            onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+            onOpenDetails={(iss) => {
+              recordUserInterestFromIssue(iss);
+              setActiveDetailIssue(iss);
+            }}
             onQuickVote={handleOpenQuickVote}
             onFilterByCategory={(cat) => {
               setSelectedCategory(cat);
@@ -768,7 +1045,7 @@ export function App() {
                     <span className="sm:hidden">Make your voice heard in under 1 min</span>
                     <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
                   </div>
-                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
+                  <h1 className="text-[12.5px] xs:text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-white whitespace-nowrap overflow-hidden text-ellipsis">
                     Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
                   </h1>
                 </div>
@@ -809,9 +1086,6 @@ export function App() {
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   {selectedCategory === 'All' ? 'Issues' : selectedCategory}
                 </h2>
-                <span className="text-xs bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 font-bold px-2.5 py-0.5 rounded-full">
-                  {filteredIssues.length}
-                </span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -825,7 +1099,7 @@ export function App() {
                   }`}
                 >
                   <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
-                  <span>Favourites ({Object.keys(userFavorites).length})</span>
+                  <span>Favourites</span>
                 </button>
 
                 {searchQuery && (
@@ -840,7 +1114,50 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {issues.length === 0 ? (
+            {(!currentUser.interests || currentUser.interests.length === 0) &&
+            selectedCategory === 'All' &&
+            !searchQuery.trim() &&
+            !showFavoritesOnly ? (
+              <div className="card p-8 sm:p-10 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Your personalized feed starts with what matters to you
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+                  You haven&apos;t selected any interests yet. Use <strong>Search</strong> or explore <strong>Discovery</strong> to find issues — as you vote, like, or interact with issues, we&apos;ll automatically build your interests profile!
+                </p>
+                <div className="pt-2 flex flex-wrap justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('discovery')}
+                    className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
+                  >
+                    <Compass className="w-4 h-4" />
+                    <span>Explore Discovery</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSearchMobile(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>Use Search</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileSettingsOpen(true)}
+                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
+                  >
+                    <span>Pick Interests</span>
+                  </button>
+                </div>
+              </div>
+            ) : issues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
                 <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Vote className="w-6 h-6" />
@@ -869,15 +1186,10 @@ export function App() {
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching issues found</h3>
                 <div className="pt-1 flex flex-wrap justify-center gap-2">
                   <button
-                    onClick={() => {
-                      setSelectedCategory('All');
-                      setSearchQuery('');
-                      setRegionScope('all-regions');
-                      setInterestScope('all-categories');
-                    }}
+                    onClick={() => handleNavigate('discovery')}
                     className="btn-ghost text-xs"
                   >
-                    Show All Regions &amp; Topics
+                    Explore Discovery
                   </button>
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
@@ -897,7 +1209,10 @@ export function App() {
                         key={issue.id}
                         issue={issue}
                         currentUser={currentUser}
-                        onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+                        onOpenDetails={(iss) => {
+                          recordUserInterestFromIssue(iss);
+                          setActiveDetailIssue(iss);
+                        }}
                         onQuickVote={handleOpenQuickVote}
                         onInlineSubmitVote={handleVoteSubmit}
                         onDeleteIssue={handleDeleteIssueByAuthor}
@@ -917,24 +1232,29 @@ export function App() {
                 {visibleCount < filteredIssues.length ? (
                   <div ref={feedSentinelRef} className="py-6 flex flex-col items-center justify-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
                     <div className="w-5 h-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
-                    <span>Loading more issues ({visibleCount} of {filteredIssues.length})...</span>
+                    <span>Loading more issues...</span>
                   </div>
                 ) : filteredIssues.length > 6 ? (
                   <div className="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
-                    You&apos;ve reached the end of the feed ({filteredIssues.length} issues)
+                    You&apos;ve reached the end of the feed
                   </div>
                 ) : null}
               </>
             )}
           </>
         )}
-        {/* Workspace Footer with Terms of Use & Privacy Policy */}
-        <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700 dark:text-slate-300">YesOrNo</span>
-            <span>• Fast, time-bound decisions for every circle</span>
-          </div>
+        {/* Workspace Footer with Terms of Use, Privacy Policy & Admin Analytics */}
+        <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex items-center justify-center sm:justify-end gap-4">
           <div className="flex flex-wrap items-center gap-4">
+            {isAdminUser(currentUser) && (
+              <button
+                type="button"
+                onClick={() => handleNavigate('analytics')}
+                className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-semibold"
+              >
+                Admin Analytics
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setLegalModalTab('terms')}
@@ -965,7 +1285,7 @@ export function App() {
         <button
           onClick={() => handleNavigate('app')}
           className={`flex flex-col items-center gap-1 transition-colors ${
-            currentView === 'app' ? 'text-brand-400 font-bold' : 'hover:text-white'
+            currentView === 'app' && !showSearchMobile ? 'text-brand-400 font-bold' : 'hover:text-white'
           }`}
         >
           <Home className="w-4 h-4" />
@@ -1001,11 +1321,21 @@ export function App() {
         </button>
 
         <button
-          onClick={() => setIsGuidelinesOpen(true)}
-          className="flex flex-col items-center gap-1 hover:text-white transition-colors"
+          onClick={() => {
+            if (currentView !== 'app') {
+              handleNavigate('app');
+              setShowSearchMobile(true);
+            } else {
+              setShowSearchMobile(prev => !prev);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 transition-colors ${
+            showSearchMobile ? 'text-brand-400 font-bold' : 'hover:text-white'
+          }`}
         >
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Rules</span>
+          <Search className="w-4 h-4" />
+          <span>Search</span>
         </button>
       </div>
 

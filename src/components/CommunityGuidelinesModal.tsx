@@ -10,9 +10,9 @@ export const CommunityGuidelinesModal: React.FC<Props> = ({ isOpen, onClose }) =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain">
       <div 
-        className="relative w-full max-w-xl bg-white rounded-3xl shadow-lift border border-slate-200/80 overflow-hidden my-8"
+        className="relative w-full max-w-xl bg-white rounded-3xl shadow-lift border border-slate-200/80 overflow-hidden my-8 flex flex-col max-h-[90vh] overscroll-contain"
         role="dialog"
         aria-modal="true"
         aria-labelledby="guidelines-title"
@@ -41,7 +41,7 @@ export const CommunityGuidelinesModal: React.FC<Props> = ({ isOpen, onClose }) =
         </div>
 
         {/* Content list */}
-        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto divide-y divide-slate-100 text-slate-700">
+        <div className="p-6 space-y-4 overflow-y-auto overscroll-contain flex-1 divide-y divide-slate-100 text-slate-700">
           {/* Rule 1 */}
           <div className="pt-2 first:pt-0 flex gap-4">
             <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shrink-0 h-fit border border-emerald-100 shadow-2xs">

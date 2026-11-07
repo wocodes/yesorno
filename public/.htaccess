@@ -10,8 +10,9 @@
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
 
-  # Fallback all other routes to index.html for SPA routing
-  RewriteRule . /index.html [L]
+  # Route dynamic issue slug paths through og-router.php so social crawlers (WhatsApp, X, Telegram)
+  # receive dynamic OpenGraph title & description tags while users get the SPA seamlessly
+  RewriteRule . /og-router.php [L,QSA]
 </IfModule>
 
 <IfModule mod_expires.c>
@@ -21,4 +22,3 @@
   ExpiresByType application/javascript "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 month"
 </IfModule>
-
