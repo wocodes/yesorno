@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Share2, Copy, Check, ExternalLink, Download, 
-  Sparkles, Image as ImageIcon, Smartphone, Monitor, Loader2,
+  Sparkles, Image as ImageIcon, Smartphone, Loader2,
   Flame, BookOpen, Zap
 } from 'lucide-react';
 import { Issue, UserProfile } from '../types';
@@ -34,7 +34,7 @@ export const ShareIssueModal: React.FC<Props> = ({
   currentUser
 }) => {
   const [style, setStyle] = useState<CardStyle>('bold');
-  const [format, setFormat] = useState<CardFormat>('landscape');
+  const format: CardFormat = 'square';
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -54,7 +54,7 @@ export const ShareIssueModal: React.FC<Props> = ({
     }
   }, []);
 
-  // Generate crisp canvas card preview whenever issue, style, format, or colorTone changes
+  // Generate crisp canvas card preview whenever issue, style, or colorTone changes
   useEffect(() => {
     if (!isOpen || !issue) {
       setPreviewUrl(null);
@@ -79,7 +79,7 @@ export const ShareIssueModal: React.FC<Props> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, issue, style, format, colorTone]);
+  }, [isOpen, issue, style, colorTone]);
 
   if (!isOpen || !issue) return null;
 
@@ -246,59 +246,33 @@ export const ShareIssueModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Aspect Ratio Selector & Resolution Badge */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setFormat('landscape')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  format === 'landscape'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-soft font-bold'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
-                }`}
-              >
-                <Monitor className="w-3.5 h-3.5" />
-                <span>Feed (16:9)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormat('square')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  format === 'square'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-soft font-bold'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Square (1:1)</span>
-              </button>
-            </div>
-
-            <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 hidden sm:inline">
-              {format === 'landscape' ? '1200 × 675 px' : '1080 × 1080 px'}
+          {/* Format Badge */}
+          <div className="flex items-center justify-between px-1 text-xs text-slate-500 dark:text-zinc-400">
+            <span className="font-medium text-ink-900 dark:text-zinc-200 flex items-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
+              <span>Square Format (1:1)</span>
+            </span>
+            <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+              1080 × 1080 px HD
             </span>
           </div>
 
           {/* Visual Image Card Preview */}
           <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-700/60 shadow-soft group">
             {isGenerating ? (
-              <div className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-2 text-zinc-400 bg-ink-950">
+              <div className="w-full aspect-square max-h-[320px] flex flex-col items-center justify-center gap-2 text-zinc-400 bg-ink-950">
                 <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
-                <span className="text-xs">Rendering card concept...</span>
+                <span className="text-xs">Rendering square card...</span>
               </div>
             ) : previewUrl ? (
               <div className="relative w-full flex items-center justify-center bg-black/40">
                 <img
                   src={previewUrl}
                   alt={`${issue.title} Share Card`}
-                  className={`w-full object-contain ${
-                    format === 'square' ? 'max-h-[320px]' : 'max-h-[260px]'
-                  }`}
+                  className="w-full object-contain max-h-[320px]"
                 />
                 <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-mono border border-white/10 pointer-events-none uppercase">
-                  {style} • HD PNG
+                  {style} • 1080p HD
                 </div>
               </div>
             ) : null}

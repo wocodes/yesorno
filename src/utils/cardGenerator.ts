@@ -578,7 +578,7 @@ export async function renderIssueCardToCanvas(
   }
 
   const style = options.style || 'bold';
-  const format = options.format || 'landscape';
+  const format = options.format || 'square';
   const isSquare = format === 'square';
   const isToned = options.colorTone === 'toned';
 
@@ -638,7 +638,7 @@ export async function downloadIssueCard(
 ): Promise<string> {
   const blob = await generateIssueCardBlob(issue, options);
   const slug = buildIssueSlug(issue);
-  const fileName = `${slug}-${options.style || 'card'}-${options.format || 'landscape'}.png`;
+  const fileName = `${slug}-${options.style || 'card'}-${options.format || 'square'}.png`;
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
