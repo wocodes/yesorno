@@ -18,6 +18,7 @@ interface Props {
   onToggleColorTone?: () => void;
   authPromptMessage?: string | null;
   onOpenLegal?: (tab: 'terms' | 'privacy') => void;
+  onOpenGuidelines?: () => void;
 }
 
 declare global {
@@ -46,7 +47,8 @@ export const AuthPage: React.FC<Props> = ({
   colorTone = 'vibrant',
   onToggleColorTone,
   authPromptMessage,
-  onOpenLegal
+  onOpenLegal,
+  onOpenGuidelines
 }) => {
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -546,7 +548,7 @@ export const AuthPage: React.FC<Props> = ({
         )}
 
         {/* Legal Links Footer */}
-        <div className="pt-2 text-center text-[11px] text-slate-400 dark:text-zinc-500 flex flex-wrap items-center justify-center gap-3">
+        <div className="pt-2 text-center text-[11px] text-slate-400 dark:text-zinc-500 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
           <span>By continuing, you agree to YesOrNo&apos;s</span>
           {onOpenLegal && (
             <>
@@ -557,13 +559,25 @@ export const AuthPage: React.FC<Props> = ({
               >
                 Terms of Use
               </button>
-              <span>and</span>
+              <span>•</span>
               <button
                 type="button"
                 onClick={() => onOpenLegal('privacy')}
                 className="font-semibold text-slate-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 underline cursor-pointer"
               >
                 Privacy Policy
+              </button>
+            </>
+          )}
+          {onOpenGuidelines && (
+            <>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={onOpenGuidelines}
+                className="font-semibold text-slate-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 underline cursor-pointer"
+              >
+                Community Guidelines
               </button>
             </>
           )}

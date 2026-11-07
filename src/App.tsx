@@ -1333,6 +1333,7 @@ export function App() {
           onToggleColorTone={handleToggleColorTone}
           authPromptMessage={authPromptMessage || (!currentUser ? 'Sign in required to view, create, and vote on issues.' : null)}
           onOpenLegal={(tab) => setLegalModalTab(tab)}
+          onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         />
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}
@@ -1616,41 +1617,8 @@ export function App() {
             )}
           </>
         )}
-        {/* Workspace Footer with Terms of Use, Privacy Policy & Admin Analytics */}
-        <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex items-center justify-center sm:justify-end gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {isAdminUser(currentUser) && (
-              <button
-                type="button"
-                onClick={() => handleNavigate('analytics')}
-                className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-semibold"
-              >
-                Admin Analytics
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setLegalModalTab('terms')}
-              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
-            >
-              Terms of Use
-            </button>
-            <button
-              type="button"
-              onClick={() => setLegalModalTab('privacy')}
-              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
-            >
-              Privacy Policy
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsGuidelinesOpen(true)}
-              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
-            >
-              Community Guidelines
-            </button>
-          </div>
-        </footer>
+        {/* Spacer for bottom navigation spacing */}
+        <div className="h-16 sm:h-8" />
       </main>
 
       {/* Mobile Sticky Bottom Bar */}
