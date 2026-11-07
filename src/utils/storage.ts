@@ -1,5 +1,6 @@
 import { Issue, VoteSubmission, CommentReply } from '../types';
 import { INITIAL_ISSUES } from '../data/initialIssues';
+import { isLocalEnvironment } from './auth';
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
 const STORAGE_KEY_USER_VOTES = 'yesorno_user_votes_v1';
@@ -7,11 +8,15 @@ const STORAGE_KEY_USER_LIKES = 'yesorno_user_likes_v1';
 const STORAGE_KEY_USER_FAVORITES = 'yesorno_user_favorites_v1';
 
 /**
- * Returns default seed issues across all platforms and environments.
- * Ensures that any new visitor or device immediately has rich deliberations to vote on.
+ * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).
+ * In production builds, `import.meta.env.DEV` is statically `false` so Rollup/Vite
+ * completely tree-shakes `INITIAL_ISSUES` (~28KB of demo data) out of the production bundle.
  */
 export function getDefaultIssues(): Issue[] {
-  return INITIAL_ISSUES;
+  if (import.meta.env.DEV && isLocalEnvironment()) {
+    return INITIAL_ISSUES;
+  }
+  return [];
 }
 
 export function loadIssues(): Issue[] {
