@@ -15,6 +15,10 @@ interface Props {
   userVotes: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
   userLikes?: Record<string, boolean>;
   userFavorites?: Record<string, boolean>;
+  regionScope?: 'my-region-worldwide' | 'all-regions';
+  onChangeRegionScope?: (scope: 'my-region-worldwide' | 'all-regions') => void;
+  interestScope?: 'my-interests-mixed' | 'all-categories';
+  onChangeInterestScope?: (scope: 'my-interests-mixed' | 'all-categories') => void;
   onUpdateUser: (updated: UserProfile) => void;
   onSignOut: () => void;
   onOpenIssue: (issue: Issue) => void;
@@ -39,7 +43,6 @@ const REGIONS: IssueRegion[] = [
   'Europe & UK',
   'Africa & Middle East',
   'Asia-Pacific',
-  'Local District',
   'Global / Remote'
 ];
 
@@ -51,6 +54,10 @@ export const ProfileSettingsModal: React.FC<Props> = ({
   userVotes,
   userLikes = {},
   userFavorites = {},
+  regionScope = 'my-region-worldwide',
+  onChangeRegionScope,
+  interestScope = 'my-interests-mixed',
+  onChangeInterestScope,
   onUpdateUser,
   onSignOut,
   onOpenIssue,
@@ -288,6 +295,36 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                     );
                   })}
                 </div>
+
+                {onChangeRegionScope && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-500 dark:text-zinc-400 font-semibold">Homepage Region Scope:</span>
+                    <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950">
+                      <button
+                        type="button"
+                        onClick={() => onChangeRegionScope('my-region-worldwide')}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                          regionScope === 'my-region-worldwide'
+                            ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                            : 'text-slate-500 dark:text-zinc-400'
+                        }`}
+                      >
+                        {region} + Worldwide
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onChangeRegionScope('all-regions')}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                          regionScope === 'all-regions'
+                            ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                            : 'text-slate-500 dark:text-zinc-400'
+                        }`}
+                      >
+                        All Regions
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Interests Selector */}
@@ -325,6 +362,36 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                     );
                   })}
                 </div>
+
+                {onChangeInterestScope && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-500 dark:text-zinc-400 font-semibold">Homepage Topic Scope:</span>
+                    <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950">
+                      <button
+                        type="button"
+                        onClick={() => onChangeInterestScope('my-interests-mixed')}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                          interestScope === 'my-interests-mixed'
+                            ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                            : 'text-slate-500 dark:text-zinc-400'
+                        }`}
+                      >
+                        My Interests + Worldwide
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onChangeInterestScope('all-categories')}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                          interestScope === 'all-categories'
+                            ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                            : 'text-slate-500 dark:text-zinc-400'
+                        }`}
+                      >
+                        All Topics
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -29,7 +29,6 @@ const REGION_OPTIONS: { region: IssueRegion; emoji: string; desc: string }[] = [
   { region: 'Europe & UK', emoji: '🇪🇺', desc: 'Prioritize Europe & UK + Worldwide issues' },
   { region: 'Africa & Middle East', emoji: '🌍', desc: 'Prioritize Africa & Middle East + Worldwide issues' },
   { region: 'Asia-Pacific', emoji: '🌏', desc: 'Prioritize Asia-Pacific + Worldwide issues' },
-  { region: 'Local District', emoji: '📍', desc: 'Prioritize neighborhood & municipal + Worldwide issues' },
   { region: 'Global / Remote', emoji: '🌐', desc: 'Worldwide / Distributed organizations everywhere' },
 ];
 
@@ -148,7 +147,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], on
                   1. Pick the spheres that matter to you
                 </h2>
                 <p className="text-xs text-zinc-300 mt-0.5">
-                  We&apos;ll prioritize issues matching your interests at the top of your ballot. You can change these anytime in Settings.
+                  You can change these anytime in Settings.
                 </p>
               </>
             )}
@@ -157,9 +156,6 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], on
                 <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
                   2. Select your primary region
                 </h2>
-                <p className="text-xs text-zinc-300 mt-0.5">
-                  You&apos;ll see issues from your chosen region first, seamlessly mixed with Worldwide / Global issues.
-                </p>
               </>
             )}
             {step === 3 && (

@@ -23,8 +23,7 @@ import { AuthPage } from './components/AuthPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { 
-  ShieldCheck, Filter, Home, User, Vote, Clock, Plus,
-  MapPin, Sparkles, Sliders, Globe, UserCheck, Bookmark
+  ShieldCheck, Filter, Home, User, Vote, Clock, Plus, Bookmark
 } from 'lucide-react';
 
 function getInitialView(user: UserProfile | null): AppView {
@@ -32,10 +31,13 @@ function getInitialView(user: UserProfile | null): AppView {
   const params = new URLSearchParams(window.location.search);
   const hasSharedIssue = params.has('issue');
 
-  if (hash === 'app' || hasSharedIssue) {
-    return user ? 'app' : 'auth';
+  if (hash === 'landing') {
+    return 'landing';
   }
-  if (hash === 'auth') {
+  if (user) {
+    return 'app';
+  }
+  if (hash === 'app' || hasSharedIssue || hash === 'auth') {
     return 'auth';
   }
   return 'landing';
@@ -155,12 +157,15 @@ export function App() {
     saveIssues(issues);
   }, [issues]);
 
-  // Sync currentUser to localStorage
+  // Sync currentUser to localStorage and navigate straight to the dashboard upon sign-in
   const handleSelectUser = (user: UserProfile | null) => {
     setCurrentUser(user);
     saveStoredUser(user);
     if (user) {
       setAuthPromptMessage(null);
+      setCurrentView('app');
+      window.location.hash = 'app';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       if (!user.onboardingCompleted) {
         setIsOnboardingOpen(true);
       } else {
@@ -183,6 +188,8 @@ export function App() {
     setCurrentUser(updatedUser);
     saveStoredUser(updatedUser);
     setIsOnboardingOpen(false);
+    setCurrentView('app');
+    window.location.hash = 'app';
     setSortBy('for-you');
     setRegionScope('my-region-worldwide');
     setInterestScope('my-interests-mixed');
@@ -790,117 +797,6 @@ export function App() {
           onFilterByCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* Personalized Feed Priority & Region/Interests Control Bar — single-line horizontal scroll on mobile */}
-        <div className="card p-3 sm:p-4 bg-white/90 dark:bg-ink-900/90 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-950 dark:text-white whitespace-nowrap shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
-              <span>Feed Priority:</span>
-            </span>
-
-            {/* Region + Worldwide Toggle */}
-            <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 shrink-0">
-              <button
-                type="button"
-                onClick={() => setRegionScope('my-region-worldwide')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
-                  regionScope === 'my-region-worldwide'
-                    ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <MapPin className="w-3 h-3 shrink-0" />
-                <span>
-                  {currentUser.region && currentUser.region !== 'Global / Remote'
-                    ? `${currentUser.region} + Worldwide`
-                    : 'Worldwide Priority'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRegionScope('all-regions')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
-                  regionScope === 'all-regions'
-                    ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Globe className="w-3 h-3 shrink-0" />
-                <span>All Regions</span>
-              </button>
-            </div>
-
-            {/* Interests + Worldwide Mix Toggle */}
-            {currentUser.interests && currentUser.interests.length > 0 && (
-              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setInterestScope('my-interests-mixed')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
-                    interestScope === 'my-interests-mixed'
-                      ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Sparkles className="w-3 h-3 shrink-0" />
-                  <span>Interests ({currentUser.interests.length}) + Worldwide</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInterestScope('all-categories')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                    interestScope === 'all-categories'
-                      ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  All Topics
-                </button>
-              </div>
-            )}
-
-            {/* Following badge */}
-            {currentUser.followingCreators && currentUser.followingCreators.length > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
-                <UserCheck className="w-3 h-3 shrink-0" />
-                <span>Following {currentUser.followingCreators.length}</span>
-              </span>
-            )}
-
-            {/* Quick Favourites Filter Pill */}
-            <button
-              type="button"
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                showFavoritesOnly
-                  ? 'bg-amber-500 text-ink-950 shadow-2xs'
-                  : 'bg-slate-100 dark:bg-ink-950 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15'
-              }`}
-            >
-              <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
-              <span>Favourites ({Object.keys(userFavorites).length})</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsOnboardingOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-700 dark:text-slate-200 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              Setup Wizard
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsProfileSettingsOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              <Sliders className="w-3.5 h-3.5 shrink-0" />
-              <span>Preferences</span>
-            </button>
-          </div>
-        </div>
-
         {/* Section Header */}
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-2">
@@ -912,14 +808,29 @@ export function App() {
             </span>
           </div>
 
-          {searchQuery && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+              type="button"
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                showFavoritesOnly
+                  ? 'bg-amber-500 text-ink-950 shadow-2xs'
+                  : 'bg-white dark:bg-ink-900 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15 shadow-2xs'
+              }`}
             >
-              Clear &quot;{searchQuery}&quot;
+              <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
+              <span>Favourites ({Object.keys(userFavorites).length})</span>
             </button>
-          )}
+
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+              >
+                Clear &quot;{searchQuery}&quot;
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Issues Grid */}
@@ -1170,6 +1081,10 @@ export function App() {
         userVotes={userVotes}
         userLikes={userLikes}
         userFavorites={userFavorites}
+        regionScope={regionScope}
+        onChangeRegionScope={setRegionScope}
+        interestScope={interestScope}
+        onChangeInterestScope={setInterestScope}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenIssue={(iss) => setActiveDetailIssue(iss)}

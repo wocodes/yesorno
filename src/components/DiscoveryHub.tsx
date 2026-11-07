@@ -22,7 +22,6 @@ const REGIONS: { key: IssueRegion | 'All Regions'; icon: string }[] = [
   { key: 'Europe & UK', icon: '🇪🇺' },
   { key: 'Africa & Middle East', icon: '🌍' },
   { key: 'Asia-Pacific', icon: '🌏' },
-  { key: 'Local District', icon: '📍' },
 ];
 
 const SPHERE_ICONS: Record<string, string> = {
