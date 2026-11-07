@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Settings, Compass, Palette 
+  RotateCcw, User, Home, Lock, Download, Settings, Compass, Palette, BarChart3 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
@@ -120,6 +120,20 @@ export const Navbar: React.FC<Props> = ({
             >
               <Compass className="w-4 h-4" />
               <span className="hidden lg:inline">Discovery</span>
+            </button>
+
+            {/* Admin Analytics link */}
+            <button
+              onClick={() => onNavigate('analytics')}
+              className={`p-2 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                currentView === 'analytics'
+                  ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                  : 'text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-ink-800'
+              }`}
+              title="Admin Analytics & Growth Telemetry"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden lg:inline">Analytics</span>
             </button>
 
             {/* Color Tone Switch (Full-Coloured vs Toned-Down) */}

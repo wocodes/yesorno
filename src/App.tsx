@@ -9,6 +9,16 @@ import {
   getInitialColorTone, applyColorTone, ColorTone 
 } from './utils/theme';
 import { updateDocumentMetaForIssue, findIssueFromUrl, buildIssueSlug } from './utils/share';
+import {
+  recordSessionStart,
+  recordActiveTimeTick,
+  recordPageView,
+  recordElementClick,
+  recordSearchQuery,
+  recordColorToneSwitch,
+  recordThemeModeSwitch,
+  recordEngagementAction,
+} from './utils/analytics';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -19,6 +29,7 @@ import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal'
 import { LegalModal, LegalDocTab } from './components/LegalModal';
 import { ShareIssueModal } from './components/ShareIssueModal';
 import { DiscoveryHub, inferIssueRegion } from './components/DiscoveryHub';
+import { AdminAnalyticsPage } from './components/AdminAnalyticsPage';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { LandingPage } from './components/LandingPage';
@@ -40,9 +51,10 @@ function getInitialView(user: UserProfile | null): AppView {
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
+    if (hash === 'analytics') return 'analytics';
     return 'app';
   }
-  if (hash === 'app' || hash === 'discovery' || hasSharedIssue || hash === 'auth') {
+  if (hash === 'app' || hash === 'discovery' || hash === 'analytics' || hasSharedIssue || hash === 'auth') {
     return 'auth';
   }
   return 'landing';
@@ -95,12 +107,117 @@ export function App() {
   }, [colorTone]);
 
   const handleToggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      recordThemeModeSwitch(next);
+      return next;
+    });
   };
 
   const handleToggleColorTone = () => {
-    setColorTone(prev => (prev === 'vibrant' ? 'toned' : 'vibrant'));
+    setColorTone(prev => {
+      const next = prev === 'vibrant' ? 'toned' : 'vibrant';
+      recordColorToneSwitch(next);
+      return next;
+    });
   };
+
+  // Analytics: Record session start (and return visit detection) once on mount
+  useEffect(() => {
+    recordSessionStart(colorTone, theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Analytics: 1-second active dwell-time ticker (only while tab is visible)
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        recordActiveTimeTick(1, currentView, colorTone, theme);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [currentView, colorTone, theme]);
+
+  // Analytics: Track page views whenever currentView changes
+  useEffect(() => {
+    recordPageView(currentView);
+  }, [currentView]);
+
+  // Analytics: Track modal opens as views
+  useEffect(() => {
+    if (activeDetailIssue) recordPageView('modal:detail');
+  }, [activeDetailIssue]);
+  useEffect(() => {
+    if (activeVoteIssue) recordPageView('modal:vote');
+  }, [activeVoteIssue]);
+  useEffect(() => {
+    if (isCreateModalOpen) recordPageView('modal:create');
+  }, [isCreateModalOpen]);
+  useEffect(() => {
+    if (isProfileSettingsOpen) recordPageView('modal:profile');
+  }, [isProfileSettingsOpen]);
+  useEffect(() => {
+    if (activeShareIssue) recordPageView('modal:share');
+  }, [activeShareIssue]);
+  useEffect(() => {
+    if (isGuidelinesOpen) recordPageView('modal:guidelines');
+  }, [isGuidelinesOpen]);
+  useEffect(() => {
+    if (legalModalTab) recordPageView('modal:legal');
+  }, [legalModalTab]);
+  useEffect(() => {
+    if (isOnboardingOpen) recordPageView('modal:onboarding');
+  }, [isOnboardingOpen]);
+
+  // Analytics: Debounced search query telemetry
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+    const timer = window.setTimeout(() => {
+      recordSearchQuery(trimmed);
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Analytics: Global delegated click tracker for all buttons and links
+  useEffect(() => {
+    const onDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const clickable = target.closest('button, a, [role="button"]') as HTMLElement | null;
+      if (!clickable) return;
+
+      const tag = clickable.tagName.toLowerCase();
+      const kind: 'button' | 'link' = tag === 'a' ? 'link' : 'button';
+
+      const rawLabel =
+        clickable.getAttribute('data-analytics-label') ||
+        clickable.getAttribute('aria-label') ||
+        clickable.getAttribute('title') ||
+        clickable.textContent ||
+        '';
+
+      const cleanLabel = rawLabel.replace(/\s+/g, ' ').trim().slice(0, 56);
+      if (!cleanLabel) return;
+
+      let location = 'Main Workspace';
+      if (clickable.closest('header')) location = 'Header Navbar';
+      else if (clickable.closest('footer')) location = 'Footer';
+      else if (clickable.closest('[role="dialog"], .fixed.inset-0')) location = 'Modal Dialog';
+      else if (clickable.closest('article')) location = 'Issue Card';
+
+      const slugId = `${kind}:${location.toLowerCase().replace(/\s+/g, '-')}:${cleanLabel
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 36)}`;
+
+      recordElementClick(slugId, cleanLabel, kind, location);
+    };
+
+    document.addEventListener('click', onDocumentClick, true);
+    return () => document.removeEventListener('click', onDocumentClick, true);
+  }, []);
 
   // Lock background page scroll whenever any modal is open
   useEffect(() => {
@@ -175,7 +292,7 @@ export function App() {
 
   // Strict Auth-Protected Navigation
   const handleNavigate = (view: AppView) => {
-    if ((view === 'app' || view === 'discovery') && !currentUser) {
+    if ((view === 'app' || view === 'discovery' || view === 'analytics') && !currentUser) {
       setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
       setCurrentView('auth');
       window.location.hash = 'auth';
@@ -191,7 +308,7 @@ export function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'app' || hash === 'discovery') {
+      if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
         if (!currentUser) {
           setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
           setCurrentView('auth');
@@ -329,6 +446,17 @@ export function App() {
     recordUserVote(submission.issueId, submission.choice, submission.id);
     setUserVotes(getUserVotesMap());
 
+    // Record telemetry for vote / reply / voice note
+    if (!hasExistingVote || existingVote.choice !== submission.choice) {
+      recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
+    }
+    if (submission.note) {
+      recordEngagementAction('inline_reply', targetIssue?.title);
+    }
+    if (submission.voiceNote) {
+      recordEngagementAction('voice_note', targetIssue?.title);
+    }
+
     // Update activeDetailIssue if open
     if (activeDetailIssue && activeDetailIssue.id === submission.issueId) {
       setActiveDetailIssue(prev => {
@@ -404,11 +532,13 @@ export function App() {
       'Issue Deleted by Author',
       'Topic and description now show "Deleted by Author" while keeping all responses.'
     );
+    recordEngagementAction('issue_deleted');
   };
 
   // Handle new issue creation
   const handleCreateIssue = (newIssue: Issue) => {
     setIssues(prev => [newIssue, ...prev]);
+    recordEngagementAction('issue_created', newIssue.title);
     addToast(
       'success', 
       'Issue Published', 
@@ -482,6 +612,7 @@ export function App() {
     if (!currentlyLiked) {
       const targetIssue = issues.find(i => i.id === issueId);
       recordUserInterestFromIssue(targetIssue);
+      recordEngagementAction('like', targetIssue?.title);
     }
     const nextLikes = { ...userLikes };
     if (currentlyLiked) {
@@ -521,6 +652,7 @@ export function App() {
     if (!currentlyFav) {
       const targetIssue = issues.find(i => i.id === issueId);
       recordUserInterestFromIssue(targetIssue);
+      recordEngagementAction('favorite', targetIssue?.title);
     }
     const nextFavs = { ...userFavorites };
     if (currentlyFav) {
@@ -841,7 +973,10 @@ export function App() {
       {/* Navigation */}
       <Navbar
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          recordEngagementAction('category_select', cat);
+        }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
@@ -861,7 +996,19 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'discovery' ? (
+        {currentView === 'analytics' ? (
+          <AdminAnalyticsPage
+            issues={issues}
+            currentUser={currentUser}
+            colorTone={colorTone}
+            theme={theme}
+            onNavigate={handleNavigate}
+            onOpenIssue={(iss) => {
+              recordUserInterestFromIssue(iss);
+              setActiveDetailIssue(iss);
+            }}
+          />
+        ) : currentView === 'discovery' ? (
           <DiscoveryHub
             issues={issues}
             onOpenDetails={(iss) => {
@@ -1087,9 +1234,16 @@ export function App() {
             )}
           </>
         )}
-        {/* Workspace Footer with Terms of Use & Privacy Policy */}
+        {/* Workspace Footer with Terms of Use, Privacy Policy & Admin Analytics */}
         <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex items-center justify-center sm:justify-end gap-4">
           <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={() => handleNavigate('analytics')}
+              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-semibold"
+            >
+              Admin Analytics
+            </button>
             <button
               type="button"
               onClick={() => setLegalModalTab('terms')}
