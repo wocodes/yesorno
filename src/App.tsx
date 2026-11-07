@@ -26,6 +26,7 @@ import {
   notifyAdminIssueCreated,
   notifyAdminCommentAdded,
   notifyAdminReplyAdded,
+  notifyAdminIssueShared,
 } from './utils/emailNotifier';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice, CommentReply } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
@@ -748,6 +749,219 @@ export function App() {
         };
       });
     }
+  };
+
+  // Handle reaction on a top-level comment
+  const handleToggleCommentReaction = (issueId: string, submissionId: string, emoji: string) => {
+    if (!currentUser) {
+      setAuthPromptMessage('Please sign in to react to comments.');
+      handleNavigate('auth');
+      return;
+    }
+
+    const userKey = currentUser.email || currentUser.id;
+
+    setIssues(prev => {
+      const nextIssues = prev.map(issue => {
+        if (issue.id !== issueId) return issue;
+        return {
+          ...issue,
+          responses: issue.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+
+            const existingUsers = resp.userReactions?.[emoji] || [];
+            const hasReacted = existingUsers.includes(userKey);
+            const nextUsers = hasReacted
+              ? existingUsers.filter(u => u !== userKey)
+              : [...existingUsers, userKey];
+
+            const nextReactions = { ...(resp.reactions || {}) };
+            if (nextUsers.length > 0) {
+              nextReactions[emoji] = nextUsers.length;
+            } else {
+              delete nextReactions[emoji];
+            }
+
+            const nextUserReactions = {
+              ...(resp.userReactions || {}),
+              [emoji]: nextUsers,
+            };
+
+            const nextLikesCount = emoji === '❤️'
+              ? nextUsers.length
+              : (resp.likesCount || 0);
+
+            return {
+              ...resp,
+              reactions: nextReactions,
+              userReactions: nextUserReactions,
+              likesCount: nextLikesCount,
+            };
+          }),
+        };
+      });
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+
+            const existingUsers = resp.userReactions?.[emoji] || [];
+            const hasReacted = existingUsers.includes(userKey);
+            const nextUsers = hasReacted
+              ? existingUsers.filter(u => u !== userKey)
+              : [...existingUsers, userKey];
+
+            const nextReactions = { ...(resp.reactions || {}) };
+            if (nextUsers.length > 0) {
+              nextReactions[emoji] = nextUsers.length;
+            } else {
+              delete nextReactions[emoji];
+            }
+
+            const nextUserReactions = {
+              ...(resp.userReactions || {}),
+              [emoji]: nextUsers,
+            };
+
+            const nextLikesCount = emoji === '❤️'
+              ? nextUsers.length
+              : (resp.likesCount || 0);
+
+            return {
+              ...resp,
+              reactions: nextReactions,
+              userReactions: nextUserReactions,
+              likesCount: nextLikesCount,
+            };
+          }),
+        };
+      });
+    }
+
+    recordEngagementAction('inline_reply', `Reaction ${emoji} on comment`);
+  };
+
+  // Handle reaction on a nested direct reply
+  const handleToggleReplyReaction = (issueId: string, submissionId: string, replyId: string, emoji: string) => {
+    if (!currentUser) {
+      setAuthPromptMessage('Please sign in to react to replies.');
+      handleNavigate('auth');
+      return;
+    }
+
+    const userKey = currentUser.email || currentUser.id;
+
+    setIssues(prev => {
+      const nextIssues = prev.map(issue => {
+        if (issue.id !== issueId) return issue;
+        return {
+          ...issue,
+          responses: issue.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+            return {
+              ...resp,
+              replies: (resp.replies || []).map(rep => {
+                if (rep.id !== replyId) return rep;
+
+                const existingUsers = rep.userReactions?.[emoji] || [];
+                const hasReacted = existingUsers.includes(userKey);
+                const nextUsers = hasReacted
+                  ? existingUsers.filter(u => u !== userKey)
+                  : [...existingUsers, userKey];
+
+                const nextReactions = { ...(rep.reactions || {}) };
+                if (nextUsers.length > 0) {
+                  nextReactions[emoji] = nextUsers.length;
+                } else {
+                  delete nextReactions[emoji];
+                }
+
+                const nextUserReactions = {
+                  ...(rep.userReactions || {}),
+                  [emoji]: nextUsers,
+                };
+
+                const nextLikesCount = emoji === '❤️'
+                  ? nextUsers.length
+                  : (rep.likesCount || 0);
+
+                return {
+                  ...rep,
+                  reactions: nextReactions,
+                  userReactions: nextUserReactions,
+                  likesCount: nextLikesCount,
+                };
+              }),
+            };
+          }),
+        };
+      });
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+            return {
+              ...resp,
+              replies: (resp.replies || []).map(rep => {
+                if (rep.id !== replyId) return rep;
+
+                const existingUsers = rep.userReactions?.[emoji] || [];
+                const hasReacted = existingUsers.includes(userKey);
+                const nextUsers = hasReacted
+                  ? existingUsers.filter(u => u !== userKey)
+                  : [...existingUsers, userKey];
+
+                const nextReactions = { ...(rep.reactions || {}) };
+                if (nextUsers.length > 0) {
+                  nextReactions[emoji] = nextUsers.length;
+                } else {
+                  delete nextReactions[emoji];
+                }
+
+                const nextUserReactions = {
+                  ...(rep.userReactions || {}),
+                  [emoji]: nextUsers,
+                };
+
+                const nextLikesCount = emoji === '❤️'
+                  ? nextUsers.length
+                  : (rep.likesCount || 0);
+
+                return {
+                  ...rep,
+                  reactions: nextReactions,
+                  userReactions: nextUserReactions,
+                  likesCount: nextLikesCount,
+                };
+              }),
+            };
+          }),
+        };
+      });
+    }
+
+    recordEngagementAction('inline_reply', `Reaction ${emoji} on reply`);
+  };
+
+  // Handle sharing a comment quote
+  const handleShareComment = (issue: Issue, author: string, _text: string, _commentId: string) => {
+    addToast('success', 'Link Copied', `Quote by ${author} copied to clipboard.`);
+    recordEngagementAction('share', `Comment quote by ${author} on "${issue.title}"`);
+    notifyAdminIssueShared(issue, `Comment Quote (${author})`, currentUser);
   };
 
   // Toggle Like / Heart on an issue
@@ -1511,6 +1725,9 @@ export function App() {
         onReportResponse={handleReportResponse}
         onAddCommentReply={handleAddCommentReply}
         onLikeCommentReply={handleLikeCommentReply}
+        onToggleCommentReaction={handleToggleCommentReaction}
+        onToggleReplyReaction={handleToggleReplyReaction}
+        onShareComment={handleShareComment}
         onAddInvite={handleAddInvite}
         onAddGroupInvite={handleAddGroupInvite}
       />

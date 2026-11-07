@@ -39,6 +39,8 @@ export interface CommentReply {
   createdAt: string;
   likesCount: number;
   replyToName?: string;
+  reactions?: Record<string, number>;
+  userReactions?: Record<string, string[]>;
 }
 
 export interface VoteSubmission {
@@ -56,6 +58,8 @@ export interface VoteSubmission {
   likesCount: number;
   isReported?: boolean;
   replies?: CommentReply[];
+  reactions?: Record<string, number>;
+  userReactions?: Record<string, string[]>;
 }
 
 export type IssueCategory = 

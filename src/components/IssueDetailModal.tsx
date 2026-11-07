@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Flag, Heart, Tag, User, Lock, Globe, Clock,
-  UserPlus, Sparkles, FileText, Share2, Trash2, Send, Square, Bookmark
+  UserPlus, Sparkles, FileText, Share2, Trash2, Send, Square, Bookmark,
+  Smile, Check, Copy, ExternalLink
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
@@ -12,6 +13,16 @@ import { canUserAccessIssue, isIssueCreator } from '../utils/auth';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
+import { buildIssueSlug } from '../utils/share';
+
+export const AVAILABLE_REACTIONS = [
+  { emoji: '👍', label: 'Agree' },
+  { emoji: '❤️', label: 'Love' },
+  { emoji: '💡', label: 'Insightful' },
+  { emoji: '🔥', label: 'Hot Take' },
+  { emoji: '👏', label: 'Applause' },
+  { emoji: '🤔', label: 'Thinking' },
+];
 
 interface Props {
   issue: Issue | null;
@@ -32,6 +43,9 @@ interface Props {
   onReportResponse?: (responseId: string) => void;
   onAddCommentReply?: (issueId: string, submissionId: string, reply: CommentReply) => void;
   onLikeCommentReply?: (issueId: string, submissionId: string, replyId: string) => void;
+  onToggleCommentReaction?: (issueId: string, submissionId: string, emoji: string) => void;
+  onToggleReplyReaction?: (issueId: string, submissionId: string, replyId: string, emoji: string) => void;
+  onShareComment?: (issue: Issue, author: string, text: string, commentId: string) => void;
   onAddInvite?: (issueId: string, email: string) => void;
   onAddGroupInvite?: (issueId: string, group: string) => void;
 }
@@ -55,6 +69,9 @@ export const IssueDetailModal: React.FC<Props> = ({
   onReportResponse,
   onAddCommentReply,
   onLikeCommentReply,
+  onToggleCommentReaction,
+  onToggleReplyReaction,
+  onShareComment,
   onAddInvite,
   onAddGroupInvite
 }) => {
@@ -85,6 +102,39 @@ export const IssueDetailModal: React.FC<Props> = ({
   const [activeReplySubmissionId, setActiveReplySubmissionId] = useState<string | null>(null);
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
   const [replyAnonMap, setReplyAnonMap] = useState<Record<string, boolean>>({});
+
+  // Reactions & Comment Sharing State
+  const [activeReactionPickerId, setActiveReactionPickerId] = useState<string | null>(null);
+  const [sharingComment, setSharingComment] = useState<{
+    id: string;
+    author: string;
+    text: string;
+    choice?: VoteChoice;
+  } | null>(null);
+  const [copiedCommentLink, setCopiedCommentLink] = useState(false);
+
+  const [highlightedCommentId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const commentParam = urlParams.get('comment');
+    if (commentParam) return commentParam;
+    if (window.location.hash.startsWith('#comment-')) {
+      return window.location.hash.replace('#comment-', '');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (highlightedCommentId && isOpen) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`comment-${highlightedCommentId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedCommentId, isOpen, activeTab]);
 
   if (!isOpen || !issue) return null;
 
@@ -233,6 +283,72 @@ export const IssueDetailModal: React.FC<Props> = ({
     setReplyTextMap(prev => ({ ...prev, [parentSubmission.id]: '' }));
     setActiveReplySubmissionId(null);
     playHapticChime('yes');
+  };
+
+  const getCommentShareUrl = (commentId: string) => {
+    if (!issue) return '';
+    const origin = typeof window !== 'undefined' && window.location.origin 
+      ? window.location.origin 
+      : 'https://yesorno.chillon.top';
+    return `${origin}/${buildIssueSlug(issue)}?comment=${commentId}#comment-${commentId}`;
+  };
+
+  const getCommentShareText = (author: string, text: string, commentId: string) => {
+    if (!issue) return '';
+    const url = getCommentShareUrl(commentId);
+    return `"${text}"\n— ${author} on YesOrNo\n\nTopic: ${issue.title}\n${url}`;
+  };
+
+  const handleCopyCommentLink = async () => {
+    if (!sharingComment || !issue) return;
+    const text = getCommentShareText(sharingComment.author, sharingComment.text, sharingComment.id);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCommentLink(true);
+      if (onShareComment) {
+        onShareComment(issue, sharingComment.author, sharingComment.text, sharingComment.id);
+      }
+      setTimeout(() => setCopiedCommentLink(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy comment link:', err);
+    }
+  };
+
+  const handleNativeShareComment = async () => {
+    if (!sharingComment || !issue || typeof navigator === 'undefined' || !navigator.share) return;
+    const url = getCommentShareUrl(sharingComment.id);
+    try {
+      await navigator.share({
+        title: `${sharingComment.author}'s perspective on ${issue.title}`,
+        text: `"${sharingComment.text}" — ${sharingComment.author} on YesOrNo`,
+        url,
+      });
+      if (onShareComment) {
+        onShareComment(issue, sharingComment.author, sharingComment.text, sharingComment.id);
+      }
+      setSharingComment(null);
+    } catch {
+      // User cancelled share
+    }
+  };
+
+  const getCommentTwitterUrl = () => {
+    if (!sharingComment || !issue) return '#';
+    const text = `"${sharingComment.text.slice(0, 180)}..." — ${sharingComment.author} on YesOrNo`;
+    const url = getCommentShareUrl(sharingComment.id);
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  };
+
+  const getCommentWhatsAppUrl = () => {
+    if (!sharingComment || !issue) return '#';
+    const text = getCommentShareText(sharingComment.author, sharingComment.text, sharingComment.id);
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  };
+
+  const getCommentLinkedInUrl = () => {
+    if (!sharingComment || !issue) return '#';
+    const url = getCommentShareUrl(sharingComment.id);
+    return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
   };
 
   const handleReport = (id: string) => {
@@ -511,7 +627,12 @@ export const IssueDetailModal: React.FC<Props> = ({
                     return (
                       <div
                         key={resp.id}
-                        className="card p-4 space-y-2.5 hover:border-black/[0.12] dark:hover:border-white/20 transition-all shadow-2xs"
+                        id={`comment-${resp.id}`}
+                        className={`card p-4 space-y-2.5 hover:border-black/[0.12] dark:hover:border-white/20 transition-all shadow-2xs relative ${
+                          highlightedCommentId === resp.id
+                            ? 'ring-2 ring-brand-500 bg-brand-50/25 dark:bg-brand-950/25 border-brand-400'
+                            : ''
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -554,10 +675,98 @@ export const IssueDetailModal: React.FC<Props> = ({
                           <VoicePlayer attachment={resp.voiceNote} compact />
                         )}
 
+                        {/* COMMENT REACTION PILLS ROW */}
+                        {resp.reactions && Object.keys(resp.reactions).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            {Object.entries(resp.reactions).map(([emoji, count]) => {
+                              if (!count || count <= 0) return null;
+                              const userKey = currentUser?.email || currentUser?.id || '';
+                              const hasReacted = userKey && resp.userReactions?.[emoji]?.includes(userKey);
+                              return (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!currentUser) {
+                                      onOpenVoteModal();
+                                      return;
+                                    }
+                                    if (onToggleCommentReaction) {
+                                      onToggleCommentReaction(issue.id, resp.id, emoji);
+                                    }
+                                    playHapticChime('yes');
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
+                                    hasReacted
+                                      ? 'bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-300 dark:border-brand-500/40 font-bold shadow-2xs scale-105'
+                                      : 'bg-zinc-100 dark:bg-ink-800/80 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-white/10 hover:border-zinc-300'
+                                  }`}
+                                  title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
+                                >
+                                  <span className="text-sm leading-none">{emoji}</span>
+                                  <span className="text-[11px] font-bold">{count}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between pt-1.5 text-[11px] text-zinc-400">
                           <span>{new Date(resp.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3 relative">
+                            {/* REACT BUTTON & FLOATING PICKER */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!currentUser) {
+                                    onOpenVoteModal();
+                                    return;
+                                  }
+                                  setActiveReactionPickerId(prev => prev === resp.id ? null : resp.id);
+                                }}
+                                className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${
+                                  activeReactionPickerId === resp.id
+                                    ? 'text-brand-600 dark:text-brand-400 font-bold'
+                                    : 'text-zinc-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400'
+                                }`}
+                                title="React with emoji"
+                              >
+                                <Smile className="w-3.5 h-3.5" />
+                                <span>React</span>
+                              </button>
+
+                              {activeReactionPickerId === resp.id && (
+                                <div className="absolute right-0 sm:left-0 bottom-full mb-2 z-30 flex items-center gap-1 bg-white dark:bg-ink-900 border border-zinc-200 dark:border-white/15 rounded-full px-2 py-1 shadow-lg animate-in fade-in zoom-in-95 backdrop-blur-md">
+                                  {AVAILABLE_REACTIONS.map(({ emoji, label }) => {
+                                    const userKey = currentUser?.email || currentUser?.id || '';
+                                    const userHas = userKey && resp.userReactions?.[emoji]?.includes(userKey);
+                                    return (
+                                      <button
+                                        key={emoji}
+                                        type="button"
+                                        onClick={() => {
+                                          if (onToggleCommentReaction) {
+                                            onToggleCommentReaction(issue.id, resp.id, emoji);
+                                          }
+                                          playHapticChime('yes');
+                                          setActiveReactionPickerId(null);
+                                        }}
+                                        className={`p-1.5 rounded-full hover:scale-130 transition-transform cursor-pointer text-base ${
+                                          userHas ? 'bg-brand-50 dark:bg-brand-500/20' : ''
+                                        }`}
+                                        title={label}
+                                      >
+                                        {emoji}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* REPLY BUTTON */}
                             <button
                               type="button"
                               onClick={() => {
@@ -573,15 +782,42 @@ export const IssueDetailModal: React.FC<Props> = ({
                               <span>Reply{resp.replies && resp.replies.length > 0 ? ` (${resp.replies.length})` : ''}</span>
                             </button>
 
+                            {/* SHARE COMMENT */}
                             <button
                               type="button"
-                              onClick={() => onLikeResponse && onLikeResponse(resp.id)}
+                              onClick={() => {
+                                setSharingComment({
+                                  id: resp.id,
+                                  author: resp.isAnonymous ? (resp.authorAlias || 'Anonymous') : resp.authorName,
+                                  text: resp.note || (resp.voiceNote ? 'Spoken Voice Briefing' : `Voted ${resp.choice}`),
+                                  choice: resp.choice,
+                                });
+                              }}
                               className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-medium"
+                              title="Share this perspective"
                             >
-                              <Heart className="w-3 h-3" />
-                              <span>{resp.likesCount || 0}</span>
+                              <Share2 className="w-3 h-3" />
+                              <span>Share</span>
                             </button>
 
+                            {/* LIKE / HEART */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onToggleCommentReaction) {
+                                  onToggleCommentReaction(issue.id, resp.id, '❤️');
+                                } else if (onLikeResponse) {
+                                  onLikeResponse(resp.id);
+                                }
+                                playHapticChime('yes');
+                              }}
+                              className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-medium"
+                            >
+                              <Heart className={`w-3 h-3 ${resp.userReactions?.['❤️']?.includes(currentUser?.email || currentUser?.id || '') ? 'fill-rose-500 text-rose-500' : ''}`} />
+                              <span>{resp.reactions?.['❤️'] || resp.likesCount || 0}</span>
+                            </button>
+
+                            {/* REPORT */}
                             <button
                               type="button"
                               onClick={() => handleReport(resp.id)}
@@ -604,7 +840,12 @@ export const IssueDetailModal: React.FC<Props> = ({
                               return (
                                 <div
                                   key={reply.id}
-                                  className="bg-slate-50/90 dark:bg-ink-900/70 p-3 rounded-xl border border-black/[0.04] dark:border-white/5 space-y-1.5 text-xs shadow-2xs"
+                                  id={`comment-${reply.id}`}
+                                  className={`bg-slate-50/90 dark:bg-ink-900/70 p-3 rounded-xl border border-black/[0.04] dark:border-white/5 space-y-1.5 text-xs shadow-2xs relative ${
+                                    highlightedCommentId === reply.id
+                                      ? 'ring-2 ring-brand-500 bg-brand-50/30 dark:bg-brand-950/30 border-brand-400'
+                                      : ''
+                                  }`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -636,14 +877,121 @@ export const IssueDetailModal: React.FC<Props> = ({
                                     {reply.content}
                                   </p>
 
-                                  <div className="flex items-center justify-end pt-1">
+                                  {/* REPLY REACTION PILLS */}
+                                  {reply.reactions && Object.keys(reply.reactions).length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-1 pl-1 pt-0.5">
+                                      {Object.entries(reply.reactions).map(([emoji, count]) => {
+                                        if (!count || count <= 0) return null;
+                                        const userKey = currentUser?.email || currentUser?.id || '';
+                                        const hasReacted = userKey && reply.userReactions?.[emoji]?.includes(userKey);
+                                        return (
+                                          <button
+                                            key={emoji}
+                                            type="button"
+                                            onClick={() => {
+                                              if (!currentUser) {
+                                                onOpenVoteModal();
+                                                return;
+                                              }
+                                              if (onToggleReplyReaction) {
+                                                onToggleReplyReaction(issue.id, resp.id, reply.id, emoji);
+                                              }
+                                              playHapticChime('yes');
+                                            }}
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all cursor-pointer ${
+                                              hasReacted
+                                                ? 'bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-300 dark:border-brand-500/40 font-bold scale-105'
+                                                : 'bg-zinc-100 dark:bg-ink-800/80 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-white/10'
+                                            }`}
+                                          >
+                                            <span>{emoji}</span>
+                                            <span className="font-bold">{count}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-end gap-2.5 pt-1 relative">
+                                    {/* REPLY REACT BUTTON */}
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (!currentUser) {
+                                            onOpenVoteModal();
+                                            return;
+                                          }
+                                          setActiveReactionPickerId(prev => prev === reply.id ? null : reply.id);
+                                        }}
+                                        className="flex items-center gap-0.5 text-[11px] text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
+                                        title="React"
+                                      >
+                                        <Smile className="w-2.5 h-2.5" />
+                                        <span>React</span>
+                                      </button>
+
+                                      {activeReactionPickerId === reply.id && (
+                                        <div className="absolute right-0 bottom-full mb-1.5 z-30 flex items-center gap-0.5 bg-white dark:bg-ink-900 border border-zinc-200 dark:border-white/15 rounded-full px-1.5 py-0.5 shadow-lg animate-in fade-in zoom-in-95 backdrop-blur-md">
+                                          {AVAILABLE_REACTIONS.map(({ emoji, label }) => {
+                                            const userKey = currentUser?.email || currentUser?.id || '';
+                                            const userHas = userKey && reply.userReactions?.[emoji]?.includes(userKey);
+                                            return (
+                                              <button
+                                                key={emoji}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (onToggleReplyReaction) {
+                                                    onToggleReplyReaction(issue.id, resp.id, reply.id, emoji);
+                                                  }
+                                                  playHapticChime('yes');
+                                                  setActiveReactionPickerId(null);
+                                                }}
+                                                className={`p-1 rounded-full hover:scale-130 transition-transform cursor-pointer text-sm ${
+                                                  userHas ? 'bg-brand-50 dark:bg-brand-500/20' : ''
+                                                }`}
+                                                title={label}
+                                              >
+                                                {emoji}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* REPLY SHARE */}
                                     <button
                                       type="button"
-                                      onClick={() => onLikeCommentReply && onLikeCommentReply(issue.id, resp.id, reply.id)}
+                                      onClick={() => {
+                                        setSharingComment({
+                                          id: reply.id,
+                                          author: replyAuthor,
+                                          text: reply.content,
+                                        });
+                                      }}
+                                      className="flex items-center gap-0.5 text-[11px] text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
+                                      title="Share reply"
+                                    >
+                                      <Share2 className="w-2.5 h-2.5" />
+                                      <span>Share</span>
+                                    </button>
+
+                                    {/* REPLY HEART */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (onToggleReplyReaction) {
+                                          onToggleReplyReaction(issue.id, resp.id, reply.id, '❤️');
+                                        } else if (onLikeCommentReply) {
+                                          onLikeCommentReply(issue.id, resp.id, reply.id);
+                                        }
+                                        playHapticChime('yes');
+                                      }}
                                       className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-medium"
                                     >
-                                      <Heart className="w-2.5 h-2.5" />
-                                      <span>{reply.likesCount || 0}</span>
+                                      <Heart className={`w-2.5 h-2.5 ${reply.userReactions?.['❤️']?.includes(currentUser?.email || currentUser?.id || '') ? 'fill-rose-500 text-rose-500' : ''}`} />
+                                      <span>{reply.reactions?.['❤️'] || reply.likesCount || 0}</span>
                                     </button>
                                   </div>
                                 </div>
@@ -991,6 +1339,118 @@ export const IssueDetailModal: React.FC<Props> = ({
           )}
         </div>
       </div>
+
+      {/* SHARE COMMENT / PERSPECTIVE MODAL */}
+      {sharingComment && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setSharingComment(null)}
+        >
+          <div 
+            className="bg-white dark:bg-ink-900 border border-black/10 dark:border-white/10 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                <h3 className="text-sm font-bold text-ink-950 dark:text-white">Share Perspective</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSharingComment(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quote Preview */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-ink-950/80 border border-black/[0.06] dark:border-white/10 space-y-2.5">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-bold text-ink-950 dark:text-white">
+                  {sharingComment.author}
+                </span>
+                {sharingComment.choice && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    sharingComment.choice === 'YES' 
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300' 
+                      : 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
+                  }`}>
+                    Voted {sharingComment.choice}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs sm:text-sm text-zinc-700 dark:text-slate-200 italic leading-relaxed pl-2.5 border-l-2 border-brand-500">
+                "{sharingComment.text}"
+              </p>
+
+              <p className="text-[11px] text-zinc-400 pt-1">
+                on <strong>"{issue.title}"</strong>
+              </p>
+            </div>
+
+            {/* Copy Link Button */}
+            <button
+              type="button"
+              onClick={handleCopyCommentLink}
+              className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                copiedCommentLink
+                  ? 'bg-emerald-600 text-white shadow-soft'
+                  : 'bg-brand-600 hover:bg-brand-500 text-white shadow-soft'
+              }`}
+            >
+              {copiedCommentLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedCommentLink ? 'Quote & Direct Link Copied!' : 'Copy Quote & Direct Link'}</span>
+            </button>
+
+            {/* Social Row */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-zinc-400">Share directly to:</span>
+              <div className="grid grid-cols-3 gap-2">
+                <a
+                  href={getCommentTwitterUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-white/10 hover:border-brand-500 text-xs font-semibold flex items-center justify-center gap-1.5 text-zinc-700 dark:text-zinc-200 bg-white dark:bg-ink-800/80 transition-all cursor-pointer"
+                >
+                  <span>𝕏 Post</span>
+                </a>
+
+                <a
+                  href={getCommentWhatsAppUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-white/10 hover:border-brand-500 text-xs font-semibold flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-ink-800/80 transition-all cursor-pointer"
+                >
+                  <span>WhatsApp</span>
+                </a>
+
+                <a
+                  href={getCommentLinkedInUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-white/10 hover:border-brand-500 text-xs font-semibold flex items-center justify-center gap-1.5 text-blue-600 dark:text-blue-400 bg-white dark:bg-ink-800/80 transition-all cursor-pointer"
+                >
+                  <span>LinkedIn</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Native device share if supported */}
+            {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+              <button
+                type="button"
+                onClick={handleNativeShareComment}
+                className="w-full py-2 px-3 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-ink-800 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>More Share Options...</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
