@@ -81,38 +81,50 @@ export const AuthPage: React.FC<Props> = ({
 
   // Initialize real Google Identity Services if VITE_GOOGLE_CLIENT_ID is configured
   useEffect(() => {
-    if (!googleClientId || !window.google?.accounts?.id) return;
-    try {
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: (response) => {
-          const payload = decodeGoogleJwt(response.credential);
-          if (payload) {
-            selectUserWithSavedPrefs({
-              id: `google-${payload.sub}`,
-              name: payload.name || payload.email.split('@')[0],
-              email: payload.email,
-              role: 'Verified Google Account',
-              avatar: payload.picture,
-              groups: ['District 4 Council', 'Community Member']
-            });
-            onNavigate('app');
-          }
-        }
-      });
-      if (googleBtnRef.current) {
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-          theme: theme === 'dark' ? 'filled_black' : 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'continue_with',
-          shape: 'pill'
-        });
+    if (!googleClientId) return;
+
+    let retryTimer: number | null = null;
+    const initGis = () => {
+      if (!window.google?.accounts?.id) {
+        retryTimer = window.setTimeout(initGis, 250);
+        return;
       }
-    } catch (err) {
-      console.warn('GIS init skipped:', err);
-    }
-  }, [googleClientId, theme, onSelectUser, onNavigate]);
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: (response) => {
+            const payload = decodeGoogleJwt(response.credential);
+            if (payload) {
+              selectUserWithSavedPrefs({
+                id: `google-${payload.sub}`,
+                name: payload.name || payload.email.split('@')[0],
+                email: payload.email,
+                role: 'Verified Google Account',
+                avatar: payload.picture,
+                groups: ['District 4 Council', 'Community Member']
+              });
+            }
+          }
+        });
+        if (googleBtnRef.current) {
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            theme: theme === 'dark' ? 'filled_black' : 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+            shape: 'pill'
+          });
+        }
+      } catch (err) {
+        console.warn('GIS init skipped:', err);
+      }
+    };
+
+    initGis();
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [googleClientId, theme]);
 
   const handleAddGroup = () => {
     if (groupInput.trim() && !selectedGroups.includes(groupInput.trim())) {
@@ -205,9 +217,6 @@ export const AuthPage: React.FC<Props> = ({
 
         {/* Header */}
         <div className="text-center space-y-1.5">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
-            <Lock className="w-3 h-3" /> Authenticated Member Access
-          </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Sign in to <span className="font-serif italic font-normal text-brand-600 dark:text-brand-400">YesOrNo</span>
           </h1>
