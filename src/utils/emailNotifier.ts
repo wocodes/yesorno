@@ -1,4 +1,4 @@
-import { UserProfile, Issue, VoteSubmission } from '../types';
+import { UserProfile, Issue, VoteSubmission, CommentReply } from '../types';
 import { buildIssueSlug } from './share';
 
 export type NotificationEvent = 
@@ -199,6 +199,38 @@ export function notifyAdminCommentAdded(
       note: submission.note || '',
       hasVoice: Boolean(submission.voiceNote),
       isAnonymous: submission.isAnonymous,
+      url: issueUrl,
+    },
+  });
+}
+
+/**
+ * Triggered whenever a user posts a direct reply to another user's comment
+ */
+export function notifyAdminReplyAdded(
+  reply: CommentReply,
+  parentSubmission: VoteSubmission,
+  issueTitle: string,
+  user?: UserProfile | null
+): void {
+  const origin = typeof window !== 'undefined' && window.location.origin 
+    ? window.location.origin 
+    : 'https://yesorno.chillon.top';
+  const issueUrl = `${origin}/?issue=${parentSubmission.issueId}`;
+
+  sendAdminNotification({
+    event: 'comment',
+    user: {
+      name: user?.name || reply.authorName,
+      email: user?.email || reply.authorEmail,
+      role: user?.role || reply.authorRole,
+    },
+    data: {
+      issueTitle,
+      choice: `REPLY 💬 (to @${reply.replyToName || parentSubmission.authorName})`,
+      note: reply.content,
+      hasVoice: false,
+      isAnonymous: reply.isAnonymous,
       url: issueUrl,
     },
   });

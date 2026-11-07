@@ -27,6 +27,20 @@ export interface VoiceAttachment {
   isVoiceMasked?: boolean;
 }
 
+export interface CommentReply {
+  id: string;
+  submissionId: string;
+  authorName: string;
+  authorEmail?: string;
+  authorAlias?: string;
+  authorRole?: string;
+  isAnonymous?: boolean;
+  content: string;
+  createdAt: string;
+  likesCount: number;
+  replyToName?: string;
+}
+
 export interface VoteSubmission {
   id: string;
   issueId: string;
@@ -41,6 +55,7 @@ export interface VoteSubmission {
   createdAt: string;
   likesCount: number;
   isReported?: boolean;
+  replies?: CommentReply[];
 }
 
 export type IssueCategory = 

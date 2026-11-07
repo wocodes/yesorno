@@ -4,7 +4,7 @@ import {
   Flag, Heart, Tag, User, Lock, Globe, Clock,
   UserPlus, Sparkles, FileText, Share2, Trash2, Send, Square, Bookmark
 } from 'lucide-react';
-import { Issue, VoteSubmission, UserProfile, VoteChoice } from '../types';
+import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { IssueSummaryView } from './IssueSummaryView';
 import { computeIssueMetrics } from '../utils/summary';
@@ -30,6 +30,8 @@ interface Props {
   isFavorited?: boolean;
   onLikeResponse?: (responseId: string) => void;
   onReportResponse?: (responseId: string) => void;
+  onAddCommentReply?: (issueId: string, submissionId: string, reply: CommentReply) => void;
+  onLikeCommentReply?: (issueId: string, submissionId: string, replyId: string) => void;
   onAddInvite?: (issueId: string, email: string) => void;
   onAddGroupInvite?: (issueId: string, group: string) => void;
 }
@@ -51,6 +53,8 @@ export const IssueDetailModal: React.FC<Props> = ({
   isFavorited = false,
   onLikeResponse,
   onReportResponse,
+  onAddCommentReply,
+  onLikeCommentReply,
   onAddInvite,
   onAddGroupInvite
 }) => {
@@ -76,6 +80,11 @@ export const IssueDetailModal: React.FC<Props> = ({
   const mediaRecRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+
+  // Direct Threaded Comment Reply State
+  const [activeReplySubmissionId, setActiveReplySubmissionId] = useState<string | null>(null);
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [replyAnonMap, setReplyAnonMap] = useState<Record<string, boolean>>({});
 
   if (!isOpen || !issue) return null;
 
@@ -180,6 +189,51 @@ export const IssueDetailModal: React.FC<Props> = ({
     if (filter === 'VOICE') return !!r.voiceNote;
     return true;
   });
+
+  const totalConversationCount = issue.responses.reduce(
+    (sum, r) => sum + 1 + (r.replies?.length || 0),
+    0
+  );
+
+  const handleSendDirectReply = (parentSubmission: VoteSubmission) => {
+    if (!issue) return;
+    if (!currentUser) {
+      onOpenVoteModal();
+      return;
+    }
+    const text = (replyTextMap[parentSubmission.id] || '').trim();
+    if (!text) return;
+
+    const mod = moderateText(text);
+    if (!mod.isAppropriate && mod.severity === 'rejected') return;
+
+    const isAnon = replyAnonMap[parentSubmission.id] ?? false;
+    const parentAuthor = parentSubmission.isAnonymous
+      ? (parentSubmission.authorAlias || 'Anonymous')
+      : parentSubmission.authorName;
+
+    const newReply: CommentReply = {
+      id: `reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      submissionId: parentSubmission.id,
+      authorName: isAnon ? 'Anonymous Neighbor' : currentUser.name,
+      authorEmail: !isAnon ? currentUser.email : undefined,
+      authorAlias: isAnon ? alias : undefined,
+      authorRole: !isAnon ? currentUser.role : undefined,
+      isAnonymous: isAnon,
+      content: text,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+      replyToName: parentAuthor,
+    };
+
+    if (onAddCommentReply) {
+      onAddCommentReply(issue.id, parentSubmission.id, newReply);
+    }
+
+    setReplyTextMap(prev => ({ ...prev, [parentSubmission.id]: '' }));
+    setActiveReplySubmissionId(null);
+    playHapticChime('yes');
+  };
 
   const handleReport = (id: string) => {
     setReportedIds(prev => new Set(prev).add(id));
@@ -340,7 +394,7 @@ export const IssueDetailModal: React.FC<Props> = ({
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-              <span>Replies ({issue.responses.length})</span>
+              <span>Replies ({totalConversationCount})</span>
             </button>
             <button
               type="button"
@@ -506,6 +560,21 @@ export const IssueDetailModal: React.FC<Props> = ({
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
+                              onClick={() => {
+                                setActiveReplySubmissionId(prev => prev === resp.id ? null : resp.id);
+                              }}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${
+                                activeReplySubmissionId === resp.id
+                                  ? 'text-brand-600 dark:text-brand-400 font-bold'
+                                  : 'text-zinc-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400'
+                              }`}
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              <span>Reply{resp.replies && resp.replies.length > 0 ? ` (${resp.replies.length})` : ''}</span>
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => onLikeResponse && onLikeResponse(resp.id)}
                               className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-medium"
                             >
@@ -526,6 +595,120 @@ export const IssueDetailModal: React.FC<Props> = ({
                             </button>
                           </div>
                         </div>
+
+                        {/* THREADED DIRECT REPLIES */}
+                        {resp.replies && resp.replies.length > 0 && (
+                          <div className="mt-3 pt-2.5 border-l-2 border-brand-200/90 dark:border-brand-500/30 ml-2.5 pl-3 sm:pl-4 space-y-2.5">
+                            {resp.replies.map((reply: CommentReply) => {
+                              const replyAuthor = reply.isAnonymous ? (reply.authorAlias || 'Anonymous') : reply.authorName;
+                              return (
+                                <div
+                                  key={reply.id}
+                                  className="bg-slate-50/90 dark:bg-ink-900/70 p-3 rounded-xl border border-black/[0.04] dark:border-white/5 space-y-1.5 text-xs shadow-2xs"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-ink-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                                        {reply.isAnonymous ? (
+                                          <ShieldCheck className="w-3 h-3 text-brand-600 dark:text-brand-400" />
+                                        ) : (
+                                          <User className="w-3 h-3 text-zinc-500" />
+                                        )}
+                                      </div>
+                                      <span className="font-bold text-ink-950 dark:text-white text-[11px]">
+                                        {replyAuthor}
+                                      </span>
+                                      {reply.authorRole && (
+                                        <span className="text-[10px] text-zinc-400">• {reply.authorRole}</span>
+                                      )}
+                                      {reply.replyToName && (
+                                        <span className="text-[10px] text-brand-600 dark:text-brand-400 font-medium bg-brand-50 dark:bg-brand-500/10 px-1.5 py-0.5 rounded">
+                                          @{reply.replyToName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-zinc-400 shrink-0">
+                                      {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </div>
+
+                                  <p className="text-zinc-700 dark:text-slate-200 text-xs leading-relaxed pl-1">
+                                    {reply.content}
+                                  </p>
+
+                                  <div className="flex items-center justify-end pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => onLikeCommentReply && onLikeCommentReply(issue.id, resp.id, reply.id)}
+                                      className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-medium"
+                                    >
+                                      <Heart className="w-2.5 h-2.5" />
+                                      <span>{reply.likesCount || 0}</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* INLINE DIRECT REPLY COMPOSER */}
+                        {activeReplySubmissionId === resp.id && (
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 space-y-2">
+                            <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+                              <span className="font-semibold text-brand-600 dark:text-brand-400 flex items-center gap-1">
+                                <MessageSquare className="w-3 h-3" />
+                                Replying directly to @{resp.isAnonymous ? (resp.authorAlias || 'Anonymous') : resp.authorName}
+                              </span>
+                              <div className="flex items-center gap-2.5">
+                                {currentUser && (
+                                  <label className="flex items-center gap-1 text-[10px] cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white">
+                                    <input
+                                      type="checkbox"
+                                      checked={replyAnonMap[resp.id] ?? false}
+                                      onChange={(e) => setReplyAnonMap(prev => ({ ...prev, [resp.id]: e.target.checked }))}
+                                      className="w-3 h-3 rounded accent-brand-600 cursor-pointer"
+                                    />
+                                    <span>Post anonymously</span>
+                                  </label>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveReplySubmissionId(null)}
+                                  className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer font-medium"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={replyTextMap[resp.id] || ''}
+                                onChange={(e) => setReplyTextMap(prev => ({ ...prev, [resp.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendDirectReply(resp);
+                                  }
+                                }}
+                                placeholder={currentUser ? `Write a direct reply to ${resp.isAnonymous ? (resp.authorAlias || 'author') : resp.authorName}...` : 'Sign in to write a direct reply...'}
+                                className="flex-1 text-xs px-3.5 py-2.5 border border-zinc-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-ink-950 text-ink-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSendDirectReply(resp)}
+                                disabled={!replyTextMap[resp.id]?.trim()}
+                                className="px-3.5 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft shrink-0"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Reply</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

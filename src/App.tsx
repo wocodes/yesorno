@@ -25,8 +25,9 @@ import {
   notifyAdminUserLoggedIn,
   notifyAdminIssueCreated,
   notifyAdminCommentAdded,
+  notifyAdminReplyAdded,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice, CommentReply } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
@@ -628,15 +629,19 @@ export function App() {
 
   // Handle like on response
   const handleLikeResponse = (responseId: string) => {
-    setIssues(prev => prev.map(issue => ({
-      ...issue,
-      responses: issue.responses.map(resp => {
-        if (resp.id === responseId) {
-          return { ...resp, likesCount: (resp.likesCount || 0) + 1 };
-        }
-        return resp;
-      })
-    })));
+    setIssues(prev => {
+      const nextIssues = prev.map(issue => ({
+        ...issue,
+        responses: issue.responses.map(resp => {
+          if (resp.id === responseId) {
+            return { ...resp, likesCount: (resp.likesCount || 0) + 1 };
+          }
+          return resp;
+        })
+      }));
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
 
     if (activeDetailIssue) {
       setActiveDetailIssue(prev => {
@@ -648,6 +653,97 @@ export function App() {
               return { ...resp, likesCount: (resp.likesCount || 0) + 1 };
             }
             return resp;
+          })
+        };
+      });
+    }
+  };
+
+  // Handle adding a direct threaded reply to a comment
+  const handleAddCommentReply = (issueId: string, submissionId: string, reply: CommentReply) => {
+    let parentSubmission: VoteSubmission | undefined;
+    const targetIssue = issues.find(i => i.id === issueId);
+
+    setIssues(prev => {
+      const nextIssues = prev.map(issue => {
+        if (issue.id !== issueId) return issue;
+        const updatedResponses = issue.responses.map(resp => {
+          if (resp.id !== submissionId) return resp;
+          parentSubmission = resp;
+          return {
+            ...resp,
+            replies: [...(resp.replies || []), reply]
+          };
+        });
+        return { ...issue, responses: updatedResponses };
+      });
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+            return {
+              ...resp,
+              replies: [...(resp.replies || []), reply]
+            };
+          })
+        };
+      });
+    }
+
+    addToast('success', 'Reply Posted', 'Your direct reply was posted.');
+    recordEngagementAction('inline_reply', targetIssue?.title || 'Issue comment reply');
+
+    // Notify admin
+    const foundSubmission = parentSubmission || targetIssue?.responses.find(r => r.id === submissionId);
+    if (targetIssue && foundSubmission) {
+      notifyAdminReplyAdded(reply, foundSubmission, targetIssue.title, currentUser);
+    }
+  };
+
+  // Handle like on a comment reply
+  const handleLikeCommentReply = (issueId: string, submissionId: string, replyId: string) => {
+    setIssues(prev => {
+      const nextIssues = prev.map(issue => {
+        if (issue.id !== issueId) return issue;
+        return {
+          ...issue,
+          responses: issue.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+            return {
+              ...resp,
+              replies: (resp.replies || []).map(rep => {
+                if (rep.id !== replyId) return rep;
+                return { ...rep, likesCount: (rep.likesCount || 0) + 1 };
+              })
+            };
+          })
+        };
+      });
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.id !== submissionId) return resp;
+            return {
+              ...resp,
+              replies: (resp.replies || []).map(rep => {
+                if (rep.id !== replyId) return rep;
+                return { ...rep, likesCount: (rep.likesCount || 0) + 1 };
+              })
+            };
           })
         };
       });
@@ -1413,6 +1509,8 @@ export function App() {
         isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
         onLikeResponse={handleLikeResponse}
         onReportResponse={handleReportResponse}
+        onAddCommentReply={handleAddCommentReply}
+        onLikeCommentReply={handleLikeCommentReply}
         onAddInvite={handleAddInvite}
         onAddGroupInvite={handleAddGroupInvite}
       />
