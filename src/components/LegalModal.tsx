@@ -164,7 +164,7 @@ export const LegalModal: React.FC<Props> = ({
                   <span>2. Anonymous Voting &amp; Voice Pitch Masking</span>
                 </h3>
                 <p>
-                  When you choose to vote anonymously, YesOrNo assigns a randomized alias (e.g., <em>Neighbor #402</em>) so your public name and email are not displayed on the ballot thread. When you apply a Voice Privacy Filter (Deep Mask, Robotic, Helium, or Radio), audio pitch-shifting is performed directly in your browser using the Web Audio API before your voice note is saved, protecting your vocal identity.
+                  When you choose to vote anonymously, YesOrNo assigns a randomized alias (e.g., <em>Neighbor #402</em>) so your public name and email are not displayed on the issue thread. When you apply a Voice Privacy Filter (Deep Mask, Robotic, Helium, or Radio), audio pitch-shifting is performed directly in your browser using the Web Audio API before your voice note is saved, protecting your vocal identity.
                 </p>
               </section>
 
@@ -183,7 +183,7 @@ export const LegalModal: React.FC<Props> = ({
                   4. How We Use Your Data &amp; AI Synthesis
                 </h3>
                 <p>
-                  We use your selected region and interests strictly to prioritize relevant issues in your ballot feed (mixing your region with Worldwide issues). Public written perspectives may be summarized into non-identifying executive pro/con digests. We never sell your personal data or audio recordings to third-party advertisers.
+                  We use your selected region and interests strictly to prioritize relevant issues in your issue feed (mixing your region with Worldwide issues). Public written perspectives may be summarized into non-identifying executive pro/con digests. We never sell your personal data or audio recordings to third-party advertisers.
                 </p>
               </section>
 

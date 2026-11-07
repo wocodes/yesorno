@@ -311,7 +311,7 @@ export const INITIAL_ISSUES: Issue[] = [
   {
     id: 'issue-econ-1',
     title: 'Distribute 50% of Community Solar Cooperative Savings as Direct Resident Dividend Checks',
-    description: 'Economical policy ballot: Our local solar energy cooperative generated a surplus of \$120,000 this fiscal quarter. Vote on distributing 50% (\$60,000) directly as household rebate checks of ~\$85 each, versus reinvesting 100% into expanding battery storage infrastructure.',
+    description: 'Economical policy decision: Our local solar energy cooperative generated a surplus of \$120,000 this fiscal quarter. Vote on distributing 50% (\$60,000) directly as household rebate checks of ~\$85 each, versus reinvesting 100% into expanding battery storage infrastructure.',
     category: 'Economy & Finance',
     tags: ['Dividend', 'Energy Economics', 'Cooperative', 'Rebate'],
     author: 'Clean Grid Taskforce',

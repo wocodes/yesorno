@@ -37,7 +37,7 @@ YesOrNo is designed for any collective group reaching a decision:
 
 ## 🏷️ OpenGraph & Social Sharing Meta Tags
 - Configured with rich **OpenGraph** (`og:title`, `og:description`, `og:image`, `og:type`, `og:site_name`, `og:url`) and **Twitter Card** (`summary_large_image`) tags.
-- Includes a custom-designed `1200x630` social preview image (`/og-image.svg`) displaying the Yes/No ballot interface, waveform preview, and category badges for optimal rendering across WhatsApp, Twitter/X, iMessage, LinkedIn, Discord, and Slack.
+- Includes a custom-designed `1200x630` social preview image (`/og-image.svg`) displaying the Yes/No issue interface, waveform preview, and category badges for optimal rendering across WhatsApp, Twitter/X, iMessage, LinkedIn, Discord, and Slack.
 
 ---
 

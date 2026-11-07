@@ -350,13 +350,13 @@ function renderEditorialSpotlight(
   const padX = isSquare ? 80 : 88;
   const contentWidth = width - padX * 2;
 
-  // 1. TOP HEADER: Centralized YESORNO / PUBLIC BALLOT (No Category Tag)
+  // 1. TOP HEADER: Centralized YESORNO / PUBLIC DECISION (No Category Tag)
   const headerY = isSquare ? 76 : 56;
   ctx.save();
   ctx.font = `900 ${isSquare ? '34px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   const brandW = ctx.measureText('YESORNO').width;
   ctx.font = `600 ${isSquare ? '20px' : '16px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  const subW = ctx.measureText('  /  PUBLIC BALLOT').width;
+  const subW = ctx.measureText('  /  PUBLIC DECISION').width;
   const totalHeaderW = brandW + subW;
   const startHeaderX = (width - totalHeaderW) / 2;
 
@@ -366,7 +366,7 @@ function renderEditorialSpotlight(
 
   ctx.font = `600 ${isSquare ? '20px' : '16px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText('  /  PUBLIC BALLOT', startHeaderX + brandW, headerY + (isSquare ? 28 : 22));
+  ctx.fillText('  /  PUBLIC DECISION', startHeaderX + brandW, headerY + (isSquare ? 28 : 22));
 
   // Horizontal divider
   const sepY = headerY + (isSquare ? 60 : 46);
@@ -578,7 +578,7 @@ export async function renderIssueCardToCanvas(
   }
 
   const style = options.style || 'bold';
-  const format = options.format || 'landscape';
+  const format = options.format || 'square';
   const isSquare = format === 'square';
   const isToned = options.colorTone === 'toned';
 
@@ -638,7 +638,7 @@ export async function downloadIssueCard(
 ): Promise<string> {
   const blob = await generateIssueCardBlob(issue, options);
   const slug = buildIssueSlug(issue);
-  const fileName = `${slug}-${options.style || 'card'}-${options.format || 'landscape'}.png`;
+  const fileName = `${slug}-${options.style || 'card'}-${options.format || 'square'}.png`;
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
