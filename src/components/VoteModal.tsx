@@ -95,12 +95,12 @@ export const VoteModal: React.FC<Props> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink-950/70 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink-950/70 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <div className="relative w-full max-w-lg bg-white dark:bg-ink-900 rounded-t-3xl sm:rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden max-h-[92vh] flex flex-col animate-slide-up">
+      <div className="relative w-full max-w-lg bg-white dark:bg-ink-900 rounded-t-3xl sm:rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden max-h-[92vh] flex flex-col animate-slide-up overscroll-contain">
         {/* Dark Header */}
         <div className="p-5 sm:p-6 bg-gradient-to-r from-ink-950 via-ink-900 to-brand-950 text-white relative">
           <button
@@ -127,7 +127,7 @@ export const VoteModal: React.FC<Props> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto overscroll-contain space-y-4 flex-1">
           {isClosed && (
             <div className="p-3 bg-ink-900 text-white rounded-2xl text-xs flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-400 shrink-0" />

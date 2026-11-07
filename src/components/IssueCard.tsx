@@ -413,8 +413,8 @@ export const IssueCard: React.FC<Props> = ({
               title={isLiked ? 'Unlike issue' : 'Like issue'}
               className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                 isLiked
-                  ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15'
-                  : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200/50 dark:hover:bg-ink-800'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400'
               }`}
             >
               <Heart className={`w-3.5 h-3.5 shrink-0 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
@@ -430,8 +430,8 @@ export const IssueCard: React.FC<Props> = ({
               title={isFavorited ? 'Remove from Favourites' : 'Save to Favourites'}
               className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                 isFavorited
-                  ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15'
-                  : 'text-slate-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-200/50 dark:hover:bg-ink-800'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-slate-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400'
               }`}
             >
               <Bookmark className={`w-3.5 h-3.5 shrink-0 ${isFavorited ? 'fill-current text-amber-500' : ''}`} />

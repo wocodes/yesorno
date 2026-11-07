@@ -26,12 +26,12 @@ export const LegalModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-labelledby="legal-modal-title"
     >
-      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 rounded-3xl shadow-lift overflow-hidden my-6 flex flex-col max-h-[90vh] animate-slide-up">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 rounded-3xl shadow-lift overflow-hidden my-6 flex flex-col max-h-[90vh] animate-slide-up overscroll-contain">
         {/* Executive Header */}
         <div className="bg-gradient-to-r from-ink-950 via-ink-900 to-brand-950 text-white p-5 sm:p-6 relative">
           <button
@@ -86,7 +86,7 @@ export const LegalModal: React.FC<Props> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed flex-1">
+        <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain space-y-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed flex-1">
           {activeTab === 'terms' ? (
             <div className="space-y-4">
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950/70 text-xs text-slate-500 dark:text-zinc-400">

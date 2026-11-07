@@ -34,7 +34,7 @@ export const ShareIssueModal: React.FC<Props> = ({ issue, isOpen, onClose }) => 
       try {
         await navigator.share({
           title: payload.title,
-          text: `${payload.title} — ${payload.description}`,
+          text: `${payload.fullText}\n${payload.url}`,
           url: payload.url
         });
       } catch {
@@ -45,11 +45,11 @@ export const ShareIssueModal: React.FC<Props> = ({ issue, isOpen, onClose }) => 
 
   return (
     <div 
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-md bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden animate-slide-up">
+      <div className="relative w-full max-w-md bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden max-h-[90vh] flex flex-col animate-slide-up overscroll-contain">
         {/* Header */}
         <div className="p-5 bg-gradient-to-r from-ink-950 via-ink-900 to-brand-950 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -69,7 +69,7 @@ export const ShareIssueModal: React.FC<Props> = ({ issue, isOpen, onClose }) => 
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto overscroll-contain flex-1">
           {/* Social Preview Card */}
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 border border-slate-200/80 dark:border-white/10 space-y-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">

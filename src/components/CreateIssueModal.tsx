@@ -221,12 +221,12 @@ export const CreateIssueModal: React.FC<Props> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-12 sm:pt-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-12 sm:pt-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-issue-title"
     >
-      <div className="relative w-full max-w-lg bg-white dark:bg-ink-900 rounded-3xl shadow-lift overflow-hidden flex flex-col animate-slide-up">
+      <div className="relative w-full max-w-lg bg-white dark:bg-ink-900 rounded-3xl shadow-lift overflow-hidden flex flex-col max-h-[92vh] animate-slide-up overscroll-contain">
         {/* Minimal Social Composer Top Bar */}
         <div className="px-5 pt-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -268,7 +268,7 @@ export const CreateIssueModal: React.FC<Props> = ({
         </div>
 
         {/* Social Composer Form */}
-        <form onSubmit={handleSubmit} className="px-5 pb-4 pt-2 space-y-3">
+        <form onSubmit={handleSubmit} className="px-5 pb-4 pt-2 space-y-3 overflow-y-auto overscroll-contain flex-1">
           {/* Primary Yes/No Question Input */}
           <div>
             <textarea

@@ -5,7 +5,7 @@ import {
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
 import { getInitialTheme, applyTheme, ThemeMode } from './utils/theme';
-import { updateDocumentMetaForIssue } from './utils/share';
+import { updateDocumentMetaForIssue, findIssueFromUrl, buildIssueSlug } from './utils/share';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -29,7 +29,8 @@ import {
 function getInitialView(user: UserProfile | null): AppView {
   const hash = window.location.hash.replace('#', '');
   const params = new URLSearchParams(window.location.search);
-  const hasSharedIssue = params.has('issue');
+  const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  const hasSharedIssue = params.has('issue') || Boolean(rawPath && rawPath !== 'index.html');
 
   if (hash === 'landing') {
     return 'landing';
@@ -88,21 +89,62 @@ export function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Sync OpenGraph / document meta tags when an issue is opened or shared
+  // Lock background page scroll whenever any modal is open
   useEffect(() => {
-    updateDocumentMetaForIssue(activeDetailIssue || activeShareIssue || null);
+    const isAnyModalOpen = Boolean(
+      activeVoteIssue ||
+      activeDetailIssue ||
+      activeShareIssue ||
+      isGuidelinesOpen ||
+      legalModalTab !== null ||
+      isCreateModalOpen ||
+      isProfileSettingsOpen ||
+      isOnboardingOpen
+    );
+
+    if (isAnyModalOpen) {
+      const prevBodyOverflow = document.body.style.overflow;
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevBodyOverflow;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+      };
+    }
+  }, [
+    activeVoteIssue,
+    activeDetailIssue,
+    activeShareIssue,
+    isGuidelinesOpen,
+    legalModalTab,
+    isCreateModalOpen,
+    isProfileSettingsOpen,
+    isOnboardingOpen,
+  ]);
+
+  // Sync OpenGraph / document meta tags and clean slug URL when an issue is opened or shared
+  useEffect(() => {
+    const targetIssue = activeDetailIssue || activeShareIssue || null;
+    updateDocumentMetaForIssue(targetIssue);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      if (targetIssue) {
+        const slugPath = `/${buildIssueSlug(targetIssue)}`;
+        if (window.location.pathname !== slugPath) {
+          window.history.replaceState(null, '', `${slugPath}${window.location.hash}`);
+        }
+      } else if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+        window.history.replaceState(null, '', `/${window.location.hash || '#app'}`);
+      }
+    }
   }, [activeDetailIssue, activeShareIssue]);
 
-  // If URL has ?issue=<id> and user is authenticated, auto-open that issue
+  // If URL has /{slug-of-the-issue-question}-{id} or ?issue=<id> and user is authenticated, auto-open that issue
   useEffect(() => {
     if (!currentUser) return;
-    const params = new URLSearchParams(window.location.search);
-    const sharedId = params.get('issue');
-    if (sharedId) {
-      const found = issues.find(i => i.id === sharedId);
-      if (found) {
-        setActiveDetailIssue(found);
-      }
+    const found = findIssueFromUrl(issues);
+    if (found) {
+      setActiveDetailIssue(found);
     }
   }, [currentUser, issues]);
 
@@ -297,17 +339,18 @@ export function App() {
       });
     }
 
-    addToast(
-      'success',
-      hasExistingVote && hasContent
-        ? `Reply added to your ${submission.choice} vote`
-        : `Your ${submission.choice} vote was recorded`,
-      submission.voiceNote 
-        ? 'Voice note attached.'
-        : submission.note
-        ? 'Perspective posted to the thread.'
-        : 'Tap Reply below the card if you want to add a quick note or voice clip.'
-    );
+    // Do not show a toast when the user is adding a reply to an existing vote (since the reply appears instantly)
+    if (!(hasExistingVote && hasContent)) {
+      addToast(
+        'success',
+        `Your ${submission.choice} vote was recorded`,
+        submission.voiceNote 
+          ? 'Voice note attached.'
+          : submission.note
+          ? 'Perspective posted to the thread.'
+          : 'Tap Reply below the card if you want to add a quick note or voice clip.'
+      );
+    }
   };
 
   // Handle creator deleting an issue topic & description while preserving all responses & votes
@@ -794,8 +837,6 @@ export function App() {
         currentView={currentView}
         onNavigate={handleNavigate}
         currentUser={currentUser}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
         showSearchMobile={showSearchMobile}
       />
 

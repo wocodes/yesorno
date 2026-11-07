@@ -169,11 +169,11 @@ export const ProfileSettingsModal: React.FC<Props> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 sm:rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden h-full sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 sm:rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden h-full sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up overscroll-contain">
         {/* Top Header */}
         <div className="p-5 sm:p-6 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-950 text-white">
           <div className="flex items-start justify-between gap-3">
@@ -257,7 +257,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
         </div>
 
         {/* Tab Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5 bg-slate-50/60 dark:bg-ink-950/60">
+        <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 bg-slate-50/60 dark:bg-ink-950/60">
           {/* TAB 1: REGION & INTERESTS */}
           {activeTab === 'preferences' && (
             <div className="space-y-5">

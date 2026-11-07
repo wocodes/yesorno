@@ -202,12 +202,12 @@ export const IssueDetailModal: React.FC<Props> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-hidden overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-labelledby="issue-detail-title"
     >
-      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 sm:rounded-3xl shadow-lift border border-black/[0.08] dark:border-white/10 overflow-hidden h-full sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 sm:rounded-3xl shadow-lift border border-black/[0.08] dark:border-white/10 overflow-hidden h-full sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up overscroll-contain">
         {/* Dark Executive Header */}
         <div className="p-5 sm:p-6 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-950 text-white sticky top-0 z-10">
           <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -238,11 +238,11 @@ export const IssueDetailModal: React.FC<Props> = ({
                   title={isLiked ? 'Unlike issue' : 'Like issue'}
                   className={`px-2 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                     isLiked
-                      ? 'bg-rose-500 text-white shadow-glow-rose'
-                      : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                      ? 'text-rose-400'
+                      : 'text-zinc-300 hover:text-rose-400'
                   }`}
                 >
-                  <Heart className={`w-3.5 h-3.5 shrink-0 ${isLiked ? 'fill-current' : ''}`} />
+                  <Heart className={`w-4 h-4 shrink-0 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
                   <span>{issue.likesCount || 0}</span>
                 </button>
               )}
@@ -255,11 +255,11 @@ export const IssueDetailModal: React.FC<Props> = ({
                   title={isFavorited ? 'Remove from Favourites' : 'Save to Favourites'}
                   className={`px-2 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer ${
                     isFavorited
-                      ? 'bg-amber-500 text-ink-950 shadow-glow'
-                      : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                      ? 'text-amber-400'
+                      : 'text-zinc-300 hover:text-amber-400'
                   }`}
                 >
-                  <Bookmark className={`w-3.5 h-3.5 shrink-0 ${isFavorited ? 'fill-current' : ''}`} />
+                  <Bookmark className={`w-4 h-4 shrink-0 ${isFavorited ? 'fill-current text-amber-400' : ''}`} />
                   <span>{issue.favoritesCount || 0}</span>
                 </button>
               )}
@@ -370,7 +370,7 @@ export const IssueDetailModal: React.FC<Props> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 bg-slate-50/70 dark:bg-ink-950/80">
+        <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain space-y-5 flex-1 bg-slate-50/70 dark:bg-ink-950/80">
           {/* RESTRICTED ACCESS NOTICE */}
           {!access.canAccess && (
             <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-500/30 rounded-2xl space-y-1.5">

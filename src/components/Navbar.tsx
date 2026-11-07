@@ -1,10 +1,9 @@
 import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Sun, Moon, Settings, Compass 
+  RotateCcw, User, Home, Lock, Download, Settings, Compass 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
-import { ThemeMode } from '../utils/theme';
 
 export type FeedSortOption = 'for-you' | 'active' | 'closing' | 'yes' | 'perspectives';
 
@@ -23,8 +22,6 @@ interface Props {
   currentView: AppView;
   onNavigate: (view: AppView) => void;
   currentUser: UserProfile | null;
-  theme: ThemeMode;
-  onToggleTheme: () => void;
   showSearchMobile?: boolean;
 }
 
@@ -56,8 +53,6 @@ export const Navbar: React.FC<Props> = ({
   currentView,
   onNavigate,
   currentUser,
-  theme,
-  onToggleTheme,
   showSearchMobile = false
 }) => {
   return (
@@ -120,16 +115,6 @@ export const Navbar: React.FC<Props> = ({
             >
               <Compass className="w-4 h-4" />
               <span className="hidden lg:inline">Discovery</span>
-            </button>
-
-            {/* Dark / Light Mode Toggle */}
-            <button
-              onClick={onToggleTheme}
-              className="p-2 rounded-xl bg-zinc-100 dark:bg-ink-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-ink-700 transition-colors cursor-pointer"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-brand-600" />}
             </button>
 
             {/* Install PWA Button */}
