@@ -3,7 +3,7 @@ import {
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
 } from './utils/storage';
-import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser } from './utils/auth';
 import { 
   getInitialTheme, applyTheme, ThemeMode, 
   getInitialColorTone, applyColorTone, ColorTone 
@@ -51,7 +51,7 @@ function getInitialView(user: UserProfile | null): AppView {
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
-    if (hash === 'analytics') return 'analytics';
+    if (hash === 'analytics' && isAdminUser(user)) return 'analytics';
     return 'app';
   }
   if (hash === 'app' || hash === 'discovery' || hash === 'analytics' || hasSharedIssue || hash === 'auth') {
@@ -299,6 +299,12 @@ export function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    if (view === 'analytics' && !isAdminUser(currentUser)) {
+      setCurrentView('app');
+      window.location.hash = 'app';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setAuthPromptMessage(null);
     setCurrentView(view);
     window.location.hash = view === 'landing' ? '' : view;
@@ -313,6 +319,9 @@ export function App() {
           setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
           setCurrentView('auth');
           window.location.hash = 'auth';
+        } else if (hash === 'analytics' && !isAdminUser(currentUser)) {
+          setCurrentView('app');
+          window.location.hash = 'app';
         } else {
           setCurrentView(hash as AppView);
         }
@@ -996,7 +1005,7 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'analytics' ? (
+        {currentView === 'analytics' && isAdminUser(currentUser) ? (
           <AdminAnalyticsPage
             issues={issues}
             currentUser={currentUser}
@@ -1237,13 +1246,15 @@ export function App() {
         {/* Workspace Footer with Terms of Use, Privacy Policy & Admin Analytics */}
         <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex items-center justify-center sm:justify-end gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={() => handleNavigate('analytics')}
-              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-semibold"
-            >
-              Admin Analytics
-            </button>
+            {isAdminUser(currentUser) && (
+              <button
+                type="button"
+                onClick={() => handleNavigate('analytics')}
+                className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer font-semibold"
+              >
+                Admin Analytics
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setLegalModalTab('terms')}
