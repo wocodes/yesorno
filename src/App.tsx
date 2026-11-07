@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults 
+  loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
+  getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
 import { getInitialTheme, applyTheme, ThemeMode } from './utils/theme';
@@ -22,7 +23,7 @@ import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { 
   ShieldCheck, Filter, Home, User, Vote, Clock, Plus,
-  MapPin, Sparkles, Sliders, Globe, UserCheck
+  MapPin, Sparkles, Sliders, Globe, UserCheck, Bookmark
 } from 'lucide-react';
 
 function getInitialView(user: UserProfile | null): AppView {
@@ -47,6 +48,9 @@ export function App() {
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
   const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
+  const [userLikes, setUserLikes] = useState<Record<string, boolean>>(() => getUserLikesMap());
+  const [userFavorites, setUserFavorites] = useState<Record<string, boolean>>(() => getUserFavoritesMap());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   
   const [selectedCategory, setSelectedCategory] = useState<IssueCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,17 +207,33 @@ export function App() {
     setActiveVoteIssue(issue);
   };
 
-  // Handle vote submission
+  // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies)
   const handleVoteSubmit = (submission: VoteSubmission) => {
+    const existingVote = userVotes[submission.issueId];
+    const hasExistingVote = Boolean(existingVote);
+    const hasContent = Boolean(submission.note || submission.voiceNote);
+
     setIssues(prevIssues => {
       return prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
+          let nextYes = issue.yesCount;
+          let nextNo = issue.noCount;
+
+          if (!hasExistingVote) {
+            nextYes = isYes ? issue.yesCount + 1 : issue.yesCount;
+            nextNo = !isYes ? issue.noCount + 1 : issue.noCount;
+          } else if (existingVote.choice !== submission.choice) {
+            // User switched stance from YES->NO or NO->YES
+            nextYes = isYes ? issue.yesCount + 1 : Math.max(0, issue.yesCount - 1);
+            nextNo = !isYes ? issue.noCount + 1 : Math.max(0, issue.noCount - 1);
+          }
+
           return {
             ...issue,
-            yesCount: isYes ? issue.yesCount + 1 : issue.yesCount,
-            noCount: !isYes ? issue.noCount + 1 : issue.noCount,
-            responses: [submission, ...issue.responses]
+            yesCount: nextYes,
+            noCount: nextNo,
+            responses: hasContent ? [submission, ...issue.responses] : issue.responses
           };
         }
         return issue;
@@ -228,23 +248,74 @@ export function App() {
       setActiveDetailIssue(prev => {
         if (!prev) return null;
         const isYes = submission.choice === 'YES';
+        let nextYes = prev.yesCount;
+        let nextNo = prev.noCount;
+        if (!hasExistingVote) {
+          nextYes = isYes ? prev.yesCount + 1 : prev.yesCount;
+          nextNo = !isYes ? prev.noCount + 1 : prev.noCount;
+        } else if (existingVote.choice !== submission.choice) {
+          nextYes = isYes ? prev.yesCount + 1 : Math.max(0, prev.yesCount - 1);
+          nextNo = !isYes ? prev.noCount + 1 : Math.max(0, prev.noCount - 1);
+        }
         return {
           ...prev,
-          yesCount: isYes ? prev.yesCount + 1 : prev.yesCount,
-          noCount: !isYes ? prev.noCount + 1 : prev.noCount,
-          responses: [submission, ...prev.responses]
+          yesCount: nextYes,
+          noCount: nextNo,
+          responses: hasContent ? [submission, ...prev.responses] : prev.responses
         };
       });
     }
 
     addToast(
       'success',
-      `Your ${submission.choice} vote was recorded`,
+      hasExistingVote && hasContent
+        ? `Reply added to your ${submission.choice} vote`
+        : `Your ${submission.choice} vote was recorded`,
       submission.voiceNote 
         ? 'Voice note attached.'
-        : submission.isAnonymous
-        ? 'Submitted anonymously.'
-        : 'Thank you for sharing your perspective.'
+        : submission.note
+        ? 'Perspective posted to the thread.'
+        : 'Tap Reply below the card if you want to add a quick note or voice clip.'
+    );
+  };
+
+  // Handle creator deleting an issue topic & description while preserving all responses & votes
+  const handleDeleteIssueByAuthor = (issueId: string) => {
+    if (!window.confirm('Delete this issue topic and description? Community votes and responses will be preserved, and the topic/description will display as "Deleted by Author".')) {
+      return;
+    }
+
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        return {
+          ...issue,
+          title: 'Deleted by Author',
+          description: 'Deleted by Author',
+          isDeletedByAuthor: true,
+          deletedAt: new Date().toISOString(),
+          images: undefined,
+          creatorVoiceNote: undefined,
+        };
+      }
+      return issue;
+    }));
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => prev ? {
+        ...prev,
+        title: 'Deleted by Author',
+        description: 'Deleted by Author',
+        isDeletedByAuthor: true,
+        deletedAt: new Date().toISOString(),
+        images: undefined,
+        creatorVoiceNote: undefined,
+      } : null);
+    }
+
+    addToast(
+      'info',
+      'Issue Deleted by Author',
+      'Topic and description now show "Deleted by Author" while keeping all responses.'
     );
   };
 
@@ -318,6 +389,82 @@ export function App() {
     }
   };
 
+  // Toggle Like / Heart on an issue
+  const handleToggleLikeIssue = (issueId: string) => {
+    const currentlyLiked = Boolean(userLikes[issueId]);
+    const nextLikes = { ...userLikes };
+    if (currentlyLiked) {
+      delete nextLikes[issueId];
+    } else {
+      nextLikes[issueId] = true;
+    }
+    setUserLikes(nextLikes);
+    saveUserLikesMap(nextLikes);
+
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        const currentCount = issue.likesCount || 0;
+        return {
+          ...issue,
+          likesCount: currentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1,
+        };
+      }
+      return issue;
+    }));
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        const currentCount = prev.likesCount || 0;
+        return {
+          ...prev,
+          likesCount: currentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1,
+        };
+      });
+    }
+  };
+
+  // Toggle Favourite / Bookmark on an issue
+  const handleToggleFavoriteIssue = (issueId: string) => {
+    const currentlyFav = Boolean(userFavorites[issueId]);
+    const nextFavs = { ...userFavorites };
+    if (currentlyFav) {
+      delete nextFavs[issueId];
+    } else {
+      nextFavs[issueId] = true;
+    }
+    setUserFavorites(nextFavs);
+    saveUserFavoritesMap(nextFavs);
+
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        const currentCount = issue.favoritesCount || 0;
+        return {
+          ...issue,
+          favoritesCount: currentlyFav ? Math.max(0, currentCount - 1) : currentCount + 1,
+        };
+      }
+      return issue;
+    }));
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        const currentCount = prev.favoritesCount || 0;
+        return {
+          ...prev,
+          favoritesCount: currentlyFav ? Math.max(0, currentCount - 1) : currentCount + 1,
+        };
+      });
+    }
+
+    addToast(
+      'info',
+      currentlyFav ? 'Removed from Favourites' : 'Saved to Favourites',
+      currentlyFav ? undefined : 'You can filter by your saved Favourites anytime.'
+    );
+  };
+
   // Handle report on response
   const handleReportResponse = (_responseId: string) => {
     addToast('info', 'Report Received', 'Flagged for community guidelines review.');
@@ -329,6 +476,8 @@ export function App() {
       const reset = resetToDefaults();
       setIssues(reset);
       setUserVotes({});
+      setUserLikes({});
+      setUserFavorites({});
       setActiveDetailIssue(null);
       setActiveVoteIssue(null);
       addToast('info', 'Sample Issues Restored');
@@ -417,6 +566,7 @@ export function App() {
         issue.tags.some(t => t.toLowerCase().includes(query));
 
       if (!matchesCategory || !matchesSearch) return false;
+      if (showFavoritesOnly && !userFavorites[issue.id]) return false;
 
       // Region Scope filter: When 'my-region-worldwide' is active and user selected a specific region,
       // show issues from that region AND issues from users who selected Worldwide ('Global / Remote')
@@ -472,7 +622,7 @@ export function App() {
     });
 
     return result;
-  }, [issues, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope]);
+  }, [issues, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope, showFavoritesOnly, userFavorites]);
 
   // Landing view
   if (currentView === 'landing') {
@@ -673,6 +823,20 @@ export function App() {
                 <span>Following {currentUser.followingCreators.length}</span>
               </span>
             )}
+
+            {/* Quick Favourites Filter Pill */}
+            <button
+              type="button"
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                showFavoritesOnly
+                  ? 'bg-amber-500 text-ink-950 border-amber-500 shadow-2xs'
+                  : 'bg-white dark:bg-ink-950 text-slate-600 dark:text-zinc-300 border-slate-200/80 dark:border-white/10 hover:border-amber-400'
+              }`}
+            >
+              <Bookmark className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
+              <span>Favourites ({Object.keys(userFavorites).length})</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -774,9 +938,15 @@ export function App() {
                   currentUser={currentUser}
                   onOpenDetails={(iss) => setActiveDetailIssue(iss)}
                   onQuickVote={handleOpenQuickVote}
+                  onInlineSubmitVote={handleVoteSubmit}
+                  onDeleteIssue={handleDeleteIssueByAuthor}
+                  onToggleLikeIssue={handleToggleLikeIssue}
+                  onToggleFavoriteIssue={handleToggleFavoriteIssue}
                   onShareIssue={(iss) => setActiveShareIssue(iss)}
                   hasUserVoted={!!voteRecord}
                   userVoteChoice={voteRecord?.choice}
+                  isLiked={!!userLikes[issue.id]}
+                  isFavorited={!!userFavorites[issue.id]}
                 />
               );
             })}
@@ -855,10 +1025,16 @@ export function App() {
             handleOpenQuickVote(activeDetailIssue, choice);
           }
         }}
+        onInlineSubmitVote={handleVoteSubmit}
+        onDeleteIssue={handleDeleteIssueByAuthor}
+        onToggleLikeIssue={handleToggleLikeIssue}
+        onToggleFavoriteIssue={handleToggleFavoriteIssue}
         onShareIssue={(iss) => setActiveShareIssue(iss)}
         currentUser={currentUser}
         hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
         userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
+        isLiked={activeDetailIssue ? !!userLikes[activeDetailIssue.id] : false}
+        isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
         onLikeResponse={handleLikeResponse}
         onReportResponse={handleReportResponse}
         onAddInvite={handleAddInvite}
@@ -899,6 +1075,8 @@ export function App() {
         onSignOut={() => handleSelectUser(null)}
         issues={issues}
         userVotes={userVotes}
+        userLikes={userLikes}
+        userFavorites={userFavorites}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenIssue={(iss) => setActiveDetailIssue(iss)}
