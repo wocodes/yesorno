@@ -1,4 +1,4 @@
-import { Issue } from '../types';
+import { Issue, VoteSubmission, CommentReply } from '../types';
 import { INITIAL_ISSUES } from '../data/initialIssues';
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
@@ -91,6 +91,92 @@ export async function fetchServerIssues(): Promise<Issue[] | null> {
     return null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Asynchronously sends an atomic vote to SQLite backend in the background
+ */
+export async function apiRecordVote(submission: VoteSubmission): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await fetch('/api-issues.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'vote',
+        ...submission,
+      }),
+    });
+  } catch (err) {
+    console.warn('Background vote sync queued/deferred:', err);
+  }
+}
+
+/**
+ * Asynchronously sends an atomic direct reply to SQLite backend in the background
+ */
+export async function apiRecordReply(issueId: string, submissionId: string, reply: CommentReply): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await fetch('/api-issues.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'reply',
+        issueId,
+        submissionId,
+        reply,
+      }),
+    });
+  } catch (err) {
+    console.warn('Background reply sync queued/deferred:', err);
+  }
+}
+
+/**
+ * Asynchronously sends an atomic reaction toggle to SQLite backend in the background
+ */
+export async function apiRecordReaction(
+  targetType: 'comment' | 'reply',
+  targetId: string,
+  userKey: string,
+  emoji: string
+): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await fetch('/api-issues.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'react',
+        targetType,
+        targetId,
+        userKey,
+        emoji,
+      }),
+    });
+  } catch (err) {
+    console.warn('Background reaction sync queued/deferred:', err);
+  }
+}
+
+/**
+ * Asynchronously sends an atomic issue deletion flag to SQLite backend
+ */
+export async function apiRecordDeleteIssue(issueId: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await fetch('/api-issues.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete',
+        issueId,
+      }),
+    });
+  } catch (err) {
+    console.warn('Background issue deletion sync queued/deferred:', err);
   }
 }
 

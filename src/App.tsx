@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
-  fetchServerIssues
+  fetchServerIssues,
+  apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
 import { 
@@ -349,22 +350,39 @@ export function App() {
     saveIssues(issues);
   }, [issues]);
 
-  // Cloud Sync: On mount, fetch shared issues from server API and merge with local issues
+  // Cloud Sync: On mount and window focus, fetch shared issues from SQLite API and merge with local issues
   useEffect(() => {
-    fetchServerIssues().then((serverIssues) => {
-      if (serverIssues && serverIssues.length > 0) {
-        setIssues((prev) => {
-          const map = new Map<string, Issue>();
-          serverIssues.forEach((i) => map.set(i.id, i));
-          prev.forEach((i) => {
-            if (!map.has(i.id)) map.set(i.id, i);
+    const syncFromCloud = () => {
+      fetchServerIssues().then((serverIssues) => {
+        if (serverIssues && serverIssues.length > 0) {
+          setIssues((prev) => {
+            const map = new Map<string, Issue>();
+            serverIssues.forEach((i) => map.set(i.id, i));
+            prev.forEach((i) => {
+              if (!map.has(i.id)) map.set(i.id, i);
+            });
+            const merged = Array.from(map.values());
+            saveIssues(merged);
+            return merged;
           });
-          const merged = Array.from(map.values());
-          saveIssues(merged);
-          return merged;
-        });
+        }
+      });
+    };
+
+    syncFromCloud();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromCloud();
       }
-    });
+    };
+
+    window.addEventListener('focus', syncFromCloud);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', syncFromCloud);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   // Sync currentUser to localStorage and navigate straight to the dashboard upon sign-in
@@ -490,6 +508,7 @@ export function App() {
 
     recordUserVote(submission.issueId, submission.choice, submission.id);
     setUserVotes(getUserVotesMap());
+    apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
     if (!hasExistingVote || existingVote.choice !== submission.choice) {
@@ -575,6 +594,8 @@ export function App() {
         creatorVoiceNote: undefined,
       } : null);
     }
+
+    apiRecordDeleteIssue(issueId);
 
     addToast(
       'info',
@@ -700,6 +721,7 @@ export function App() {
 
     addToast('success', 'Reply Posted', 'Your direct reply was posted.');
     recordEngagementAction('inline_reply', targetIssue?.title || 'Issue comment reply');
+    apiRecordReply(issueId, submissionId, reply);
 
     // Notify admin
     const foundSubmission = parentSubmission || targetIssue?.responses.find(r => r.id === submissionId);
@@ -846,6 +868,7 @@ export function App() {
     }
 
     recordEngagementAction('inline_reply', `Reaction ${emoji} on comment`);
+    apiRecordReaction('comment', submissionId, userKey, emoji);
   };
 
   // Handle reaction on a nested direct reply
@@ -955,6 +978,7 @@ export function App() {
     }
 
     recordEngagementAction('inline_reply', `Reaction ${emoji} on reply`);
+    apiRecordReaction('reply', replyId, userKey, emoji);
   };
 
   // Handle sharing a comment quote
