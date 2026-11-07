@@ -7,7 +7,7 @@
 
 // Allow CORS from any origin (so notifications work from both yesorno.chillon.top and local testing)
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -16,19 +16,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+$adminEmail = 'william.odiomonafe@gmail.com';
+$siteUrl = 'https://yesorno.chillon.top';
+$timestamp = date('Y-m-d H:i:s T');
+$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'Unknown';
+
+// Support GET ?test=1 for instant verification via browser or curl
+$isTest = isset($_GET['test']) && ($_GET['test'] === '1' || $_GET['test'] === 'true');
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && !$isTest) {
+    echo json_encode([
+        'status' => 'online',
+        'endpoint' => 'YesOrNo Notification Gateway',
+        'recipient' => $adminEmail,
+        'instructions' => 'Send POST JSON payload with { event, user, data } or visit ?test=1 to dispatch a test email.'
+    ]);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !$isTest) {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
     exit;
 }
 
-$rawInput = file_get_contents('php://input');
-$payload = json_decode($rawInput, true);
+if ($isTest) {
+    $payload = [
+        'event' => 'test',
+        'user' => [
+            'name' => 'William Odiomonafe (Admin)',
+            'email' => $adminEmail,
+            'role' => 'Platform Owner'
+        ],
+        'data' => [
+            'method' => 'Direct Test Trigger',
+            'server' => php_uname('s') . ' ' . php_uname('r'),
+            'phpVersion' => phpversion()
+        ]
+    ];
+} else {
+    $rawInput = file_get_contents('php://input');
+    $payload = json_decode($rawInput, true);
 
-if (!$payload || !is_array($payload)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid JSON payload']);
-    exit;
+    if (!$payload || !is_array($payload)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Invalid JSON payload']);
+        exit;
+    }
 }
 
 $eventType = isset($payload['event']) ? trim($payload['event']) : 'generic';
@@ -39,11 +73,6 @@ $userName = isset($user['name']) && !empty($user['name']) ? $user['name'] : 'Gue
 $userEmail = isset($user['email']) && !empty($user['email']) ? $user['email'] : 'Not provided';
 $userRole = isset($user['role']) && !empty($user['role']) ? $user['role'] : 'Community Member';
 
-$adminEmail = 'william.odiomonafe@gmail.com';
-$siteUrl = 'https://yesorno.chillon.top';
-$timestamp = date('Y-m-d H:i:s T');
-$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'Unknown';
-
 // Determine Event Title, Badge, and Accent Color
 $badgeColor = '#6366f1'; // Indigo default
 $badgeText = strtoupper($eventType);
@@ -52,6 +81,15 @@ $headline = "Platform Activity Detected";
 $extraHtml = "";
 
 switch ($eventType) {
+    case 'test':
+        $badgeColor = '#3b82f6'; // Blue
+        $badgeText = 'TEST ALERT VERIFICATION';
+        $subject = "[YesOrNo Alert] ✅ Test Email: Your Notification Gateway is Working!";
+        $headline = "This is a test notification confirming email delivery to william.odiomonafe@gmail.com.";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Server Engine:</td><td style='padding:8px 0;color:#38bdf8;font-weight:600;'>" . (isset($data['server']) ? htmlspecialchars($data['server']) : 'PHP Server') . "</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>PHP Version:</td><td style='padding:8px 0;color:#f8fafc;'>" . (isset($data['phpVersion']) ? htmlspecialchars($data['phpVersion']) : phpversion()) . "</td></tr>";
+        break;
+
     case 'register':
         $badgeColor = '#10b981'; // Emerald
         $badgeText = 'NEW USER REGISTRATION';
@@ -233,9 +271,12 @@ $logEntry = json_encode([
 // Return JSON response
 echo json_encode([
     'success' => true,
+    'test_mode' => $isTest,
     'event' => $eventType,
     'recipient' => $adminEmail,
     'mailSent' => $mailSent,
-    'timestamp' => $timestamp
+    'timestamp' => $timestamp,
+    'message' => $isTest 
+        ? ($mailSent ? 'Test email dispatched to ' . $adminEmail : 'Test event recorded. If mail server queue is delayed, check notifications.log.')
+        : 'Notification processed'
 ]);
-
