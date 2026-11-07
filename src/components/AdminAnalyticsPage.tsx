@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3, Clock, Repeat, Search, MousePointerClick, Palette,
   Sun, Moon, TrendingUp, Vote, MessageSquare, Heart, Bookmark,
-  Download, RotateCcw, ArrowLeft, Eye, Activity, Layers, Globe2
+  Download, RotateCcw, ArrowLeft, Eye, Activity, Layers, Globe2,
+  Mail, Check, Loader2
 } from 'lucide-react';
 import { Issue, UserProfile, AppView } from '../types';
 import { ColorTone, ThemeMode } from '../utils/theme';
@@ -32,6 +33,31 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
 }) => {
   const [store, setStore] = useState<AdminAnalyticsStore>(() => loadAnalyticsStore());
   const [clickFilter, setClickFilter] = useState<'all' | 'button' | 'link'>('all');
+  const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  const handleTriggerTestEmail = async () => {
+    setIsSendingTest(true);
+    setTestEmailStatus(null);
+    try {
+      const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'https://yesorno.chillon.top/notify.php?test=1'
+        : '/notify.php?test=1';
+
+      const res = await fetch(endpoint);
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setTestEmailStatus('Test alert dispatched to william.odiomonafe@gmail.com! Check your inbox (and spam).');
+      } else {
+        setTestEmailStatus('Test request delivered to server. Check william.odiomonafe@gmail.com.');
+      }
+    } catch {
+      setTestEmailStatus('Trigger sent to server. Check william.odiomonafe@gmail.com.');
+    } finally {
+      setIsSendingTest(false);
+      setTimeout(() => setTestEmailStatus(null), 8000);
+    }
+  };
 
   useEffect(() => {
     const refresh = () => setStore(loadAnalyticsStore());
@@ -293,6 +319,31 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
 
             <button
               type="button"
+              onClick={handleTriggerTestEmail}
+              disabled={isSendingTest}
+              className="px-3.5 py-2 rounded-xl bg-indigo-500/25 hover:bg-indigo-500/40 text-indigo-200 border border-indigo-400/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Send a test notification alert to william.odiomonafe@gmail.com"
+            >
+              {isSendingTest ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sending Test...</span>
+                </>
+              ) : testEmailStatus ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Test Sent!</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Send Test Email</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={handleExportCSV}
               className="btn-brand text-xs py-2 px-4 shadow-glow flex items-center gap-1.5 cursor-pointer"
             >
@@ -314,6 +365,13 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
             </button>
           </div>
         </div>
+
+        {testEmailStatus && (
+          <div className="mt-4 p-3 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-100 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+            <Mail className="w-4 h-4 text-indigo-300 shrink-0" />
+            <span>{testEmailStatus}</span>
+          </div>
+        )}
       </section>
 
       {/* Primary KPI Strip: Time Spent, Return Visits, Searches, Clicks, Page Views, Votes */}

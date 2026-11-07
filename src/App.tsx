@@ -3,7 +3,7 @@ import {
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
 } from './utils/storage';
-import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser } from './utils/auth';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
 import { 
   getInitialTheme, applyTheme, ThemeMode, 
   getInitialColorTone, applyColorTone, ColorTone 
@@ -19,6 +19,12 @@ import {
   recordThemeModeSwitch,
   recordEngagementAction,
 } from './utils/analytics';
+import {
+  notifyAdminUserRegistered,
+  notifyAdminUserLoggedIn,
+  notifyAdminIssueCreated,
+  notifyAdminCommentAdded,
+} from './utils/emailNotifier';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -349,6 +355,14 @@ export function App() {
       setCurrentView('app');
       window.location.hash = 'app';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Notify admin email on registration vs login
+      const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
+      if (isNewUser) {
+        notifyAdminUserRegistered(user, 'Account Registration');
+      }
+      notifyAdminUserLoggedIn(user, 'Account Sign-In');
+
       if (!user.onboardingCompleted) {
         setIsOnboardingOpen(true);
       } else {
@@ -376,6 +390,7 @@ export function App() {
     setSortBy('for-you');
     setRegionScope('my-region-worldwide');
     setInterestScope('my-interests-mixed');
+    notifyAdminUserRegistered(updatedUser, 'Completed Onboarding & Profile Setup');
     addToast(
       'success',
       'Personalized Feed Ready!',
@@ -461,9 +476,13 @@ export function App() {
     }
     if (submission.note) {
       recordEngagementAction('inline_reply', targetIssue?.title);
+      notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
     }
     if (submission.voiceNote) {
       recordEngagementAction('voice_note', targetIssue?.title);
+      if (!submission.note) {
+        notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
+      }
     }
 
     // Update activeDetailIssue if open
@@ -548,6 +567,7 @@ export function App() {
   const handleCreateIssue = (newIssue: Issue) => {
     setIssues(prev => [newIssue, ...prev]);
     recordEngagementAction('issue_created', newIssue.title);
+    notifyAdminIssueCreated(newIssue, currentUser);
     addToast(
       'success', 
       'Issue Published', 
@@ -1383,6 +1403,7 @@ export function App() {
         isOpen={!!activeShareIssue}
         onClose={() => setActiveShareIssue(null)}
         colorTone={colorTone}
+        currentUser={currentUser}
       />
 
       <CreateIssueModal
