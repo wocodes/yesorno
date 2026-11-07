@@ -209,14 +209,15 @@ function renderBoldDuelist(
   const padX = isSquare ? 80 : 88;
   const contentWidth = width - padX * 2;
 
-  // 1. TOP HEADER: Large Brand Badge + Category Pill
+  // 1. TOP HEADER: Centralized Brand Badge (No Category Pill)
   const headerY = isSquare ? 76 : 56;
   const headerH = isSquare ? 64 : 52;
 
   ctx.save();
-  // Brand Badge (Left)
   const brandPillW = isSquare ? 260 : 210;
-  drawRoundedRect(ctx, padX, headerY, brandPillW, headerH, isSquare ? 20 : 16);
+  const brandX = (width - brandPillW) / 2;
+
+  drawRoundedRect(ctx, brandX, headerY, brandPillW, headerH, isSquare ? 20 : 16);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
@@ -226,8 +227,8 @@ function renderBoldDuelist(
   // Brand Icon Box
   const iconBoxSize = isSquare ? 42 : 34;
   const iconBoxOffset = (headerH - iconBoxSize) / 2;
-  drawRoundedRect(ctx, padX + iconBoxOffset, headerY + iconBoxOffset, iconBoxSize, iconBoxSize, 12);
-  const iconGrad = ctx.createLinearGradient(padX, headerY, padX + iconBoxSize, headerY + iconBoxSize);
+  drawRoundedRect(ctx, brandX + iconBoxOffset, headerY + iconBoxOffset, iconBoxSize, iconBoxSize, 12);
+  const iconGrad = ctx.createLinearGradient(brandX, headerY, brandX + iconBoxSize, headerY + iconBoxSize);
   iconGrad.addColorStop(0, '#10b981');
   iconGrad.addColorStop(1, '#6366f1');
   ctx.fillStyle = iconGrad;
@@ -238,7 +239,7 @@ function renderBoldDuelist(
   ctx.lineWidth = isSquare ? 3.5 : 3;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  const icX = padX + iconBoxOffset;
+  const icX = brandX + iconBoxOffset;
   const icY = headerY + iconBoxOffset;
   ctx.moveTo(icX + iconBoxSize * 0.26, icY + iconBoxSize * 0.50);
   ctx.lineTo(icX + iconBoxSize * 0.44, icY + iconBoxSize * 0.70);
@@ -248,64 +249,25 @@ function renderBoldDuelist(
   // Brand Text
   ctx.font = `800 ${isSquare ? '32px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('YesOrNo', padX + iconBoxOffset + iconBoxSize + (isSquare ? 16 : 12), headerY + headerH * 0.68);
-
-  // Category Pill (Right)
-  const categoryLabel = (issue.category || 'Public Ballot').toUpperCase();
-  ctx.font = `700 ${isSquare ? '22px' : '17px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  const catTextW = ctx.measureText(categoryLabel).width;
-  const catPillW = catTextW + (isSquare ? 64 : 50);
-  const catX = width - padX - catPillW;
-
-  drawRoundedRect(ctx, catX, headerY, catPillW, headerH, isSquare ? 20 : 16);
-  ctx.fillStyle = isToned ? 'rgba(71, 85, 105, 0.35)' : 'rgba(99, 102, 241, 0.25)';
-  ctx.fill();
-  ctx.strokeStyle = isToned ? 'rgba(148, 163, 184, 0.45)' : 'rgba(129, 140, 248, 0.50)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Glowing dot
-  ctx.beginPath();
-  ctx.arc(catX + (isSquare ? 24 : 18), headerY + headerH / 2, isSquare ? 6 : 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#10b981';
-  ctx.fill();
-
-  ctx.fillStyle = isToned ? '#f1f5f9' : '#e0e7ff';
-  ctx.fillText(categoryLabel, catX + (isSquare ? 42 : 32), headerY + headerH * 0.68);
+  ctx.fillText('YesOrNo', brandX + iconBoxOffset + iconBoxSize + (isSquare ? 16 : 12), headerY + headerH * 0.68);
   ctx.restore();
 
-  // 2. FOOTER: Large Status Text & Call to Action Badge
+  // 2. FOOTER: Centralized Clean Call to Action (No border, no background, no bottom-left text)
   const bottomPad = isSquare ? 76 : 56;
-  const footerH = isSquare ? 60 : 48;
   const footerY = height - bottomPad;
 
   ctx.save();
-  // Status text (Left)
-  ctx.font = `700 ${isSquare ? '26px' : '20px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
-  ctx.fillText(`⚡ Time-Bound Ballot • ${issue.durationLabel || 'Active for Voting'}`, padX, footerY + footerH * 0.65);
-
-  // URL / CTA Badge (Right)
   const sharePayload = buildIssueSharePayload(issue);
   const displayHost = sharePayload.url.replace(/^https?:\/\//, '').split('/')[0] || 'yesorno.chillon.top';
   const urlLabel = `Vote at ${displayHost} →`;
 
-  ctx.font = `700 ${isSquare ? '22px' : '17px'} ui-monospace, SFMono-Regular, monospace`;
-  const badgeW = ctx.measureText(urlLabel).width + (isSquare ? 50 : 38);
-  const badgeX = width - padX - badgeW;
-
-  drawRoundedRect(ctx, badgeX, footerY, badgeW, footerH, isSquare ? 18 : 14);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(urlLabel, badgeX + (isSquare ? 25 : 19), footerY + footerH * 0.66);
+  ctx.font = `700 ${isSquare ? '24px' : '18px'} ui-monospace, SFMono-Regular, monospace`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.90)';
+  ctx.textAlign = 'center';
+  ctx.fillText(urlLabel, width / 2, footerY);
   ctx.restore();
 
-  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
+  // 3. CENTER QUESTION & DESCRIPTION (Centralized Horizontally & Vertically)
   const headerBottom = headerY + headerH + (isSquare ? 36 : 24);
   const footerTop = footerY - (isSquare ? 36 : 24);
   const availableCenterHeight = footerTop - headerBottom;
@@ -319,26 +281,28 @@ function renderBoldDuelist(
 
   const startContentY = headerBottom + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
 
-  // Draw Question
+  // Draw Centralized Question
   ctx.save();
   ctx.font = `900 ${typo.titleFontSize}px ${typo.fontFamily}`;
   ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
 
   let cursorY = startContentY + typo.titleLineHeight * 0.82;
   for (const line of typo.titleLines) {
-    ctx.fillText(line, padX, cursorY);
+    ctx.fillText(line, width / 2, cursorY);
     cursorY += typo.titleLineHeight;
   }
   ctx.restore();
 
-  // Draw Description
+  // Draw Centralized Description
   if (typo.descLines.length > 0) {
     cursorY += isSquare ? 20 : 14;
     ctx.save();
     ctx.font = `500 ${typo.descFontSize}px ${typo.fontFamily}`;
     ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+    ctx.textAlign = 'center';
     for (const line of typo.descLines) {
-      ctx.fillText(line, padX, cursorY);
+      ctx.fillText(line, width / 2, cursorY);
       cursorY += typo.descLineHeight;
     }
     ctx.restore();
@@ -386,37 +350,26 @@ function renderEditorialSpotlight(
   const padX = isSquare ? 80 : 88;
   const contentWidth = width - padX * 2;
 
-  // 1. TOP HEADER: Large YESORNO / PUBLIC BALLOT + Clean Category Tag
+  // 1. TOP HEADER: Centralized YESORNO / PUBLIC BALLOT (No Category Tag)
   const headerY = isSquare ? 76 : 56;
   ctx.save();
   ctx.font = `900 ${isSquare ? '34px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  const brandW = ctx.measureText('YESORNO').width;
+  ctx.font = `600 ${isSquare ? '20px' : '16px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  const subW = ctx.measureText('  /  PUBLIC BALLOT').width;
+  const totalHeaderW = brandW + subW;
+  const startHeaderX = (width - totalHeaderW) / 2;
+
+  ctx.font = `900 ${isSquare ? '34px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('YESORNO', padX, headerY + (isSquare ? 30 : 24));
+  ctx.fillText('YESORNO', startHeaderX, headerY + (isSquare ? 28 : 22));
 
   ctx.font = `600 ${isSquare ? '20px' : '16px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText(' /  PUBLIC BALLOT', padX + (isSquare ? 180 : 140), headerY + (isSquare ? 30 : 24));
-
-  // Clean category tag without double hyphens
-  const rawCat = (issue.category || 'COMMUNITY').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  const catTag = `#${rawCat}`;
-  ctx.font = `700 ${isSquare ? '20px' : '16px'} ui-monospace, SFMono-Regular, monospace`;
-  const tagW = ctx.measureText(catTag).width + (isSquare ? 36 : 28);
-  const tagX = width - padX - tagW;
-  const tagH = isSquare ? 48 : 38;
-
-  drawRoundedRect(ctx, tagX, headerY - (isSquare ? 4 : 2), tagW, tagH, isSquare ? 20 : 16);
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = '#fbbf24';
-  ctx.fillText(catTag, tagX + (isSquare ? 18 : 14), headerY + tagH * 0.62);
+  ctx.fillText('  /  PUBLIC BALLOT', startHeaderX + brandW, headerY + (isSquare ? 28 : 22));
 
   // Horizontal divider
-  const sepY = headerY + (isSquare ? 64 : 50);
+  const sepY = headerY + (isSquare ? 60 : 46);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -425,72 +378,54 @@ function renderEditorialSpotlight(
   ctx.stroke();
   ctx.restore();
 
-  // 2. FOOTER: Large Status Text & Clean Call to Action
+  // 2. FOOTER: Centralized Clean Call to Action (No border, no background, no bottom-left text)
   const bottomPad = isSquare ? 76 : 56;
   const footerY = height - bottomPad;
 
   ctx.save();
-  ctx.font = `600 ${isSquare ? '22px' : '17px'} ui-monospace, monospace`;
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('Open for community deliberation', padX, footerY);
-
   const cta = 'Vote at yesorno.chillon.top →';
-  ctx.font = `700 ${isSquare ? '22px' : '17px'} ui-monospace, monospace`;
-  const ctaW = ctx.measureText(cta).width;
+  ctx.font = `700 ${isSquare ? '24px' : '18px'} ui-monospace, monospace`;
   ctx.fillStyle = '#818cf8';
-  ctx.fillText(cta, width - padX - ctaW, footerY);
+  ctx.textAlign = 'center';
+  ctx.fillText(cta, width / 2, footerY);
   ctx.restore();
 
-  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
+  // 3. CENTER QUESTION & DESCRIPTION (Centralized Horizontally & Vertically)
   const headerBottom = sepY + (isSquare ? 36 : 24);
   const footerTop = footerY - (isSquare ? 36 : 24);
   const availableCenterHeight = footerTop - headerBottom;
   const question = formatQuestion(issue.title);
   const typo = computeDynamicTypography(ctx, question, issue.description, contentWidth, isSquare, true);
 
-  const eyebrowH = isSquare ? 34 : 26;
   const titleTotalH = typo.titleLines.length * typo.titleLineHeight;
   const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 36 : 24)) : 0;
-  const contentTotalH = eyebrowH + titleTotalH + descTotalH;
+  const contentTotalH = titleTotalH + descTotalH;
 
   const startContentY = headerBottom + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
 
-  // Eyebrow label
+  // Big Centralized Question with Editorial Serif Typography
   ctx.save();
-  ctx.font = `800 ${isSquare ? '20px' : '16px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('QUESTION OF THE TOPIC', padX, startContentY + (isSquare ? 20 : 16));
-
-  // Big Question with Editorial Serif Typography
-  let cursorY = startContentY + eyebrowH + typo.titleLineHeight * 0.82;
   ctx.font = `800 ${typo.titleFontSize}px ${typo.fontFamily}`;
   ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
 
+  let cursorY = startContentY + typo.titleLineHeight * 0.82;
   for (const line of typo.titleLines) {
-    ctx.fillText(line, padX, cursorY);
+    ctx.fillText(line, width / 2, cursorY);
     cursorY += typo.titleLineHeight;
   }
   ctx.restore();
 
-  // Excerpt Context Box with Indigo Accent Bar
+  // Centralized Description
   if (typo.descLines.length > 0) {
-    cursorY += isSquare ? 20 : 14;
+    cursorY += isSquare ? 22 : 16;
     ctx.save();
-    // Indigo vertical accent line
-    const boxH = typo.descLines.length * typo.descLineHeight + 10;
-    ctx.strokeStyle = '#6366f1';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(padX + 2, cursorY - 18);
-    ctx.lineTo(padX + 2, cursorY - 18 + boxH);
-    ctx.stroke();
-
     ctx.font = `italic 500 ${typo.descFontSize}px Georgia, serif`;
     ctx.fillStyle = '#cbd5e1';
-    let descY = cursorY + 6;
+    ctx.textAlign = 'center';
     for (const line of typo.descLines) {
-      ctx.fillText(`"${line}"`, padX + 26, descY);
-      descY += typo.descLineHeight;
+      ctx.fillText(`"${line}"`, width / 2, cursorY);
+      cursorY += typo.descLineHeight;
     }
     ctx.restore();
   }
@@ -537,16 +472,21 @@ function renderMidnightNeon(
   const padX = isSquare ? 80 : 88;
   const contentWidth = width - padX * 2;
 
-  // 1. TOP HEADER: Neon Gradient Logo Box + LIVE BALLOT Pill
+  // 1. TOP HEADER: Centralized Neon Gradient Logo Box + Brand (No Category / Live Pills)
   const headerY = isSquare ? 76 : 56;
   const headerH = isSquare ? 60 : 48;
 
   ctx.save();
-  // Logo Box
   const logoBoxSize = isSquare ? 50 : 40;
   const logoOffset = (headerH - logoBoxSize) / 2;
-  drawRoundedRect(ctx, padX, headerY + logoOffset, logoBoxSize, logoBoxSize, 14);
-  const logoGrad = ctx.createLinearGradient(padX, headerY, padX + logoBoxSize, headerY + logoBoxSize);
+
+  ctx.font = `900 ${isSquare ? '34px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  const brandTextW = ctx.measureText('YesOrNo').width;
+  const totalTopW = logoBoxSize + (isSquare ? 16 : 12) + brandTextW;
+  const topStartX = (width - totalTopW) / 2;
+
+  drawRoundedRect(ctx, topStartX, headerY + logoOffset, logoBoxSize, logoBoxSize, 14);
+  const logoGrad = ctx.createLinearGradient(topStartX, headerY, topStartX + logoBoxSize, headerY + logoBoxSize);
   logoGrad.addColorStop(0, '#6366f1');
   logoGrad.addColorStop(0.5, '#a855f7');
   logoGrad.addColorStop(1, '#ec4899');
@@ -555,61 +495,31 @@ function renderMidnightNeon(
 
   ctx.font = `900 ${isSquare ? '18px' : '15px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('Y/N', padX + (isSquare ? 10 : 8), headerY + headerH * 0.62);
+  ctx.textAlign = 'center';
+  ctx.fillText('Y/N', topStartX + logoBoxSize / 2, headerY + headerH * 0.62);
 
+  ctx.textAlign = 'left';
   ctx.font = `900 ${isSquare ? '34px' : '26px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('YesOrNo', padX + logoBoxSize + (isSquare ? 16 : 12), headerY + headerH * 0.68);
-
-  // LIVE BALLOT Pill
-  const liveLabel = '● LIVE BALLOT';
-  ctx.font = `800 ${isSquare ? '18px' : '15px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  const liveW = ctx.measureText(liveLabel).width + (isSquare ? 44 : 32);
-  const liveX = width - padX - liveW;
-
-  drawRoundedRect(ctx, liveX, headerY, liveW, headerH, isSquare ? 20 : 16);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.fillStyle = '#34d399';
-  ctx.fillText('●', liveX + (isSquare ? 18 : 14), headerY + headerH * 0.64);
-  ctx.fillStyle = '#f1f5f9';
-  ctx.fillText('LIVE BALLOT', liveX + (isSquare ? 38 : 30), headerY + headerH * 0.64);
+  ctx.fillText('YesOrNo', topStartX + logoBoxSize + (isSquare ? 16 : 12), headerY + headerH * 0.68);
   ctx.restore();
 
-  // 2. FOOTER: Fast 1-Min Voting + URL Badge
+  // 2. FOOTER: Centralized Clean Call to Action (No border, no background, no bottom-left text)
   const bottomPad = isSquare ? 76 : 56;
-  const footerH = isSquare ? 60 : 48;
   const footerY = height - bottomPad;
 
   ctx.save();
-  ctx.font = `700 ${isSquare ? '24px' : '18px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('Open Ballot • Fast 1-Min Voting', padX, footerY + footerH * 0.65);
-
   const sharePayload = buildIssueSharePayload(issue);
   const displayHost = sharePayload.url.replace(/^https?:\/\//, '').split('/')[0] || 'yesorno.chillon.top';
   const urlLabel = `Vote at ${displayHost} →`;
 
-  ctx.font = `700 ${isSquare ? '22px' : '17px'} ui-monospace, SFMono-Regular, monospace`;
-  const badgeW = ctx.measureText(urlLabel).width + (isSquare ? 50 : 38);
-  const badgeX = width - padX - badgeW;
-
-  drawRoundedRect(ctx, badgeX, footerY, badgeW, footerH, isSquare ? 18 : 14);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.26)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(urlLabel, badgeX + (isSquare ? 25 : 19), footerY + footerH * 0.66);
+  ctx.font = `700 ${isSquare ? '24px' : '18px'} ui-monospace, SFMono-Regular, monospace`;
+  ctx.fillStyle = '#818cf8';
+  ctx.textAlign = 'center';
+  ctx.fillText(urlLabel, width / 2, footerY);
   ctx.restore();
 
-  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
+  // 3. CENTER QUESTION & DESCRIPTION (Centralized Horizontally & Vertically)
   const headerBottom = headerY + headerH + (isSquare ? 36 : 24);
   const footerTop = footerY - (isSquare ? 36 : 24);
   const availableCenterHeight = footerTop - headerBottom;
@@ -617,38 +527,34 @@ function renderMidnightNeon(
   const question = formatQuestion(issue.title);
   const typo = computeDynamicTypography(ctx, question, issue.description, contentWidth, isSquare, false);
 
-  const eyebrowH = isSquare ? 34 : 26;
   const titleTotalH = typo.titleLines.length * typo.titleLineHeight;
   const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 36 : 24)) : 0;
-  const contentTotalH = eyebrowH + titleTotalH + descTotalH;
+  const contentTotalH = titleTotalH + descTotalH;
 
   const startContentY = headerBottom + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
 
-  // Category Eyebrow in Neon
+  // Big Centralized Neon Question
   ctx.save();
-  ctx.font = `800 ${isSquare ? '22px' : '17px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#818cf8';
-  ctx.fillText(`⚡ ${(issue.category || 'COMMUNITY').toUpperCase()}`, padX, startContentY + (isSquare ? 20 : 16));
-
-  // Big Neon Question
-  let cursorY = startContentY + eyebrowH + typo.titleLineHeight * 0.82;
   ctx.font = `900 ${typo.titleFontSize}px ${typo.fontFamily}`;
   ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
 
+  let cursorY = startContentY + typo.titleLineHeight * 0.82;
   for (const line of typo.titleLines) {
-    ctx.fillText(line, padX, cursorY);
+    ctx.fillText(line, width / 2, cursorY);
     cursorY += typo.titleLineHeight;
   }
   ctx.restore();
 
-  // Optional Description
+  // Centralized Description
   if (typo.descLines.length > 0) {
     cursorY += isSquare ? 20 : 14;
     ctx.save();
     ctx.font = `500 ${typo.descFontSize}px ${typo.fontFamily}`;
     ctx.fillStyle = 'rgba(203, 213, 225, 0.90)';
+    ctx.textAlign = 'center';
     for (const line of typo.descLines) {
-      ctx.fillText(line, padX, cursorY);
+      ctx.fillText(line, width / 2, cursorY);
       cursorY += typo.descLineHeight;
     }
     ctx.restore();
