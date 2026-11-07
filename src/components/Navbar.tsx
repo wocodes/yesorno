@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Sun, Moon, Settings 
+  RotateCcw, User, Home, Lock, Download, Sun, Moon, Settings, Compass 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
 import { ThemeMode } from '../utils/theme';
@@ -53,6 +53,7 @@ export const Navbar: React.FC<Props> = ({
   onOpenProfileSettings,
   onResetData,
   categoryCounts,
+  currentView,
   onNavigate,
   currentUser,
   theme,
@@ -65,9 +66,9 @@ export const Navbar: React.FC<Props> = ({
       {/* Top Bar */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
         <div className="flex items-center justify-between gap-3">
-          {/* Brand */}
+          {/* Brand — links to dashboard ('app') when logged in */}
           <div 
-            onClick={() => onNavigate('landing')}
+            onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-transform">
@@ -94,14 +95,32 @@ export const Navbar: React.FC<Props> = ({
 
           {/* Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Home link */}
+            {/* Home link — directs to Dashboard ('app') when logged in */}
             <button
-              onClick={() => onNavigate('landing')}
-              className="p-2 text-zinc-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-zinc-100 dark:hover:bg-ink-800 rounded-xl transition-colors hidden sm:flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-              title="Landing Page"
+              onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
+              className={`p-2 rounded-xl transition-colors hidden sm:flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                currentView === 'app'
+                  ? 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300'
+                  : 'text-zinc-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-zinc-100 dark:hover:bg-ink-800'
+              }`}
+              title="Dashboard Home"
             >
               <Home className="w-4 h-4" />
               <span className="hidden lg:inline">Home</span>
+            </button>
+
+            {/* Discovery link */}
+            <button
+              onClick={() => onNavigate('discovery')}
+              className={`p-2 rounded-xl transition-colors hidden sm:flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                currentView === 'discovery'
+                  ? 'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300'
+                  : 'text-zinc-600 dark:text-zinc-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-ink-800'
+              }`}
+              title="Discovery & Trending Issues"
+            >
+              <Compass className="w-4 h-4" />
+              <span className="hidden lg:inline">Discovery</span>
             </button>
 
             {/* Mobile Search Toggle */}

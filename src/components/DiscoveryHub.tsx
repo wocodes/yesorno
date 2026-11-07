@@ -11,6 +11,7 @@ interface Props {
   onOpenDetails: (issue: Issue) => void;
   onQuickVote: (issue: Issue, choice?: VoteChoice) => void;
   onFilterByCategory?: (cat: IssueCategory) => void;
+  fullPage?: boolean;
 }
 
 type DiscoveryMode = 'trending' | 'region' | 'category' | 'closing' | 'debated';
@@ -62,7 +63,8 @@ export const DiscoveryHub: React.FC<Props> = ({
   issues,
   onOpenDetails,
   onQuickVote,
-  onFilterByCategory
+  onFilterByCategory,
+  fullPage = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [mode, setMode] = useState<DiscoveryMode>('trending');
@@ -90,7 +92,7 @@ export const DiscoveryHub: React.FC<Props> = ({
     });
   }, [issues]);
 
-  // Compute displayed top 3 issues based on active Discovery lens
+  // Compute displayed issues based on active Discovery lens
   const topSpotlight = useMemo(() => {
     let list = [...enrichedIssues];
 
@@ -111,8 +113,8 @@ export const DiscoveryHub: React.FC<Props> = ({
       list.sort((a, b) => b.debatedScore - a.debatedScore);
     }
 
-    return list.slice(0, 3);
-  }, [enrichedIssues, mode, selectedRegion, selectedCategory]);
+    return fullPage ? list : list.slice(0, 3);
+  }, [enrichedIssues, mode, selectedRegion, selectedCategory, fullPage]);
 
   // Count per region
   const regionCounts = useMemo(() => {
@@ -219,18 +221,20 @@ export const DiscoveryHub: React.FC<Props> = ({
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-ink-800 text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer shrink-0"
-            title={isExpanded ? 'Collapse Discovery Hub' : 'Expand Discovery Hub'}
-          >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+          {!fullPage && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1.5 rounded-xl bg-slate-100 dark:bg-ink-800 text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+              title={isExpanded ? 'Collapse Discovery Hub' : 'Expand Discovery Hub'}
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </div>
 
-      {isExpanded && (
+      {(isExpanded || fullPage) && (
         <div className="p-5 space-y-4 animate-fade-in">
           {/* Sub-filter bar when Region or Category lens is active */}
           {mode === 'region' && (
@@ -391,7 +395,7 @@ export const DiscoveryHub: React.FC<Props> = ({
                 className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Filter main ballot by {selectedCategory} →</span>
+                <span>Filter main issues feed by {selectedCategory} →</span>
               </button>
             </div>
           )}

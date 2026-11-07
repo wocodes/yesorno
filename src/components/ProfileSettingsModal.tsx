@@ -335,7 +335,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                     <span>Your Spheres of Interest ({interests.length} selected)</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-zinc-400">
-                    Issues in these categories are prioritized in your personalized ballot feed.
+                    Issues in these categories are prioritized in your personalized issues feed.
                   </p>
                 </div>
 
@@ -400,7 +400,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
           {activeTab === 'following' && (
             <div className="space-y-3">
               <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Follow issue creators and community voters to prioritize their proposals in your ballot feed.
+                Follow issue creators and community voters to prioritize their proposals in your issues feed.
               </p>
 
               <div className="flex gap-2">

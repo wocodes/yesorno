@@ -402,7 +402,7 @@ export const CreateIssueModal: React.FC<Props> = ({
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 space-y-3 animate-fade-in">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
                 <span className="flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-purple-500" /> Ballot Privacy &amp; Access
+                  <Lock className="w-3.5 h-3.5 text-purple-500" /> Issue Privacy &amp; Access
                 </span>
                 <button type="button" onClick={() => setActiveTool(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                   <X className="w-3.5 h-3.5" />
