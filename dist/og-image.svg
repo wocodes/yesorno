@@ -32,7 +32,7 @@
   <!-- Logo & App Name -->
   <g transform="translate(80, 80)">
     <rect width="64" height="64" rx="18" fill="url(#primary-glow)"/>
-    <!-- Ballot Check inside logo -->
+    <!-- Checkmark inside logo -->
     <path d="M22 34 L28 40 L42 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
     
     <text x="84" y="44" fill="#ffffff" font-family="-apple-system, system-ui, BlinkMacSystemFont, 'Inter', sans-serif" font-size="36" font-weight="800" letter-spacing="-0.5">

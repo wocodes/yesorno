@@ -374,7 +374,7 @@ export const LandingPage: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* Right Column: Interactive Live Ballot Demo Card (5 cols) */}
+            {/* Right Column: Interactive Live Issue Demo Card (5 cols) */}
             <div className="lg:col-span-5 relative">
               <div className="absolute -inset-2 bg-gradient-to-tr from-brand-500/25 via-purple-500/15 to-emerald-400/15 rounded-[32px] blur-2xl opacity-80 pointer-events-none" />
 

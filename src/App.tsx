@@ -1350,7 +1350,7 @@ export function App() {
     );
   }
 
-  // Main Authenticated Ballot Workspace
+  // Main Authenticated Issue Workspace
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 pb-20 sm:pb-12 transition-colors">
       {/* Navigation */}
