@@ -4,7 +4,10 @@ import {
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
-import { getInitialTheme, applyTheme, ThemeMode } from './utils/theme';
+import { 
+  getInitialTheme, applyTheme, ThemeMode, 
+  getInitialColorTone, applyColorTone, ColorTone 
+} from './utils/theme';
 import { updateDocumentMetaForIssue, findIssueFromUrl, buildIssueSlug } from './utils/share';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
 import { Navbar, FeedSortOption } from './components/Navbar';
@@ -49,6 +52,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredUser());
   const [currentView, setCurrentView] = useState<AppView>(() => getInitialView(getStoredUser()));
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [colorTone, setColorTone] = useState<ColorTone>(() => getInitialColorTone());
   const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
@@ -85,8 +89,17 @@ export function App() {
     applyTheme(theme);
   }, [theme]);
 
+  // Apply color tone class (Full-Coloured vs Toned-Down) to <html>
+  useEffect(() => {
+    applyColorTone(colorTone);
+  }, [colorTone]);
+
   const handleToggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleToggleColorTone = () => {
+    setColorTone(prev => (prev === 'vibrant' ? 'toned' : 'vibrant'));
   };
 
   // Lock background page scroll whenever any modal is open
@@ -774,6 +787,8 @@ export function App() {
           currentUser={currentUser}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
         />
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}
@@ -800,6 +815,8 @@ export function App() {
           onNavigate={handleNavigate}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
           authPromptMessage={authPromptMessage || (!currentUser ? 'Sign in required to view, create, and vote on issues.' : null)}
           onOpenLegal={(tab) => setLegalModalTab(tab)}
         />
@@ -838,6 +855,8 @@ export function App() {
         onNavigate={handleNavigate}
         currentUser={currentUser}
         showSearchMobile={showSearchMobile}
+        colorTone={colorTone}
+        onToggleColorTone={handleToggleColorTone}
       />
 
       {/* Main Content Area */}

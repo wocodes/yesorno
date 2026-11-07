@@ -1,9 +1,10 @@
 import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Settings, Compass 
+  RotateCcw, User, Home, Lock, Download, Settings, Compass, Palette 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
+import { ColorTone } from '../utils/theme';
 
 export type FeedSortOption = 'for-you' | 'active' | 'closing' | 'yes' | 'perspectives';
 
@@ -23,6 +24,8 @@ interface Props {
   onNavigate: (view: AppView) => void;
   currentUser: UserProfile | null;
   showSearchMobile?: boolean;
+  colorTone: ColorTone;
+  onToggleColorTone: () => void;
 }
 
 const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
@@ -53,7 +56,9 @@ export const Navbar: React.FC<Props> = ({
   currentView,
   onNavigate,
   currentUser,
-  showSearchMobile = false
+  showSearchMobile = false,
+  colorTone,
+  onToggleColorTone
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors">
@@ -115,6 +120,21 @@ export const Navbar: React.FC<Props> = ({
             >
               <Compass className="w-4 h-4" />
               <span className="hidden lg:inline">Discovery</span>
+            </button>
+
+            {/* Color Tone Switch (Full-Coloured vs Toned-Down) */}
+            <button
+              onClick={onToggleColorTone}
+              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                colorTone === 'toned'
+                  ? 'bg-slate-200 dark:bg-ink-800 text-slate-700 dark:text-slate-200'
+                  : 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30'
+              }`}
+              title={colorTone === 'vibrant' ? 'Switch to Toned-Down Palette' : 'Switch to Full-Coloured Palette'}
+              aria-label="Toggle color palette tone"
+            >
+              <Palette className="w-4 h-4 shrink-0" />
+              <span className="hidden xl:inline">{colorTone === 'vibrant' ? 'Vibrant' : 'Toned'}</span>
             </button>
 
             {/* Install PWA Button */}

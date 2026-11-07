@@ -1,6 +1,8 @@
 export type ThemeMode = 'dark' | 'light';
+export type ColorTone = 'vibrant' | 'toned';
 
 const STORAGE_KEY_THEME = 'yesorno_theme_v1';
+const STORAGE_KEY_COLOR_TONE = 'yesorno_color_tone_v1';
 
 export function getInitialTheme(): ThemeMode {
   try {
@@ -33,3 +35,30 @@ export function applyTheme(theme: ThemeMode): void {
   }
 }
 
+export function getInitialColorTone(): ColorTone {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_COLOR_TONE);
+    if (saved === 'vibrant' || saved === 'toned') {
+      return saved;
+    }
+    return 'vibrant';
+  } catch {
+    return 'vibrant';
+  }
+}
+
+export function applyColorTone(tone: ColorTone): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_COLOR_TONE, tone);
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      if (tone === 'toned') {
+        root.classList.add('tone-muted');
+      } else {
+        root.classList.remove('tone-muted');
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to apply color tone:', err);
+  }
+}

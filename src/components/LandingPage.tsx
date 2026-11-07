@@ -3,12 +3,12 @@ import {
   Vote, ShieldCheck, Mic, Clock, Lock, Globe,
   ArrowRight, ThumbsUp, ThumbsDown, Sparkles,
   Play, Pause, Volume2, Sliders, BarChart3, Zap,
-  Sun, Moon
+  Sun, Moon, Palette
 } from 'lucide-react';
 import { AppView, IssueCategory, UserProfile } from '../types';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { generateSampleChimeWav } from '../utils/audio';
-import { ThemeMode } from '../utils/theme';
+import { ThemeMode, ColorTone } from '../utils/theme';
 
 interface Props {
   onNavigate: (view: AppView) => void;
@@ -18,6 +18,8 @@ interface Props {
   currentUser: UserProfile | null;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  colorTone?: ColorTone;
+  onToggleColorTone?: () => void;
 }
 
 interface SphereShowcase {
@@ -185,7 +187,9 @@ export const LandingPage: React.FC<Props> = ({
   onSelectCategory,
   currentUser,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  colorTone = 'vibrant',
+  onToggleColorTone
 }) => {
   const [mockChoice, setMockChoice] = useState<'YES' | 'NO' | null>('YES');
   const [mockVotes, setMockVotes] = useState({ yes: 312, no: 48 });
@@ -274,6 +278,19 @@ export const LandingPage: React.FC<Props> = ({
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            {onToggleColorTone && (
+              <button
+                onClick={onToggleColorTone}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  colorTone === 'toned'
+                    ? 'bg-white/[0.15] text-white'
+                    : 'bg-white/[0.07] hover:bg-white/[0.14] text-brand-300'
+                }`}
+                title={colorTone === 'vibrant' ? 'Switch to Toned-Down Palette' : 'Switch to Full-Coloured Palette'}
+              >
+                <Palette className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={onToggleTheme}
               className="p-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] text-zinc-200 transition-colors cursor-pointer"

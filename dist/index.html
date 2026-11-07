@@ -56,11 +56,13 @@
           var saved = localStorage.getItem('yesorno_theme_v1');
           var isDark = saved ? saved === 'dark' : (!window.matchMedia || !window.matchMedia('(prefers-color-scheme: light)').matches);
           if (isDark) document.documentElement.classList.add('dark');
+          var savedTone = localStorage.getItem('yesorno_color_tone_v1');
+          if (savedTone === 'toned') document.documentElement.classList.add('tone-muted');
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-CZ9eu-Ll.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BVaG-3fL.css">
+    <script type="module" crossorigin src="/assets/index-CXvF6DI3.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-6ZtJ9ZGK.css">
   </head>
   <body class="bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-indigo-500 selection:text-white min-h-screen transition-colors">
     <div id="root"></div>
