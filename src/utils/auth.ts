@@ -151,8 +151,8 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
     ]
   : [];
 
-const STORAGE_KEY_AUTH = 'civicpulse_current_user_v2';
-const STORAGE_KEY_PROFILES_BY_EMAIL = 'civicpulse_profiles_by_email_v1';
+const STORAGE_KEY_AUTH = 'yesorno_current_user_v2';
+const STORAGE_KEY_PROFILES_BY_EMAIL = 'yesorno_profiles_by_email_v1';
 
 /**
  * Decodes a Google Identity Services JWT credential payload

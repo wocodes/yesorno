@@ -54,7 +54,7 @@ export const InvestorDeckBar: React.FC = () => {
               <div>
                 <h4 className="font-bold text-sm text-white flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>The CivicPulse Advantage • Investor & Executive Summary</span>
+                  <span>The YesOrNo Advantage • Investor & Executive Summary</span>
                 </h4>
                 <p className="text-xs text-zinc-400">
                   Replacing stagnant committees and survey fatigue with instant binary decision velocity.

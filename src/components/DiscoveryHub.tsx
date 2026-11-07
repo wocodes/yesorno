@@ -129,9 +129,9 @@ export const DiscoveryHub: React.FC<Props> = ({
   }
 
   return (
-    <section className="card overflow-hidden border border-brand-200/70 dark:border-brand-500/25 bg-gradient-to-b from-white to-slate-50/70 dark:from-ink-900 dark:to-ink-950/90 shadow-soft">
+    <section className="card overflow-hidden bg-gradient-to-b from-white to-slate-50/70 dark:from-ink-900 dark:to-ink-950/90 shadow-soft">
       {/* Header Bar */}
-      <div className="px-5 py-3.5 border-b border-slate-200/70 dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-brand-600 text-white flex items-center justify-center shadow-glow">
             <Flame className="w-4 h-4" />
@@ -153,7 +153,7 @@ export const DiscoveryHub: React.FC<Props> = ({
 
         {/* Lens Switcher Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-xl border border-slate-200/70 dark:border-white/10 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-xl text-xs">
             <button
               type="button"
               onClick={() => setMode('trending')}
@@ -297,7 +297,7 @@ export const DiscoveryHub: React.FC<Props> = ({
               return (
                 <div
                   key={issue.id}
-                  className="bg-white dark:bg-ink-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 hover:border-brand-400/60 dark:hover:border-brand-400/50 transition-all shadow-2xs flex flex-col justify-between gap-3 group"
+                  className="bg-slate-50/80 dark:bg-ink-950/70 rounded-2xl p-4 hover:bg-slate-100/80 dark:hover:bg-ink-950 transition-all flex flex-col justify-between gap-3 group"
                 >
                   <div className="space-y-2">
                     {/* Top Row: Rank Badge + Region + Time */}

@@ -13,6 +13,7 @@ import { ThemeMode } from '../utils/theme';
 interface Props {
   onNavigate: (view: AppView) => void;
   onOpenGuidelines: () => void;
+  onOpenLegal?: (tab: 'terms' | 'privacy') => void;
   onSelectCategory?: (category: IssueCategory) => void;
   currentUser: UserProfile | null;
   theme: ThemeMode;
@@ -180,6 +181,7 @@ const SPHERES: SphereShowcase[] = [
 export const LandingPage: React.FC<Props> = ({ 
   onNavigate, 
   onOpenGuidelines, 
+  onOpenLegal,
   onSelectCategory,
   currentUser,
   theme,
@@ -240,22 +242,22 @@ export const LandingPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-aurora-dark text-white flex flex-col font-sans selection:bg-brand-500 selection:text-white overflow-x-hidden">
       {/* Glassmorphic Sticky Navigation */}
-      <nav className="sticky top-0 z-40 bg-ink-950/80 backdrop-blur-2xl border-b border-white/[0.07]">
+      <nav className="sticky top-0 z-40 bg-ink-950/85 backdrop-blur-2xl shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div 
             onClick={() => onNavigate('landing')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-purple-500 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-all ring-1 ring-white/20">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-purple-500 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-all">
               <Vote className="w-5 h-5" />
             </div>
             <span className="font-extrabold text-lg sm:text-xl tracking-tight text-white">
-              Civic<span className="text-gradient">Pulse</span>
+              Yes<span className="text-gradient">Or</span>No
             </span>
           </div>
 
           {/* Center Quick Links */}
-          <div className="hidden md:flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] rounded-full p-1 backdrop-blur-md">
+          <div className="hidden md:flex items-center gap-1 bg-white/[0.05] rounded-full p-1 backdrop-blur-md">
             <a href="#spheres-showcase" className="px-3.5 py-1.5 rounded-full text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/[0.06] transition-all">
               Use Cases
             </a>
@@ -274,14 +276,14 @@ export const LandingPage: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleTheme}
-              className="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] text-zinc-200 transition-colors cursor-pointer"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-brand-300" />}
             </button>
             <button
               onClick={() => onNavigate('auth')}
-              className="px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:text-white border border-white/10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer"
+              className="px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:text-white rounded-xl bg-white/[0.06] hover:bg-white/[0.12] transition-all cursor-pointer"
             >
               {currentUser ? currentUser.name.split(' ')[0] : 'Sign In'}
             </button>
@@ -307,7 +309,7 @@ export const LandingPage: React.FC<Props> = ({
             
             {/* Left Column: Crisp, High-Impact Pitch (7 cols) */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-xs font-semibold text-emerald-300 backdrop-blur-xl">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 text-xs font-semibold text-emerald-300 backdrop-blur-xl">
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
                 <span>It takes less than 1 min to make your voice heard and make an impact</span>
               </div>
@@ -334,7 +336,7 @@ export const LandingPage: React.FC<Props> = ({
                 </button>
                 <button
                   onClick={() => onNavigate('auth')}
-                  className="w-full sm:w-auto px-6 py-4 bg-white/[0.05] hover:bg-white/[0.1] text-white font-semibold text-sm rounded-2xl border border-white/10 transition-all cursor-pointer backdrop-blur-md flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-6 py-4 bg-white/[0.07] hover:bg-white/[0.12] text-white font-semibold text-sm rounded-2xl transition-all cursor-pointer backdrop-blur-md flex items-center justify-center gap-2"
                 >
                   <span>Sign In / Private Circles</span>
                 </button>
@@ -358,12 +360,12 @@ export const LandingPage: React.FC<Props> = ({
             <div className="lg:col-span-5 relative">
               <div className="absolute -inset-2 bg-gradient-to-tr from-brand-500/25 via-purple-500/15 to-emerald-400/15 rounded-[32px] blur-2xl opacity-80 pointer-events-none" />
 
-              <div className="relative bg-ink-900/90 backdrop-blur-2xl rounded-[28px] p-6 border border-white/15 shadow-lift space-y-4">
+              <div className="relative bg-ink-900/90 backdrop-blur-2xl rounded-[28px] p-6 shadow-lift space-y-4">
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/20 text-brand-300 border border-brand-400/30 flex items-center gap-1.5">
+                  <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/20 text-brand-300 flex items-center gap-1.5">
                     <span>💼 Workplace</span>
                   </span>
-                  <span className="text-amber-300 flex items-center gap-1 font-mono text-[11px] font-semibold bg-amber-500/15 px-2.5 py-1 rounded-full border border-amber-400/25">
+                  <span className="text-amber-300 flex items-center gap-1 font-mono text-[11px] font-semibold bg-amber-500/15 px-2.5 py-1 rounded-full">
                     <Clock className="w-3 h-3" /> 2d 14h left
                   </span>
                 </div>
@@ -377,10 +379,10 @@ export const LandingPage: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => handleMockVote('YES')}
-                    className={`flex flex-col items-center justify-center py-3 px-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-3 px-4 rounded-2xl transition-all cursor-pointer ${
                       mockChoice === 'YES'
-                        ? 'border-emerald-400 bg-emerald-500/20 text-white shadow-glow-emerald scale-[1.02]'
-                        : 'border-white/10 hover:border-emerald-400/50 bg-white/[0.03] text-zinc-300'
+                        ? 'bg-emerald-500/25 ring-2 ring-emerald-400 text-white shadow-glow-emerald scale-[1.02]'
+                        : 'bg-white/[0.05] hover:bg-emerald-500/15 text-zinc-300'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 font-extrabold text-base">
@@ -394,10 +396,10 @@ export const LandingPage: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => handleMockVote('NO')}
-                    className={`flex flex-col items-center justify-center py-3 px-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-3 px-4 rounded-2xl transition-all cursor-pointer ${
                       mockChoice === 'NO'
-                        ? 'border-rose-400 bg-rose-500/20 text-white shadow-glow-rose scale-[1.02]'
-                        : 'border-white/10 hover:border-rose-400/50 bg-white/[0.03] text-zinc-300'
+                        ? 'bg-rose-500/25 ring-2 ring-rose-400 text-white shadow-glow-rose scale-[1.02]'
+                        : 'bg-white/[0.05] hover:bg-rose-500/15 text-zinc-300'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 font-extrabold text-base">
@@ -410,13 +412,13 @@ export const LandingPage: React.FC<Props> = ({
                 </div>
 
                 {/* Split Bar */}
-                <div className="h-2.5 w-full bg-white/[0.06] rounded-full overflow-hidden flex p-0.5 border border-white/10">
+                <div className="h-2.5 w-full bg-white/[0.08] rounded-full overflow-hidden flex p-0.5">
                   <div className="bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full" style={{ width: `${mockYesPct}%` }} />
                   <div className="bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500 rounded-full ml-1" style={{ width: `${mockNoPct}%` }} />
                 </div>
 
                 {/* Interactive Voice Note Preview */}
-                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
+                <div className="p-3 rounded-2xl bg-white/[0.05] space-y-2.5">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-brand-400" />
@@ -434,7 +436,7 @@ export const LandingPage: React.FC<Props> = ({
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all cursor-pointer ${
                             heroVoiceFilter === mode
                               ? 'bg-brand-600 text-white'
-                              : 'bg-white/[0.05] text-zinc-400 hover:text-white'
+                              : 'bg-white/[0.06] text-zinc-400 hover:text-white'
                           }`}
                         >
                           {mode === 'deep' ? 'Deep' : mode === 'robot' ? 'Robot' : 'Natural'}
@@ -444,7 +446,7 @@ export const LandingPage: React.FC<Props> = ({
                   </div>
 
                   {/* Playable Waveform */}
-                  <div className="flex items-center gap-3 bg-ink-950/70 p-2 rounded-xl border border-white/[0.06]">
+                  <div className="flex items-center gap-3 bg-ink-950/75 p-2 rounded-xl">
                     <button
                       type="button"
                       onClick={toggleHeroAudio}
@@ -481,11 +483,11 @@ export const LandingPage: React.FC<Props> = ({
       </section>
 
       {/* LIVE TRENDING RADAR PREVIEW (By Overall, Region, & Category) */}
-      <section className="py-12 sm:py-16 border-t border-white/[0.07] bg-ink-900/40">
+      <section className="py-12 sm:py-16 bg-ink-900/40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-400/25">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300">
                 🔥 Live Discovery Radar
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -534,11 +536,11 @@ export const LandingPage: React.FC<Props> = ({
               <div
                 key={item.title}
                 onClick={() => onNavigate(currentUser ? 'app' : 'auth')}
-                className="p-5 rounded-3xl bg-ink-900/90 border border-white/10 hover:border-brand-400/50 transition-all cursor-pointer flex flex-col justify-between gap-4 group shadow-soft"
+                className="p-5 rounded-3xl bg-ink-900/90 hover:bg-ink-900 transition-all cursor-pointer flex flex-col justify-between gap-4 group shadow-soft"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="px-2 py-0.5 rounded-md font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    <span className="px-2 py-0.5 rounded-md font-extrabold bg-amber-500/20 text-amber-300">
                       {item.rank}
                     </span>
                     <span className="text-zinc-400 font-medium">{item.region}</span>
@@ -549,7 +551,7 @@ export const LandingPage: React.FC<Props> = ({
                   </h3>
                 </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-white/[0.07]">
+                <div className="space-y-1.5 pt-2">
                   <div className="flex justify-between text-[11px] font-bold">
                     <span className="text-emerald-400">YES {item.yesPct}%</span>
                     <span className="text-zinc-400 font-mono text-[10px]">{item.votes} votes • {item.audio} 🎙️</span>
@@ -567,7 +569,7 @@ export const LandingPage: React.FC<Props> = ({
       </section>
 
       {/* 10 SPHERES OF LIFE INTERACTIVE SHOWCASE */}
-      <section id="spheres-showcase" className="py-16 sm:py-20 border-t border-white/[0.07] bg-ink-950/60">
+      <section id="spheres-showcase" className="py-16 sm:py-20 bg-ink-950/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
@@ -591,8 +593,8 @@ export const LandingPage: React.FC<Props> = ({
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-brand-600 text-white shadow-glow ring-1 ring-white/20'
-                      : 'bg-white/[0.04] text-zinc-300 hover:text-white border border-white/[0.08] hover:bg-white/[0.08]'
+                      ? 'bg-brand-600 text-white shadow-glow'
+                      : 'bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.1]'
                   }`}
                 >
                   <span>{sphere.icon}</span>
@@ -603,13 +605,13 @@ export const LandingPage: React.FC<Props> = ({
           </div>
 
           {/* Clean Preview Card */}
-          <div className="max-w-4xl mx-auto bg-ink-900/90 rounded-3xl p-6 sm:p-7 border border-white/12 shadow-lift grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          <div className="max-w-4xl mx-auto bg-ink-900/90 rounded-3xl p-6 sm:p-7 shadow-lift grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             <div className="md:col-span-7 space-y-3.5">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/20 text-brand-300 border border-brand-400/30">
+                <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/20 text-brand-300">
                   {currentSphere.icon} {currentSphere.category}
                 </span>
-                <span className="px-2.5 py-1 rounded-full font-semibold bg-white/[0.06] text-zinc-300 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full font-semibold bg-white/[0.07] text-zinc-300 flex items-center gap-1">
                   {currentSphere.visibility === 'Private Circle' ? <Lock className="w-3 h-3 text-purple-400" /> : <Globe className="w-3 h-3 text-emerald-400" />}
                   {currentSphere.visibility}
                 </span>
@@ -622,7 +624,7 @@ export const LandingPage: React.FC<Props> = ({
                 &ldquo;{currentSphere.example}&rdquo;
               </h3>
 
-              <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-start gap-2.5">
+              <div className="p-3 rounded-2xl bg-white/[0.05] flex items-start gap-2.5">
                 <Mic className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="text-xs space-y-0.5">
                   <div className="text-zinc-400">
@@ -633,19 +635,19 @@ export const LandingPage: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="md:col-span-5 bg-ink-950/80 rounded-2xl p-5 border border-white/10 space-y-3.5">
+            <div className="md:col-span-5 bg-ink-950/85 rounded-2xl p-5 space-y-3.5">
               <div className="grid grid-cols-2 gap-2.5 text-center">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+                <div className="p-2.5 rounded-xl bg-emerald-500/15">
                   <div className="text-xl font-extrabold font-mono text-emerald-400">{sphereYesPct}%</div>
                   <div className="text-[11px] text-emerald-200 font-semibold">YES ({currentSphere.yesCount})</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25">
+                <div className="p-2.5 rounded-xl bg-rose-500/15">
                   <div className="text-xl font-extrabold font-mono text-rose-400">{sphereNoPct}%</div>
                   <div className="text-[11px] text-rose-200 font-semibold">NO ({currentSphere.noCount})</div>
                 </div>
               </div>
 
-              <div className="h-2 w-full bg-white/[0.06] rounded-full overflow-hidden flex p-0.5">
+              <div className="h-2 w-full bg-white/[0.08] rounded-full overflow-hidden flex p-0.5">
                 <div className="bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${sphereYesPct}%` }} />
                 <div className="bg-rose-500 rounded-full transition-all duration-500 ml-0.5" style={{ width: `${sphereNoPct}%` }} />
               </div>
@@ -672,7 +674,7 @@ export const LandingPage: React.FC<Props> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Pillar 1 */}
-          <div className="bg-ink-900/90 p-6 rounded-3xl border border-white/10 space-y-3 hover:border-brand-400/40 transition-all">
+          <div className="bg-ink-900/90 p-6 rounded-3xl space-y-3 shadow-soft hover:bg-ink-900 transition-all">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/15 text-brand-300 text-xs font-bold">
               <Sliders className="w-3.5 h-3.5" /> Voice Privacy Filters
             </div>
@@ -685,7 +687,7 @@ export const LandingPage: React.FC<Props> = ({
           </div>
 
           {/* Pillar 2 */}
-          <div className="bg-ink-900/90 p-6 rounded-3xl border border-white/10 space-y-3 hover:border-emerald-400/40 transition-all">
+          <div className="bg-ink-900/90 p-6 rounded-3xl space-y-3 shadow-soft hover:bg-ink-900 transition-all">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">
               <Zap className="w-3.5 h-3.5" /> Time-Bound Velocity
             </div>
@@ -698,7 +700,7 @@ export const LandingPage: React.FC<Props> = ({
           </div>
 
           {/* Pillar 3 */}
-          <div className="bg-ink-900/90 p-6 rounded-3xl border border-white/10 space-y-3 hover:border-purple-400/40 transition-all">
+          <div className="bg-ink-900/90 p-6 rounded-3xl space-y-3 shadow-soft hover:bg-ink-900 transition-all">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 text-xs font-bold">
               <Lock className="w-3.5 h-3.5" /> Public or Private Circles
             </div>
@@ -711,7 +713,7 @@ export const LandingPage: React.FC<Props> = ({
           </div>
 
           {/* Pillar 4 */}
-          <div className="bg-ink-900/90 p-6 rounded-3xl border border-white/10 space-y-3 hover:border-amber-400/40 transition-all">
+          <div className="bg-ink-900/90 p-6 rounded-3xl space-y-3 shadow-soft hover:bg-ink-900 transition-all">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold">
               <BarChart3 className="w-3.5 h-3.5" /> Executive Digest
             </div>
@@ -726,17 +728,27 @@ export const LandingPage: React.FC<Props> = ({
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto bg-ink-950 text-zinc-400 py-8 px-4 sm:px-6 border-t border-white/[0.07]">
+      <footer className="mt-auto bg-ink-950 text-zinc-400 py-8 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white font-bold">
               <Vote className="w-3.5 h-3.5" />
             </div>
-            <span className="font-bold text-white">CivicPulse</span>
+            <span className="font-bold text-white">YesOrNo</span>
             <span className="text-zinc-500">• Make your voice heard in under 1 minute</span>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-5">
+            {onOpenLegal && (
+              <>
+                <button onClick={() => onOpenLegal('terms')} className="hover:text-white transition-colors cursor-pointer">
+                  Terms of Use
+                </button>
+                <button onClick={() => onOpenLegal('privacy')} className="hover:text-white transition-colors cursor-pointer">
+                  Privacy Policy
+                </button>
+              </>
+            )}
             <button onClick={onOpenGuidelines} className="hover:text-white transition-colors cursor-pointer">
               Community Guidelines
             </button>

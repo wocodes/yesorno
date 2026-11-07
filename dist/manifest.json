@@ -1,7 +1,7 @@
 {
-  "name": "CivicPulse - Voice & Civic Polling",
-  "short_name": "CivicPulse",
-  "description": "Mobile-first civic polling with voice notes, anonymous privacy, and respectful deliberation.",
+  "name": "YesOrNo - Vote YES or NO on What Matters",
+  "short_name": "YesOrNo",
+  "description": "Fast, time-bound YES or NO voting with 60-second voice notes, anonymous privacy, and instant consensus.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

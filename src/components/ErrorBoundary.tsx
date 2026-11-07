@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('CivicPulse Uncaught Render Error:', error, errorInfo);
+    console.error('YesOrNo Uncaught Render Error:', error, errorInfo);
   }
 
   private handleReset = () => {
@@ -49,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Something interrupted the view
               </h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                CivicPulse encountered an unexpected state. You can restore default sample issues and reload instantly.
+                YesOrNo encountered an unexpected state. You can reset your local cache and reload instantly.
               </p>
             </div>
 

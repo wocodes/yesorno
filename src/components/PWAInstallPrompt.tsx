@@ -9,7 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-const STORAGE_KEY_DISMISSED = 'civicpulse_pwa_dismissed_v1';
+const STORAGE_KEY_DISMISSED = 'yesorno_pwa_dismissed_v1';
 
 export const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -103,11 +103,11 @@ export const PWAInstallPrompt: React.FC = () => {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-700 flex items-center justify-center p-2 shadow-md shrink-0">
-              <img src="/icons/icon.svg" alt="CivicPulse Icon" className="w-full h-full object-contain" />
+              <img src="/icons/icon.svg" alt="YesOrNo Icon" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-sm text-white">Add CivicPulse to Home Screen</h3>
+                <h3 className="font-bold text-sm text-white">Add YesOrNo to Home Screen</h3>
                 <span className="text-[10px] font-bold uppercase bg-indigo-500/30 text-indigo-200 px-1.5 py-0.2 rounded">
                   PWA
                 </span>

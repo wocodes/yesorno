@@ -36,7 +36,7 @@ export const CommunityGuidelinesModal: React.FC<Props> = ({ isOpen, onClose }) =
             </div>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-            CivicPulse is built on democratic participation, honesty, and mutual respect. We empower voices while strictly maintaining constructive civil discourse.
+            YesOrNo is built on democratic participation, honesty, and mutual respect. We empower voices while strictly maintaining constructive civil discourse.
           </p>
         </div>
 

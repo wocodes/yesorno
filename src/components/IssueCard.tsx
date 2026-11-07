@@ -245,7 +245,7 @@ export const IssueCard: React.FC<Props> = ({
   );
 
   return (
-    <article className="card overflow-hidden hover:shadow-lift hover:-translate-y-0.5 hover:border-brand-300/70 dark:hover:border-brand-500/50 transition-all duration-300 flex flex-col justify-between group relative">
+    <article className="card overflow-hidden hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group relative">
       {/* Top Accent Line when no image is present */}
       {!hasImages && (
         <div className="h-1 w-full bg-gradient-to-r from-brand-500 via-purple-500 to-emerald-400" />
@@ -311,30 +311,30 @@ export const IssueCard: React.FC<Props> = ({
           {!hasImages && (
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-200/70 dark:border-brand-400/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
                   <span>{catEmoji}</span>
                   <span>{shortCat}</span>
                 </span>
 
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 border border-slate-200/70 dark:border-white/10">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300">
                   <MapPin className="w-2.5 h-2.5 text-brand-500" />
                   <span>{issueRegion === 'Global / Remote' ? 'Worldwide' : issueRegion}</span>
                 </span>
 
                 {issue.visibility === 'private' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-400/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300">
                     <Lock className="w-3 h-3" /> Private
                   </span>
                 ) : null}
 
                 {issue.creatorVoiceNote && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-400/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
                     <Mic className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" /> Audio
                   </span>
                 )}
               </div>
 
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${metrics.timeRemaining.badgeColor}`}>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${metrics.timeRemaining.badgeColor}`}>
                 <Clock className="w-3 h-3" />
                 {metrics.timeRemaining.text}
               </span>
@@ -345,22 +345,22 @@ export const IssueCard: React.FC<Props> = ({
           {(isRegionPriority || isWorldwideMix || isInterestPriority || isFollowedCreator) && (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               {isRegionPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-400/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                   <MapPin className="w-2.5 h-2.5" /> Your Region Priority ({issueRegion})
                 </span>
               )}
               {isWorldwideMix && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-400/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300">
                   <Globe className="w-2.5 h-2.5" /> Worldwide Feed
                 </span>
               )}
               {isInterestPriority && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-200/80 dark:border-brand-400/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300">
                   <Sparkles className="w-2.5 h-2.5" /> Matches Your Interest
                 </span>
               )}
               {isFollowedCreator && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-400/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
                   <UserCheck className="w-2.5 h-2.5" /> Following {issue.author}
                 </span>
               )}
@@ -408,7 +408,7 @@ export const IssueCard: React.FC<Props> = ({
             </span>
           </div>
           
-          <div className="h-2.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5 border border-slate-200/70 dark:border-white/10">
+          <div className="h-2.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
             <div 
               className="bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full" 
               style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }} 
@@ -422,7 +422,7 @@ export const IssueCard: React.FC<Props> = ({
       </div>
 
       {/* Card Footer with Replies, Like/Heart, Favourite/Bookmark, Share, Delete & 1-Tap Voting */}
-      <div className="px-5 py-3 bg-slate-50/80 dark:bg-ink-950/60 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between gap-2 text-xs">
+      <div className="px-5 py-3 bg-slate-50/70 dark:bg-ink-950/50 flex items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button 
             type="button"
@@ -535,10 +535,10 @@ export const IssueCard: React.FC<Props> = ({
                   setInlineChoice(userVoteChoice || 'YES');
                   setShowInlineComposer(!showInlineComposer);
                 }}
-                className={`flex items-center gap-1.5 py-1.5 px-3 font-bold rounded-xl text-xs transition-colors border cursor-pointer ${
+                className={`flex items-center gap-1.5 py-1.5 px-3 font-bold rounded-xl text-xs transition-colors cursor-pointer ${
                   userVoteChoice === 'YES'
-                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-400/30'
-                    : 'bg-rose-50 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-400/30'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-rose-50 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -550,7 +550,7 @@ export const IssueCard: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('YES')}
-                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white border border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-600 font-extrabold text-xs transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white font-extrabold text-xs transition-all cursor-pointer active:scale-95"
               >
                 <ThumbsUp className="w-3 h-3" />
                 <span>YES</span>
@@ -558,7 +558,7 @@ export const IssueCard: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('NO')}
-                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-500/30 hover:border-rose-600 font-extrabold text-xs transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-extrabold text-xs transition-all cursor-pointer active:scale-95"
               >
                 <ThumbsDown className="w-3 h-3" />
                 <span>NO</span>

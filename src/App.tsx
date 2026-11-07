@@ -13,6 +13,7 @@ import { VoteModal } from './components/VoteModal';
 import { IssueDetailModal } from './components/IssueDetailModal';
 import { CreateIssueModal } from './components/CreateIssueModal';
 import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal';
+import { LegalModal, LegalDocTab } from './components/LegalModal';
 import { ShareIssueModal } from './components/ShareIssueModal';
 import { DiscoveryHub, inferIssueRegion } from './components/DiscoveryHub';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -64,6 +65,7 @@ export function App() {
   const [activeDetailIssue, setActiveDetailIssue] = useState<Issue | null>(null);
   const [activeShareIssue, setActiveShareIssue] = useState<Issue | null>(null);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalDocTab | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -631,6 +633,7 @@ export function App() {
         <LandingPage
           onNavigate={handleNavigate}
           onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+          onOpenLegal={(tab) => setLegalModalTab(tab)}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
           currentUser={currentUser}
           theme={theme}
@@ -639,6 +642,11 @@ export function App() {
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}
           onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <LegalModal
+          isOpen={legalModalTab !== null}
+          initialTab={legalModalTab || 'terms'}
+          onClose={() => setLegalModalTab(null)}
         />
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
         <PWAInstallPrompt />
@@ -657,10 +665,16 @@ export function App() {
           theme={theme}
           onToggleTheme={handleToggleTheme}
           authPromptMessage={authPromptMessage || (!currentUser ? 'Sign in required to view, create, and vote on issues.' : null)}
+          onOpenLegal={(tab) => setLegalModalTab(tab)}
         />
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}
           onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <LegalModal
+          isOpen={legalModalTab !== null}
+          initialTab={legalModalTab || 'terms'}
+          onClose={() => setLegalModalTab(null)}
         />
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
         <PWAInstallPrompt />
@@ -694,13 +708,13 @@ export function App() {
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
         {/* Sleek, Compact Command Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark border border-white/10 p-5 sm:p-6 text-white shadow-soft">
+        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-5 sm:p-6 text-white shadow-soft">
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
           <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-semibold">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold">
                 <Clock className="w-3 h-3 text-emerald-400" />
                 <span>It takes less than 1 min to make your voice heard and make an impact</span>
               </div>
@@ -711,7 +725,7 @@ export function App() {
 
             {/* Compact Telemetry Strip + Action */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <div className="flex items-center gap-4 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-2.5 backdrop-blur-md text-xs">
+              <div className="flex items-center gap-4 bg-white/[0.08] rounded-2xl px-4 py-2.5 backdrop-blur-md text-xs">
                 <div>
                   <span className="font-mono font-bold text-emerald-400 text-sm">{stats.totalVotes}</span>
                   <span className="text-zinc-400 ml-1">votes</span>
@@ -748,7 +762,7 @@ export function App() {
         />
 
         {/* Personalized Feed Priority & Region/Interests Control Bar */}
-        <div className="card p-3.5 sm:p-4 bg-white/90 dark:bg-ink-900/90 border border-brand-200/60 dark:border-brand-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="card p-3.5 sm:p-4 bg-white/90 dark:bg-ink-900/90 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink-950 dark:text-white mr-1">
               <Sparkles className="w-4 h-4 text-brand-500" />
@@ -756,7 +770,7 @@ export function App() {
             </span>
 
             {/* Region + Worldwide Toggle */}
-            <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10">
+            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-ink-950">
               <button
                 type="button"
                 onClick={() => setRegionScope('my-region-worldwide')}
@@ -789,7 +803,7 @@ export function App() {
 
             {/* Interests + Worldwide Mix Toggle */}
             {currentUser.interests && currentUser.interests.length > 0 && (
-              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10">
+              <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-ink-950">
                 <button
                   type="button"
                   onClick={() => setInterestScope('my-interests-mixed')}
@@ -818,7 +832,7 @@ export function App() {
 
             {/* Following badge */}
             {currentUser.followingCreators && currentUser.followingCreators.length > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-400/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
                 <UserCheck className="w-3 h-3" />
                 <span>Following {currentUser.followingCreators.length}</span>
               </span>
@@ -828,10 +842,10 @@ export function App() {
             <button
               type="button"
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                 showFavoritesOnly
-                  ? 'bg-amber-500 text-ink-950 border-amber-500 shadow-2xs'
-                  : 'bg-white dark:bg-ink-950 text-slate-600 dark:text-zinc-300 border-slate-200/80 dark:border-white/10 hover:border-amber-400'
+                  ? 'bg-amber-500 text-ink-950 shadow-2xs'
+                  : 'bg-slate-100 dark:bg-ink-950 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15'
               }`}
             >
               <Bookmark className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
@@ -850,7 +864,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setIsProfileSettingsOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-400/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>Profile &amp; Preferences</span>
@@ -864,7 +878,7 @@ export function App() {
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               {selectedCategory === 'All' ? 'Active Ballots' : selectedCategory}
             </h2>
-            <span className="text-xs bg-brand-50 dark:bg-brand-500/20 border border-brand-200/80 dark:border-brand-400/30 text-brand-700 dark:text-brand-300 font-bold px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 font-bold px-2.5 py-0.5 rounded-full">
               {filteredIssues.length}
             </span>
           </div>
@@ -952,10 +966,40 @@ export function App() {
             })}
           </div>
         )}
+        {/* Workspace Footer with Terms of Use & Privacy Policy */}
+        <footer className="pt-8 pb-4 text-xs text-slate-400 dark:text-zinc-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-700 dark:text-slate-300">YesOrNo</span>
+            <span>• Fast, time-bound decisions for every circle</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setLegalModalTab('terms')}
+              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
+            >
+              Terms of Use
+            </button>
+            <button
+              type="button"
+              onClick={() => setLegalModalTab('privacy')}
+              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsGuidelinesOpen(true)}
+              className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer"
+            >
+              Community Guidelines
+            </button>
+          </div>
+        </footer>
       </main>
 
       {/* Mobile Sticky Bottom Bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl border-t border-white/10 py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift">
         <button
           onClick={() => handleNavigate('landing')}
           className="flex flex-col items-center gap-1 hover:text-white transition-colors"
@@ -1058,6 +1102,12 @@ export function App() {
       <CommunityGuidelinesModal
         isOpen={isGuidelinesOpen}
         onClose={() => setIsGuidelinesOpen(false)}
+      />
+
+      <LegalModal
+        isOpen={legalModalTab !== null}
+        initialTab={legalModalTab || 'terms'}
+        onClose={() => setLegalModalTab(null)}
       />
 
       <OnboardingModal
