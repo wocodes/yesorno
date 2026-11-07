@@ -1382,6 +1382,7 @@ export function App() {
         issue={activeShareIssue}
         isOpen={!!activeShareIssue}
         onClose={() => setActiveShareIssue(null)}
+        colorTone={colorTone}
       />
 
       <CreateIssueModal

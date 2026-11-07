@@ -472,6 +472,8 @@ export function recordEngagementAction(
     | 'like'
     | 'favorite'
     | 'share'
+    | 'card_download'
+    | 'card_copy'
     | 'category_select',
   detail?: string
 ): void {
@@ -515,6 +517,14 @@ export function recordEngagementAction(
     case 'share':
       store.engagement.sharesInitiated += 1;
       pushEvent(store, 'share', 'Opened Share Issue Dialog', detail);
+      break;
+    case 'card_download':
+      store.engagement.sharesInitiated += 1;
+      pushEvent(store, 'share', 'Downloaded High-Res Social Image Card', detail);
+      break;
+    case 'card_copy':
+      store.engagement.sharesInitiated += 1;
+      pushEvent(store, 'share', 'Copied Image Card to Clipboard', detail);
       break;
     case 'category_select':
       if (detail) {
