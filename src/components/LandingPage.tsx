@@ -245,7 +245,7 @@ export const LandingPage: React.FC<Props> = ({
       <nav className="sticky top-0 z-40 bg-ink-950/85 backdrop-blur-2xl shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div 
-            onClick={() => onNavigate('landing')}
+            onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-purple-500 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-all">
@@ -291,7 +291,7 @@ export const LandingPage: React.FC<Props> = ({
               onClick={() => onNavigate(currentUser ? 'app' : 'auth')}
               className="btn-brand text-xs px-4 py-2 shadow-glow cursor-pointer"
             >
-              <span>{currentUser ? 'Open Ballot' : 'Sign In to Vote'}</span>
+              <span>{currentUser ? 'Open Issues' : 'Sign In to Vote'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -496,7 +496,7 @@ export const LandingPage: React.FC<Props> = ({
               </h2>
             </div>
             <button
-              onClick={() => onNavigate(currentUser ? 'app' : 'auth')}
+              onClick={() => onNavigate(currentUser ? 'discovery' : 'auth')}
               className="text-xs font-bold text-brand-300 hover:text-white flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
             >
               <span>Explore Full Discovery Hub</span>
@@ -577,7 +577,7 @@ export const LandingPage: React.FC<Props> = ({
               One platform for <span className="font-serif italic font-normal text-gradient">every circle.</span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400">
-              Preview how different groups make decisions in under a minute, or jump straight into that ballot category.
+              Preview how different groups make decisions in under a minute, or jump straight into that issue category.
             </p>
           </div>
 
@@ -657,7 +657,7 @@ export const LandingPage: React.FC<Props> = ({
                 onClick={() => handleExploreSphere(currentSphere.category)}
                 className="w-full btn-brand py-2.5 text-xs font-bold shadow-glow cursor-pointer"
               >
-                <span>Open {currentSphere.title} Ballot</span>
+                <span>Open {currentSphere.title} Issues</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -757,7 +757,7 @@ export const LandingPage: React.FC<Props> = ({
               Sign In
             </button>
             <button onClick={() => onNavigate('app')} className="hover:text-white transition-colors font-bold text-brand-300 cursor-pointer">
-              Open Ballot →
+              Open Issues →
             </button>
           </div>
         </div>

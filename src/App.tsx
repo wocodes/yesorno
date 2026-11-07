@@ -23,7 +23,7 @@ import { AuthPage } from './components/AuthPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { 
-  ShieldCheck, Filter, Home, User, Vote, Clock, Plus, Bookmark
+  ShieldCheck, Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass
 } from 'lucide-react';
 
 function getInitialView(user: UserProfile | null): AppView {
@@ -35,9 +35,10 @@ function getInitialView(user: UserProfile | null): AppView {
     return 'landing';
   }
   if (user) {
+    if (hash === 'discovery') return 'discovery';
     return 'app';
   }
-  if (hash === 'app' || hasSharedIssue || hash === 'auth') {
+  if (hash === 'app' || hash === 'discovery' || hasSharedIssue || hash === 'auth') {
     return 'auth';
   }
   return 'landing';
@@ -118,7 +119,7 @@ export function App() {
 
   // Strict Auth-Protected Navigation
   const handleNavigate = (view: AppView) => {
-    if (view === 'app' && !currentUser) {
+    if ((view === 'app' || view === 'discovery') && !currentUser) {
       setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
       setCurrentView('auth');
       window.location.hash = 'auth';
@@ -134,18 +135,18 @@ export function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'app') {
+      if (hash === 'app' || hash === 'discovery') {
         if (!currentUser) {
           setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
           setCurrentView('auth');
           window.location.hash = 'auth';
         } else {
-          setCurrentView('app');
+          setCurrentView(hash as AppView);
         }
       } else if (hash === 'auth') {
         setCurrentView('auth');
       } else if (hash === '' || hash === 'landing') {
-        setCurrentView('landing');
+        setCurrentView(currentUser ? 'app' : 'landing');
       }
     };
     window.addEventListener('hashchange', onHashChange);
@@ -742,182 +743,189 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {/* Sleek, Compact Command Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-4 sm:p-6 text-white shadow-soft">
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
-            <div className="space-y-1.5 min-w-0">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold whitespace-nowrap max-w-full">
-                <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span className="sm:hidden">Make your voice heard in under 1 min</span>
-                <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
-              </div>
-              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
-                Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
-              </h1>
-            </div>
-
-            {/* Compact Telemetry Strip + Action — single-line horizontal fit on mobile */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-              <div className="flex items-center gap-2.5 sm:gap-4 bg-white/[0.08] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 backdrop-blur-md text-[11px] sm:text-xs whitespace-nowrap">
-                <div>
-                  <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">{stats.totalVotes}</span>
-                  <span className="text-zinc-400 ml-1">votes</span>
-                </div>
-                <span className="text-white/15">|</span>
-                <div>
-                  <span className="font-mono font-bold text-brand-300 text-xs sm:text-sm">{stats.totalVoiceNotes}</span>
-                  <span className="text-zinc-400 ml-1">audio</span>
-                </div>
-                <span className="text-white/15">|</span>
-                <div>
-                  <span className="font-mono font-bold text-amber-300 text-xs sm:text-sm">{stats.totalIssues}</span>
-                  <span className="text-zinc-400 ml-1">issues</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="btn-brand text-xs py-2 sm:py-2.5 px-3.5 sm:px-4 shadow-glow cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>New Issue</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Discovery & Trending Pulse Hub (Overall, By Region, By Category, Closing Soon, Hotly Debated) */}
-        <DiscoveryHub
-          issues={issues}
-          onOpenDetails={(iss) => setActiveDetailIssue(iss)}
-          onQuickVote={handleOpenQuickVote}
-          onFilterByCategory={(cat) => setSelectedCategory(cat)}
-        />
-
-        {/* Section Header */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              {selectedCategory === 'All' ? 'Active Ballots' : selectedCategory}
-            </h2>
-            <span className="text-xs bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 font-bold px-2.5 py-0.5 rounded-full">
-              {filteredIssues.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                showFavoritesOnly
-                  ? 'bg-amber-500 text-ink-950 shadow-2xs'
-                  : 'bg-white dark:bg-ink-900 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15 shadow-2xs'
-              }`}
-            >
-              <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
-              <span>Favourites ({Object.keys(userFavorites).length})</span>
-            </button>
-
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
-              >
-                Clear &quot;{searchQuery}&quot;
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Issues Grid */}
-        {issues.length === 0 ? (
-          <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
-            <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
-              <Vote className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              No active issues published yet
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-              Launch the first time-bound YES/NO ballot for your workplace, family, community, or private circle.
-            </p>
-            <div className="pt-2 flex justify-center">
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create First Issue</span>
-              </button>
-            </div>
-          </div>
-        ) : filteredIssues.length === 0 ? (
-          <div className="card p-10 text-center space-y-3 border-dashed">
-            <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
-              <Filter className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching issues found</h3>
-            <div className="pt-1 flex flex-wrap justify-center gap-2">
-              <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  setSearchQuery('');
-                  setRegionScope('all-regions');
-                  setInterestScope('all-categories');
-                }}
-                className="btn-ghost text-xs"
-              >
-                Show All Regions &amp; Topics
-              </button>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="btn-brand text-xs"
-              >
-                Create Issue
-              </button>
-            </div>
-          </div>
+        {currentView === 'discovery' ? (
+          <DiscoveryHub
+            issues={issues}
+            onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+            onQuickVote={handleOpenQuickVote}
+            onFilterByCategory={(cat) => {
+              setSelectedCategory(cat);
+              handleNavigate('app');
+            }}
+            fullPage
+          />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              {visibleIssues.map((issue) => {
-                const voteRecord = userVotes[issue.id];
-                return (
-                  <IssueCard
-                    key={issue.id}
-                    issue={issue}
-                    currentUser={currentUser}
-                    onOpenDetails={(iss) => setActiveDetailIssue(iss)}
-                    onQuickVote={handleOpenQuickVote}
-                    onInlineSubmitVote={handleVoteSubmit}
-                    onDeleteIssue={handleDeleteIssueByAuthor}
-                    onToggleLikeIssue={handleToggleLikeIssue}
-                    onToggleFavoriteIssue={handleToggleFavoriteIssue}
-                    onShareIssue={(iss) => setActiveShareIssue(iss)}
-                    hasUserVoted={!!voteRecord}
-                    userVoteChoice={voteRecord?.choice}
-                    isLiked={!!userLikes[issue.id]}
-                    isFavorited={!!userFavorites[issue.id]}
-                  />
-                );
-              })}
+            {/* Sleek, Compact Command Banner */}
+            <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-4 sm:p-6 text-white shadow-soft">
+              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold whitespace-nowrap max-w-full">
+                    <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span className="sm:hidden">Make your voice heard in under 1 min</span>
+                    <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
+                  </div>
+                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
+                    Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
+                  </h1>
+                </div>
+
+                {/* Compact Telemetry Strip + Action — single-line horizontal fit on mobile */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-4 bg-white/[0.08] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 backdrop-blur-md text-[11px] sm:text-xs whitespace-nowrap">
+                    <div>
+                      <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">{stats.totalVotes}</span>
+                      <span className="text-zinc-400 ml-1">votes</span>
+                    </div>
+                    <span className="text-white/15">|</span>
+                    <div>
+                      <span className="font-mono font-bold text-brand-300 text-xs sm:text-sm">{stats.totalVoiceNotes}</span>
+                      <span className="text-zinc-400 ml-1">audio</span>
+                    </div>
+                    <span className="text-white/15">|</span>
+                    <div>
+                      <span className="font-mono font-bold text-amber-300 text-xs sm:text-sm">{stats.totalIssues}</span>
+                      <span className="text-zinc-400 ml-1">issues</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn-brand text-xs py-2 sm:py-2.5 px-3.5 sm:px-4 shadow-glow cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>New Issue</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Section Header */}
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                  {selectedCategory === 'All' ? 'Issues' : selectedCategory}
+                </h2>
+                <span className="text-xs bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 font-bold px-2.5 py-0.5 rounded-full">
+                  {filteredIssues.length}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                    showFavoritesOnly
+                      ? 'bg-amber-500 text-ink-950 shadow-2xs'
+                      : 'bg-white dark:bg-ink-900 text-slate-600 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/15 shadow-2xs'
+                  }`}
+                >
+                  <Bookmark className={`w-3 h-3 shrink-0 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
+                  <span>Favourites ({Object.keys(userFavorites).length})</span>
+                </button>
+
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+                  >
+                    Clear &quot;{searchQuery}&quot;
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Infinite Scroll Auto-Load Sentinel */}
-            {visibleCount < filteredIssues.length ? (
-              <div ref={feedSentinelRef} className="py-6 flex flex-col items-center justify-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
-                <div className="w-5 h-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
-                <span>Loading more ballots ({visibleCount} of {filteredIssues.length})...</span>
+            {/* Issues Grid */}
+            {issues.length === 0 ? (
+              <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
+                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
+                  <Vote className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  No active issues published yet
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+                  Launch the first time-bound YES/NO issue for your workplace, family, community, or private circle.
+                </p>
+                <div className="pt-2 flex justify-center">
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create First Issue</span>
+                  </button>
+                </div>
               </div>
-            ) : filteredIssues.length > 6 ? (
-              <div className="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
-                You&apos;ve reached the end of the feed ({filteredIssues.length} ballots)
+            ) : filteredIssues.length === 0 ? (
+              <div className="card p-10 text-center space-y-3 border-dashed">
+                <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
+                  <Filter className="w-5 h-5" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching issues found</h3>
+                <div className="pt-1 flex flex-wrap justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('All');
+                      setSearchQuery('');
+                      setRegionScope('all-regions');
+                      setInterestScope('all-categories');
+                    }}
+                    className="btn-ghost text-xs"
+                  >
+                    Show All Regions &amp; Topics
+                  </button>
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn-brand text-xs"
+                  >
+                    Create Issue
+                  </button>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                  {visibleIssues.map((issue) => {
+                    const voteRecord = userVotes[issue.id];
+                    return (
+                      <IssueCard
+                        key={issue.id}
+                        issue={issue}
+                        currentUser={currentUser}
+                        onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+                        onQuickVote={handleOpenQuickVote}
+                        onInlineSubmitVote={handleVoteSubmit}
+                        onDeleteIssue={handleDeleteIssueByAuthor}
+                        onToggleLikeIssue={handleToggleLikeIssue}
+                        onToggleFavoriteIssue={handleToggleFavoriteIssue}
+                        onShareIssue={(iss) => setActiveShareIssue(iss)}
+                        hasUserVoted={!!voteRecord}
+                        userVoteChoice={voteRecord?.choice}
+                        isLiked={!!userLikes[issue.id]}
+                        isFavorited={!!userFavorites[issue.id]}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Infinite Scroll Auto-Load Sentinel */}
+                {visibleCount < filteredIssues.length ? (
+                  <div ref={feedSentinelRef} className="py-6 flex flex-col items-center justify-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
+                    <div className="w-5 h-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+                    <span>Loading more issues ({visibleCount} of {filteredIssues.length})...</span>
+                  </div>
+                ) : filteredIssues.length > 6 ? (
+                  <div className="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
+                    You&apos;ve reached the end of the feed ({filteredIssues.length} issues)
+                  </div>
+                ) : null}
+              </>
+            )}
           </>
         )}
         {/* Workspace Footer with Terms of Use & Privacy Policy */}
@@ -955,22 +963,23 @@ export function App() {
       {/* Mobile Sticky Bottom Bar */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift">
         <button
-          onClick={() => handleNavigate('landing')}
-          className="flex flex-col items-center gap-1 hover:text-white transition-colors"
+          onClick={() => handleNavigate('app')}
+          className={`flex flex-col items-center gap-1 transition-colors ${
+            currentView === 'app' ? 'text-brand-400 font-bold' : 'hover:text-white'
+          }`}
         >
           <Home className="w-4 h-4" />
           <span>Home</span>
         </button>
 
         <button
-          onClick={() => {
-            setSelectedCategory('All');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="flex flex-col items-center gap-1 text-brand-400 font-bold"
+          onClick={() => handleNavigate('discovery')}
+          className={`flex flex-col items-center gap-1 transition-colors ${
+            currentView === 'discovery' ? 'text-amber-400 font-bold' : 'hover:text-white'
+          }`}
         >
-          <Vote className="w-4 h-4" />
-          <span>Ballot</span>
+          <Compass className="w-4 h-4" />
+          <span>Discovery</span>
         </button>
 
         <button

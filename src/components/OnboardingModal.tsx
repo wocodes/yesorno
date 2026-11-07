@@ -407,7 +407,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, user, issues = [], on
               className="btn-brand text-xs py-2.5 px-6 flex items-center gap-1.5 shadow-glow"
             >
               <Globe2 className="w-3.5 h-3.5" />
-              <span>Save Preferences &amp; Launch Ballot</span>
+              <span>Save Preferences &amp; View Issues</span>
             </button>
           )}
         </div>

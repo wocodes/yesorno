@@ -174,7 +174,7 @@ export const AuthPage: React.FC<Props> = ({
       {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between">
         <div 
-          onClick={() => onNavigate('landing')}
+          onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
           className="flex items-center gap-2 cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shadow-glow">
@@ -199,7 +199,7 @@ export const AuthPage: React.FC<Props> = ({
               onClick={() => onNavigate('app')}
               className="btn-brand text-xs py-2 px-4 shadow-sm cursor-pointer"
             >
-              <span>Enter Ballot</span>
+              <span>Open Issues</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
@@ -275,7 +275,7 @@ export const AuthPage: React.FC<Props> = ({
               onClick={() => onNavigate('app')}
               className="btn-brand w-full py-3 flex items-center justify-center gap-2 shadow-lift cursor-pointer"
             >
-              <span>Enter Ballot Workspace</span>
+              <span>Open Issues Feed</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -391,7 +391,7 @@ export const AuthPage: React.FC<Props> = ({
               </div>
 
               <button type="submit" className="btn-brand w-full py-3 shadow-lift cursor-pointer">
-                Sign In &amp; Open Ballot
+                Sign In &amp; Open Issues
               </button>
             </form>
           ) : (
