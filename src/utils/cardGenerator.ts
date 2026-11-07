@@ -114,14 +114,15 @@ function computeDynamicTypography(
   isEditorial = false
 ): DynamicTypography {
   const len = title.length;
+  const hasDesc = !!(desc && desc.trim().length > 0);
 
-  // Ultra-legible large scale: short questions get huge 68-74px fonts
+  // Ultra-legible large scale: short questions get commanding 76-84px fonts on Square
   let titleFontSize = isSquare
-    ? (len <= 45 ? 68 : len <= 85 ? 56 : 48)
-    : (len <= 45 ? 52 : len <= 85 ? 44 : 36);
+    ? (len <= 45 ? (hasDesc ? 78 : 84) : len <= 80 ? 64 : 52)
+    : (len <= 45 ? (hasDesc ? 56 : 62) : len <= 80 ? 46 : 38);
 
-  let titleLineHeight = Math.round(titleFontSize * 1.24);
-  const descFontSize = isSquare ? 26 : 22;
+  let titleLineHeight = Math.round(titleFontSize * 1.22);
+  const descFontSize = isSquare ? 28 : 22;
   const descLineHeight = Math.round(descFontSize * 1.45);
 
   const fontFamily = isEditorial
@@ -131,16 +132,16 @@ function computeDynamicTypography(
   ctx.font = `${isEditorial ? '800' : '900'} ${titleFontSize}px ${fontFamily}`;
   let titleLines = wrapText(ctx, title, maxWidth, isSquare ? 4 : 3);
 
-  // If title was too long and wrapped into more than max lines or exceeded, drop font size slightly
-  if (titleLines.length > (isSquare ? 4 : 3) && titleFontSize > 40) {
-    titleFontSize -= 8;
-    titleLineHeight = Math.round(titleFontSize * 1.24);
+  // If title was too long and wrapped into more than max lines, scale down smoothly
+  while (titleLines.length > (isSquare ? 4 : 3) && titleFontSize > 36) {
+    titleFontSize -= 4;
+    titleLineHeight = Math.round(titleFontSize * 1.22);
     ctx.font = `${isEditorial ? '800' : '900'} ${titleFontSize}px ${fontFamily}`;
     titleLines = wrapText(ctx, title, maxWidth, isSquare ? 4 : 3);
   }
 
   let descLines: string[] = [];
-  if (desc && desc.trim().length > 0) {
+  if (hasDesc && desc) {
     const descFontFam = isEditorial ? 'Georgia, serif' : '"Plus Jakarta Sans", system-ui, sans-serif';
     ctx.font = `${isEditorial ? 'italic 500' : '500'} ${descFontSize}px ${descFontFam}`;
     descLines = wrapText(ctx, desc.trim(), maxWidth - (isEditorial ? 40 : 0), isSquare ? 3 : 2);
@@ -264,25 +265,24 @@ function renderBoldDuelist(
   ctx.fillText(categoryLabel, catX + 28, headerY + 29);
   ctx.restore();
 
-  // 2. BOTTOM DUEL SECTION (Fixed Anchor at bottom)
-  const duelCardH = isSquare ? 150 : 105;
-  const duelBarH = 12;
-  const footerH = 38;
-  const bottomPad = isSquare ? 72 : 54;
-  const duelY = height - (duelCardH + 16 + duelBarH + 20 + footerH + bottomPad);
+  // 2. BOTTOM DUEL SECTION (Fixed Anchor at bottom - NO RESULTS / NO PROGRESS BAR)
+  const bottomPad = isSquare ? 68 : 50;
+  const footerY = height - bottomPad;
+  const duelCardH = isSquare ? 165 : 115;
+  const duelY = footerY - (isSquare ? 32 : 22) - duelCardH;
 
-  const colGap = 18;
+  const colGap = isSquare ? 20 : 16;
   const colW = (contentWidth - colGap) / 2;
 
   // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
-  const headerBottom = headerY + headerH + 20;
+  const headerBottom = headerY + headerH + (isSquare ? 28 : 18);
   const availableCenterHeight = duelY - headerBottom;
 
   const question = formatQuestion(issue.title);
   const typo = computeDynamicTypography(ctx, question, issue.description, contentWidth, isSquare, false);
 
   const titleTotalH = typo.titleLines.length * typo.titleLineHeight;
-  const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 28 : 18)) : 0;
+  const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 32 : 20)) : 0;
   const contentTotalH = titleTotalH + descTotalH;
 
   // Center vertically in the space between header and duel cards
@@ -302,7 +302,7 @@ function renderBoldDuelist(
 
   // Draw Description
   if (typo.descLines.length > 0) {
-    cursorY += isSquare ? 14 : 10;
+    cursorY += isSquare ? 16 : 10;
     ctx.save();
     ctx.font = `500 ${typo.descFontSize}px ${typo.fontFamily}`;
     ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
@@ -313,74 +313,49 @@ function renderBoldDuelist(
     ctx.restore();
   }
 
-  // 4. DRAW DUEL ACTION CARDS (NO RESULTS/VOTES SHOWN)
+  // 4. DRAW DUEL ACTION CARDS (NO RESULTS / VOTES / PROGRESS BARS)
   ctx.save();
   // YES Card
-  drawRoundedRect(ctx, padX, duelY, colW, duelCardH, 22);
+  drawRoundedRect(ctx, padX, duelY, colW, duelCardH, 24);
   const yesBg = ctx.createLinearGradient(padX, duelY, padX + colW, duelY + duelCardH);
-  yesBg.addColorStop(0, 'rgba(6, 78, 59, 0.92)');
-  yesBg.addColorStop(1, 'rgba(6, 95, 70, 0.72)');
+  yesBg.addColorStop(0, 'rgba(6, 78, 59, 0.95)');
+  yesBg.addColorStop(1, 'rgba(6, 95, 70, 0.78)');
   ctx.fillStyle = yesBg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(16, 185, 129, 0.85)';
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.90)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  ctx.font = `900 ${isSquare ? '34px' : '28px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.font = `900 ${isSquare ? '36px' : '28px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#34d399';
-  ctx.fillText('VOTE YES  👍', padX + 28, duelY + (duelCardH / 2) - (isSquare ? 6 : 4));
+  ctx.fillText('VOTE YES  👍', padX + 32, duelY + (duelCardH / 2) - (isSquare ? 8 : 6));
 
-  ctx.font = `600 ${isSquare ? '16px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.fillText('Cast your stance in favor', padX + 28, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
+  ctx.font = `600 ${isSquare ? '17px' : '14px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fillText('Cast your stance in favor', padX + 32, duelY + (duelCardH / 2) + (isSquare ? 28 : 20));
 
   // NO Card
   const noX = padX + colW + colGap;
-  drawRoundedRect(ctx, noX, duelY, colW, duelCardH, 22);
+  drawRoundedRect(ctx, noX, duelY, colW, duelCardH, 24);
   const noBg = ctx.createLinearGradient(noX, duelY, noX + colW, duelY + duelCardH);
-  noBg.addColorStop(0, 'rgba(136, 19, 55, 0.92)');
-  noBg.addColorStop(1, 'rgba(159, 18, 57, 0.72)');
+  noBg.addColorStop(0, 'rgba(136, 19, 55, 0.95)');
+  noBg.addColorStop(1, 'rgba(159, 18, 57, 0.78)');
   ctx.fillStyle = noBg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+  ctx.strokeStyle = 'rgba(244, 63, 94, 0.90)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  ctx.font = `900 ${isSquare ? '34px' : '28px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.font = `900 ${isSquare ? '36px' : '28px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#fb7185';
-  ctx.fillText('VOTE NO  👎', noX + 28, duelY + (duelCardH / 2) - (isSquare ? 6 : 4));
+  ctx.fillText('VOTE NO  👎', noX + 32, duelY + (duelCardH / 2) - (isSquare ? 8 : 6));
 
-  ctx.font = `600 ${isSquare ? '16px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.fillText('Cast your stance against', noX + 28, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
-
-  // Dual Progress Connector Bar (Balanced 50/50 Duel Track)
-  const barY = duelY + duelCardH + 16;
-  const barW = contentWidth;
-
-  drawRoundedRect(ctx, padX, barY, barW, duelBarH, 6);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fill();
-
-  // Emerald side
-  drawRoundedRect(ctx, padX, barY, barW / 2, duelBarH, 6);
-  const barYesGrad = ctx.createLinearGradient(padX, barY, padX + barW / 2, barY);
-  barYesGrad.addColorStop(0, '#059669');
-  barYesGrad.addColorStop(1, '#10b981');
-  ctx.fillStyle = barYesGrad;
-  ctx.fill();
-
-  // Rose side
-  drawRoundedRect(ctx, padX + barW / 2, barY, barW / 2, duelBarH, 6);
-  const barNoGrad = ctx.createLinearGradient(padX + barW / 2, barY, padX + barW, barY);
-  barNoGrad.addColorStop(0, '#e11d48');
-  barNoGrad.addColorStop(1, '#f43f5e');
-  ctx.fillStyle = barNoGrad;
-  ctx.fill();
+  ctx.font = `600 ${isSquare ? '17px' : '14px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fillText('Cast your stance against', noX + 32, duelY + (duelCardH / 2) + (isSquare ? 28 : 20));
   ctx.restore();
 
   // Footer: Time-Bound Ballot & URL Badge
-  const footerY = height - (isSquare ? 82 : 68);
   ctx.save();
   ctx.font = `700 ${isSquare ? '16px' : '14px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
@@ -459,7 +434,7 @@ function renderEditorialSpotlight(
   ctx.fillText(' /  PUBLIC BALLOT', padX + 118, headerY + 22);
 
   // Clean category tag without double hyphens
-  const rawCat = (issue.category || 'COMMUNITY').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const rawCat = (issue.category || 'COMMUNITY').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const catTag = `#${rawCat}`;
   ctx.font = '700 13px ui-monospace, SFMono-Regular, monospace';
   const tagW = ctx.measureText(catTag).width + 26;
@@ -485,20 +460,27 @@ function renderEditorialSpotlight(
   ctx.stroke();
   ctx.restore();
 
-  // 2. BOTTOM DUEL SECTION
-  const duelY = isSquare ? height - 260 : height - 200;
+  // 2. BOTTOM DUEL SECTION (NO RESULTS / VOTES / PROGRESS BARS)
+  const bottomPad = isSquare ? 68 : 50;
+  const footerY = height - bottomPad;
+  const duelCardH = isSquare ? 155 : 105;
+  const duelY = footerY - (isSquare ? 32 : 22) - duelCardH;
 
-  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered)
-  const availableCenterHeight = duelY - (sepY + 30);
+  const colGap = isSquare ? 20 : 16;
+  const colW = (contentWidth - colGap) / 2;
+
+  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
+  const headerBottom = sepY + (isSquare ? 28 : 18);
+  const availableCenterHeight = duelY - headerBottom;
   const question = formatQuestion(issue.title);
   const typo = computeDynamicTypography(ctx, question, issue.description, contentWidth, isSquare, true);
 
-  const eyebrowH = 28;
+  const eyebrowH = isSquare ? 30 : 24;
   const titleTotalH = typo.titleLines.length * typo.titleLineHeight;
   const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 32 : 20)) : 0;
   const contentTotalH = eyebrowH + titleTotalH + descTotalH;
 
-  const startContentY = sepY + 30 + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
+  const startContentY = headerBottom + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
 
   // Eyebrow label
   ctx.save();
@@ -540,41 +522,44 @@ function renderEditorialSpotlight(
     ctx.restore();
   }
 
-  // 4. DRAW DUEL BAR
+  // 4. DRAW EDITORIAL ACTION BOXES (NO RESULTS / VOTES / PROGRESS BARS)
   ctx.save();
-  // Left Label
-  ctx.font = `900 ${isSquare ? '28px' : '22px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#10b981';
-  ctx.fillText('VOTE IN FAVOR (YES)  👍', padX, duelY);
-
-  // Right Label
-  const rightLabel = '👎  VOTE AGAINST (NO)';
-  ctx.font = `900 ${isSquare ? '28px' : '22px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#f43f5e';
-  const rightW = ctx.measureText(rightLabel).width;
-  ctx.fillText(rightLabel, width - padX - rightW, duelY);
-
-  // Flat Dual Duel Bar
-  const barY = duelY + 22;
-  const barH = 14;
-  const barW = contentWidth;
-
-  drawRoundedRect(ctx, padX, barY, barW, barH, 7);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  // Left: IN FAVOR (YES)
+  drawRoundedRect(ctx, padX, duelY, colW, duelCardH, 20);
+  ctx.fillStyle = 'rgba(6, 78, 59, 0.40)';
   ctx.fill();
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-  // Emerald half
-  drawRoundedRect(ctx, padX, barY, barW / 2, barH, 7);
-  ctx.fillStyle = '#10b981';
-  ctx.fill();
+  ctx.font = `800 ${isSquare ? '30px' : '24px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = '#34d399';
+  ctx.fillText('VOTE IN FAVOR (YES)  👍', padX + 26, duelY + (duelCardH / 2) - (isSquare ? 8 : 6));
 
-  // Rose half
-  drawRoundedRect(ctx, padX + barW / 2, barY, barW / 2, barH, 7);
-  ctx.fillStyle = '#f43f5e';
+  ctx.font = `italic 500 ${isSquare ? '16px' : '13px'} Georgia, serif`;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('Take your stance in favor', padX + 26, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
+
+  // Right: AGAINST (NO)
+  const noX = padX + colW + colGap;
+  drawRoundedRect(ctx, noX, duelY, colW, duelCardH, 20);
+  ctx.fillStyle = 'rgba(136, 19, 55, 0.40)';
   ctx.fill();
+  ctx.strokeStyle = 'rgba(244, 63, 94, 0.75)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.font = `800 ${isSquare ? '30px' : '24px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = '#fb7185';
+  ctx.fillText('👎  VOTE AGAINST (NO)', noX + 26, duelY + (duelCardH / 2) - (isSquare ? 8 : 6));
+
+  ctx.font = `italic 500 ${isSquare ? '16px' : '13px'} Georgia, serif`;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('Take your stance against', noX + 26, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
+  ctx.restore();
 
   // Footer
-  const footerY = height - (isSquare ? 80 : 66);
+  ctx.save();
   ctx.font = `600 ${isSquare ? '15px' : '13px'} ui-monospace, monospace`;
   ctx.fillStyle = '#94a3b8';
   ctx.fillText('Open for community deliberation', padX, footerY);
@@ -669,26 +654,25 @@ function renderMidnightNeon(
   ctx.fillText('LIVE BALLOT', liveX + 28, headerY + 26);
   ctx.restore();
 
-  // 2. BOTTOM DUEL SECTION
-  const duelCardH = isSquare ? 135 : 95;
-  const duelBarH = 12;
-  const footerH = 38;
-  const bottomPad = isSquare ? 72 : 54;
-  const duelY = height - (duelCardH + 16 + duelBarH + 20 + footerH + bottomPad);
+  // 2. BOTTOM DUEL SECTION (NO RESULTS / VOTES / PROGRESS BARS)
+  const bottomPad = isSquare ? 68 : 50;
+  const footerY = height - bottomPad;
+  const duelCardH = isSquare ? 160 : 110;
+  const duelY = footerY - (isSquare ? 32 : 22) - duelCardH;
 
-  const colGap = 18;
+  const colGap = isSquare ? 20 : 16;
   const colW = (contentWidth - colGap) / 2;
 
-  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered)
-  const headerBottom = headerY + headerH + 20;
+  // 3. CENTER QUESTION & DESCRIPTION (Vertically Centered in Available Space)
+  const headerBottom = headerY + headerH + (isSquare ? 28 : 18);
   const availableCenterHeight = duelY - headerBottom;
 
   const question = formatQuestion(issue.title);
   const typo = computeDynamicTypography(ctx, question, issue.description, contentWidth, isSquare, false);
 
-  const eyebrowH = 30;
+  const eyebrowH = isSquare ? 30 : 24;
   const titleTotalH = typo.titleLines.length * typo.titleLineHeight;
-  const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 28 : 18)) : 0;
+  const descTotalH = typo.descLines.length > 0 ? (typo.descLines.length * typo.descLineHeight + (isSquare ? 32 : 20)) : 0;
   const contentTotalH = eyebrowH + titleTotalH + descTotalH;
 
   const startContentY = headerBottom + Math.max(16, (availableCenterHeight - contentTotalH) / 2);
@@ -712,7 +696,7 @@ function renderMidnightNeon(
 
   // Optional Description
   if (typo.descLines.length > 0) {
-    cursorY += isSquare ? 14 : 10;
+    cursorY += isSquare ? 16 : 10;
     ctx.save();
     ctx.font = `500 ${typo.descFontSize}px ${typo.fontFamily}`;
     ctx.fillStyle = 'rgba(203, 213, 225, 0.90)';
@@ -723,70 +707,53 @@ function renderMidnightNeon(
     ctx.restore();
   }
 
-  // 4. DRAW DUEL NEON ACTION CARDS
+  // 4. DRAW DUEL NEON ACTION CARDS (NO RESULTS / VOTES / PROGRESS BARS)
   ctx.save();
   // Left Neon YES Card
-  drawRoundedRect(ctx, padX, duelY, colW, duelCardH, 20);
-  ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
+  drawRoundedRect(ctx, padX, duelY, colW, duelCardH, 22);
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.20)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.arc(padX + 28, duelY + (duelCardH / 2) - (isSquare ? 6 : 4), 7, 0, Math.PI * 2);
+  ctx.arc(padX + 32, duelY + (duelCardH / 2) - (isSquare ? 8 : 6), 7, 0, Math.PI * 2);
   ctx.fillStyle = '#34d399';
   ctx.fill();
 
-  ctx.font = `900 ${isSquare ? '30px' : '24px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.font = `900 ${isSquare ? '32px' : '25px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#34d399';
-  ctx.fillText('VOTE YES  👍', padX + 46, duelY + (duelCardH / 2) - (isSquare ? 6 : 4) + 8);
+  ctx.fillText('VOTE YES  👍', padX + 50, duelY + (duelCardH / 2) - (isSquare ? 8 : 6) + 8);
 
-  ctx.font = `600 ${isSquare ? '15px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-  ctx.fillText('Cast your stance in favor', padX + 28, duelY + (duelCardH / 2) + (isSquare ? 24 : 18));
+  ctx.font = `600 ${isSquare ? '16px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.90)';
+  ctx.fillText('Cast your stance in favor', padX + 32, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
 
   // Right Neon NO Card
   const noX = padX + colW + colGap;
-  drawRoundedRect(ctx, noX, duelY, colW, duelCardH, 20);
-  ctx.fillStyle = 'rgba(244, 63, 94, 0.18)';
+  drawRoundedRect(ctx, noX, duelY, colW, duelCardH, 22);
+  ctx.fillStyle = 'rgba(244, 63, 94, 0.20)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(251, 113, 133, 0.75)';
+  ctx.strokeStyle = 'rgba(251, 113, 133, 0.85)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.arc(noX + 28, duelY + (duelCardH / 2) - (isSquare ? 6 : 4), 7, 0, Math.PI * 2);
+  ctx.arc(noX + 32, duelY + (duelCardH / 2) - (isSquare ? 8 : 6), 7, 0, Math.PI * 2);
   ctx.fillStyle = '#fb7185';
   ctx.fill();
 
-  ctx.font = `900 ${isSquare ? '30px' : '24px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.font = `900 ${isSquare ? '32px' : '25px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#fb7185';
-  ctx.fillText('VOTE NO  👎', noX + 46, duelY + (duelCardH / 2) - (isSquare ? 6 : 4) + 8);
+  ctx.fillText('VOTE NO  👎', noX + 50, duelY + (duelCardH / 2) - (isSquare ? 8 : 6) + 8);
 
-  ctx.font = `600 ${isSquare ? '15px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-  ctx.fillText('Cast your stance against', noX + 28, duelY + (duelCardH / 2) + (isSquare ? 24 : 18));
-
-  // Glowing 50/50 Dual Progress Bar
-  const barY = duelY + duelCardH + 16;
-  const barW = contentWidth;
-
-  drawRoundedRect(ctx, padX, barY, barW, duelBarH, 6);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fill();
-
-  drawRoundedRect(ctx, padX, barY, barW / 2, duelBarH, 6);
-  ctx.fillStyle = '#10b981';
-  ctx.fill();
-
-  drawRoundedRect(ctx, padX + barW / 2, barY, barW / 2, duelBarH, 6);
-  ctx.fillStyle = '#f43f5e';
-  ctx.fill();
+  ctx.font = `600 ${isSquare ? '16px' : '13px'} "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.90)';
+  ctx.fillText('Cast your stance against', noX + 32, duelY + (duelCardH / 2) + (isSquare ? 26 : 20));
   ctx.restore();
 
   // Footer: Fast 1-Min Voting + URL Badge
-  const footerY = height - (isSquare ? 82 : 68);
   ctx.save();
   ctx.font = `700 ${isSquare ? '16px' : '14px'} "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#94a3b8';
