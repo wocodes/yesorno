@@ -320,9 +320,13 @@ export const DiscoveryHub: React.FC<Props> = ({
                     {/* Issue Title */}
                     <h3
                       onClick={() => onOpenDetails(issue)}
-                      className="text-xs sm:text-sm font-bold text-ink-950 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-2 cursor-pointer leading-snug"
+                      className={`text-xs sm:text-sm font-bold transition-colors line-clamp-2 cursor-pointer leading-snug ${
+                        issue.isDeletedByAuthor
+                          ? 'italic text-slate-400 dark:text-zinc-500'
+                          : 'text-ink-950 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400'
+                      }`}
                     >
-                      {issue.title}
+                      {issue.isDeletedByAuthor ? 'Deleted by Author' : issue.title}
                     </h3>
                   </div>
 
@@ -354,22 +358,24 @@ export const DiscoveryHub: React.FC<Props> = ({
                         View Digest →
                       </button>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onQuickVote(issue, 'YES')}
-                          className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                          <ThumbsUp className="w-2.5 h-2.5" /> YES
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onQuickVote(issue, 'NO')}
-                          className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                          <ThumbsDown className="w-2.5 h-2.5" /> NO
-                        </button>
-                      </div>
+                      {!issue.isDeletedByAuthor && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onQuickVote(issue, 'YES')}
+                            className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <ThumbsUp className="w-2.5 h-2.5" /> YES
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onQuickVote(issue, 'NO')}
+                            className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <ThumbsDown className="w-2.5 h-2.5" /> NO
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

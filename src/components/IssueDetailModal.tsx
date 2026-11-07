@@ -1,24 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
-  Flag, Heart, CheckCircle, Tag, User, Lock, Globe, Clock,
-  UserPlus, Sparkles, FileText, Share2
+  Flag, Heart, Tag, User, Lock, Globe, Clock,
+  UserPlus, Sparkles, FileText, Share2, Trash2, Send, Square, Bookmark
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { IssueSummaryView } from './IssueSummaryView';
 import { computeIssueMetrics } from '../utils/summary';
-import { canUserAccessIssue } from '../utils/auth';
+import { canUserAccessIssue, isIssueCreator } from '../utils/auth';
+import { moderateText, generateCivicAlias } from '../utils/moderation';
+import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
+import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
 
 interface Props {
   issue: Issue | null;
   isOpen: boolean;
   onClose: () => void;
   onOpenVoteModal: (initialChoice?: VoteChoice) => void;
+  onInlineSubmitVote: (submission: VoteSubmission) => void;
+  onDeleteIssue?: (issueId: string) => void;
+  onToggleLikeIssue?: (issueId: string) => void;
+  onToggleFavoriteIssue?: (issueId: string) => void;
   onShareIssue: (issue: Issue) => void;
   currentUser: UserProfile | null;
   hasUserVoted?: boolean;
   userVoteChoice?: 'YES' | 'NO';
+  isLiked?: boolean;
+  isFavorited?: boolean;
   onLikeResponse?: (responseId: string) => void;
   onReportResponse?: (responseId: string) => void;
   onAddInvite?: (issueId: string, email: string) => void;
@@ -30,10 +39,16 @@ export const IssueDetailModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onOpenVoteModal,
+  onInlineSubmitVote,
+  onDeleteIssue,
+  onToggleLikeIssue,
+  onToggleFavoriteIssue,
   onShareIssue,
   currentUser,
   hasUserVoted,
   userVoteChoice,
+  isLiked = false,
+  isFavorited = false,
   onLikeResponse,
   onReportResponse,
   onAddInvite,
@@ -47,12 +62,117 @@ export const IssueDetailModal: React.FC<Props> = ({
   const [showManageInvites, setShowManageInvites] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  // X / Instagram / Facebook Style Inline Reply State
+  const [replyChoice, setReplyChoice] = useState<VoteChoice>(userVoteChoice || 'YES');
+  const [replyNote, setReplyNote] = useState('');
+  const [replyAnon, setReplyAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
+  const [alias] = useState(() => generateCivicAlias());
+
+  // Inline Quick Voice Recording
+  const [isRec, setIsRec] = useState(false);
+  const [recSec, setRecSec] = useState(0);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [voiceDur, setVoiceDur] = useState(0);
+  const mediaRecRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+
   if (!isOpen || !issue) return null;
 
   const metrics = computeIssueMetrics(issue);
   const access = canUserAccessIssue(issue, currentUser);
-  const isCreator = access.reason === 'creator';
-  const hasImages = issue.images && issue.images.length > 0;
+  const isCreator = isIssueCreator(issue, currentUser);
+  const isDeleted = Boolean(issue.isDeletedByAuthor);
+  const hasImages = !isDeleted && issue.images && issue.images.length > 0;
+
+  const startQuickMic = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      mediaRecRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const dur = recSec || 2;
+        setVoiceDur(dur);
+        try {
+          if (replyAnon) {
+            const masked = await transformAudioVoice(blob, currentUser?.defaultVoiceFilter || 'deep');
+            setVoiceUrl(masked.dataUrl);
+          } else {
+            const url = await blobToDataUrl(blob);
+            setVoiceUrl(url);
+          }
+        } catch {
+          const url = await blobToDataUrl(blob);
+          setVoiceUrl(url);
+        }
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mr.start(250);
+      setIsRec(true);
+      setRecSec(0);
+      const start = Date.now();
+      timerRef.current = window.setInterval(() => {
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        setRecSec(elapsed);
+        if (elapsed >= 60) stopQuickMic();
+      }, 500);
+    } catch {
+      onOpenVoteModal(replyChoice);
+    }
+  };
+
+  const stopQuickMic = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecRef.current && mediaRecRef.current.state !== 'inactive') {
+      mediaRecRef.current.stop();
+    }
+    setIsRec(false);
+  };
+
+  const handleQuickSocialSubmit = (e: React.FormEvent, explicitChoice?: VoteChoice) => {
+    e.preventDefault();
+    if (!currentUser || isDeleted || metrics.isClosed || !access.canAccess) return;
+
+    const finalChoice = explicitChoice || replyChoice;
+    const mod = moderateText(replyNote);
+    if (replyNote.trim() && !mod.isAppropriate && mod.severity === 'rejected') return;
+
+    playHapticChime(finalChoice === 'YES' ? 'yes' : 'no');
+    triggerVoteConfetti(finalChoice === 'YES');
+
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice: finalChoice,
+      isAnonymous: replyAnon,
+      authorName: replyAnon ? 'Anonymous Neighbor' : currentUser.name,
+      authorEmail: !replyAnon ? currentUser.email : undefined,
+      authorAlias: replyAnon ? alias : undefined,
+      authorRole: !replyAnon ? currentUser.role : undefined,
+      note: replyNote.trim() || undefined,
+      voiceNote: voiceUrl
+        ? {
+            audioUrl: voiceUrl,
+            durationSeconds: voiceDur || 3,
+            mimeType: 'audio/wav',
+            createdAt: new Date().toISOString(),
+            voiceFilter: replyAnon ? (currentUser.defaultVoiceFilter || 'deep') : 'none',
+            isVoiceMasked: replyAnon,
+          }
+        : undefined,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+
+    onInlineSubmitVote(submission);
+    setReplyNote('');
+    setVoiceUrl(null);
+  };
 
   const filteredResponses = issue.responses.filter((r) => {
     if (filter === 'YES') return r.choice === 'YES';
@@ -110,14 +230,60 @@ export const IssueDetailModal: React.FC<Props> = ({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => onShareIssue(issue)}
-                title="Share issue to social media"
-                className="px-3 py-1.5 text-white rounded-full bg-brand-600 hover:bg-brand-500 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-glow"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Share</span>
-              </button>
+              {/* Like / Heart Issue Button */}
+              {onToggleLikeIssue && (
+                <button
+                  type="button"
+                  onClick={() => onToggleLikeIssue(issue.id)}
+                  title={isLiked ? 'Unlike issue' : 'Like issue'}
+                  className={`px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    isLiked
+                      ? 'bg-rose-500 text-white shadow-glow-rose'
+                      : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                  }`}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                  <span>{issue.likesCount || 0}</span>
+                </button>
+              )}
+
+              {/* Favourite / Bookmark Issue Button */}
+              {onToggleFavoriteIssue && (
+                <button
+                  type="button"
+                  onClick={() => onToggleFavoriteIssue(issue.id)}
+                  title={isFavorited ? 'Remove from Favourites' : 'Save to Favourites'}
+                  className={`px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    isFavorited
+                      ? 'bg-amber-500 text-ink-950 shadow-glow'
+                      : 'bg-white/10 hover:bg-white/20 text-zinc-200'
+                  }`}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${isFavorited ? 'fill-current' : ''}`} />
+                  <span>{issue.favoritesCount || 0}</span>
+                </button>
+              )}
+
+              {isCreator && !isDeleted && onDeleteIssue && (
+                <button
+                  onClick={() => onDeleteIssue(issue.id)}
+                  title="Delete issue topic & description (keeps community responses)"
+                  className="px-3 py-1.5 text-rose-200 hover:text-white rounded-full bg-rose-500/20 hover:bg-rose-600 border border-rose-400/30 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Delete Topic</span>
+                </button>
+              )}
+              {!isDeleted && (
+                <button
+                  onClick={() => onShareIssue(issue)}
+                  title="Share issue to social media"
+                  className="px-3 py-1.5 text-white rounded-full bg-brand-600 hover:bg-brand-500 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-glow"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share</span>
+                </button>
+              )}
               <button
                 onClick={onClose}
                 aria-label="Close"
@@ -128,8 +294,13 @@ export const IssueDetailModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <h2 id="issue-detail-title" className="text-lg sm:text-xl font-extrabold text-white leading-snug tracking-tight">
-            {issue.title}
+          <h2
+            id="issue-detail-title"
+            className={`text-lg sm:text-xl font-extrabold leading-snug tracking-tight ${
+              isDeleted ? 'italic text-zinc-400' : 'text-white'
+            }`}
+          >
+            {isDeleted ? 'Deleted by Author' : issue.title}
           </h2>
 
           {/* Live Consensus Split Bar inside Header */}
@@ -219,10 +390,12 @@ export const IssueDetailModal: React.FC<Props> = ({
             <div className="space-y-4">
               {/* Compact Context Preview + Audio Briefing if available */}
               <div className="bg-white dark:bg-ink-900 p-4 rounded-2xl border border-black/[0.06] dark:border-white/10 space-y-3 shadow-2xs">
-                <p className="text-xs sm:text-sm text-zinc-700 dark:text-slate-200 leading-relaxed">
-                  {issue.description}
+                <p className={`text-xs sm:text-sm leading-relaxed ${
+                  isDeleted ? 'italic text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 dark:text-slate-200'
+                }`}>
+                  {isDeleted ? 'Deleted by Author' : issue.description}
                 </p>
-                {issue.creatorVoiceNote && (
+                {!isDeleted && issue.creatorVoiceNote && (
                   <div className="pt-2 border-t border-slate-100 dark:border-white/10 space-y-1.5">
                     <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
                       <Mic className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Spoken Briefing by {issue.author}
@@ -411,7 +584,11 @@ export const IssueDetailModal: React.FC<Props> = ({
                   <span>Proposed by <strong className="text-ink-950 dark:text-white">{issue.author}</strong></span>
                   <span>Duration: <strong className="text-ink-950 dark:text-white">{issue.durationLabel}</strong></span>
                 </div>
-                <p className="text-sm text-zinc-700 dark:text-slate-200 leading-relaxed">{issue.description}</p>
+                <p className={`text-sm leading-relaxed ${
+                  isDeleted ? 'italic text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 dark:text-slate-200'
+                }`}>
+                  {isDeleted ? 'Deleted by Author' : issue.description}
+                </p>
 
                 {issue.tags && issue.tags.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-2">
@@ -490,48 +667,144 @@ export const IssueDetailModal: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Sticky Bottom Action Bar */}
-        <div className="p-4 bg-white dark:bg-ink-900 border-t border-black/[0.06] dark:border-white/10 flex items-center justify-between gap-3">
+        {/* Sticky Bottom X / Instagram / Facebook Style Social Reply & Vote Bar */}
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-ink-900 border-t border-black/[0.06] dark:border-white/10">
           {!access.canAccess ? (
             <div className="flex items-center justify-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 w-full py-2.5 bg-zinc-100 dark:bg-ink-800 rounded-2xl">
               <Lock className="w-4 h-4" />
               <span>Voting restricted to invited circle members</span>
+            </div>
+          ) : isDeleted ? (
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 w-full py-2.5 bg-zinc-100 dark:bg-ink-800 rounded-2xl">
+              <Trash2 className="w-4 h-4" />
+              <span>Topic deleted by author • Community responses &amp; votes preserved</span>
             </div>
           ) : metrics.isClosed ? (
             <div className="flex items-center justify-center gap-2 text-xs font-bold text-ink-950 dark:text-white w-full py-2.5 bg-zinc-100 dark:bg-ink-800 rounded-2xl">
               <Clock className="w-4 h-4" />
               <span>Voting period concluded • Final digest archived</span>
             </div>
-          ) : hasUserVoted ? (
-            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-2.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-400/30 w-full">
-              <span className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>You voted <strong className="uppercase">{userVoteChoice}</strong></span>
-              </span>
-              <button
-                onClick={() => onOpenVoteModal(userVoteChoice)}
-                className="text-brand-600 dark:text-brand-300 hover:underline font-bold cursor-pointer"
-              >
-                Add / Update Note
-              </button>
-            </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 w-full">
-              <button
-                onClick={() => onOpenVoteModal('YES')}
-                className="py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm shadow-glow-emerald flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
-              >
-                <ThumbsUp className="w-4 h-4" />
-                <span>Vote YES</span>
-              </button>
-              <button
-                onClick={() => onOpenVoteModal('NO')}
-                className="py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm shadow-glow-rose flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
-              >
-                <ThumbsDown className="w-4 h-4" />
-                <span>Vote NO</span>
-              </button>
-            </div>
+            <form onSubmit={(e) => handleQuickSocialSubmit(e)} className="space-y-2">
+              {/* Top Mini Bar: YES / NO Stance Selector + Anonymous Alias Pill */}
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      setReplyChoice('YES');
+                      if (!hasUserVoted && !replyNote.trim() && !voiceUrl) {
+                        handleQuickSocialSubmit(e, 'YES');
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                      (replyChoice === 'YES' || userVoteChoice === 'YES')
+                        ? 'bg-emerald-600 text-white shadow-glow-emerald'
+                        : 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30'
+                    }`}
+                  >
+                    <ThumbsUp className="w-3 h-3" />
+                    <span>YES</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      setReplyChoice('NO');
+                      if (!hasUserVoted && !replyNote.trim() && !voiceUrl) {
+                        handleQuickSocialSubmit(e, 'NO');
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                      (replyChoice === 'NO' || userVoteChoice === 'NO') && replyChoice !== 'YES'
+                        ? 'bg-rose-600 text-white shadow-glow-rose'
+                        : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-400/30'
+                    }`}
+                  >
+                    <ThumbsDown className="w-3 h-3" />
+                    <span>NO</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReplyAnon(!replyAnon)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors ${
+                      replyAnon
+                        ? 'bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-400/30'
+                        : 'bg-slate-100 dark:bg-ink-800 text-slate-700 dark:text-zinc-300'
+                    }`}
+                    title="Toggle Anonymous vs Public Identity"
+                  >
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>{replyAnon ? `Anon (${alias})` : currentUser?.name}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenVoteModal(replyChoice)}
+                    className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer hidden sm:inline"
+                  >
+                    Full Studio
+                  </button>
+                </div>
+              </div>
+
+              {voiceUrl && (
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-500/15 border border-brand-200 dark:border-brand-400/30 text-xs">
+                  <span className="font-bold text-brand-700 dark:text-brand-300 flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Voice note attached ({formatAudioDuration(voiceDur)}) {replyAnon ? '• 🛡️ Masked' : ''}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setVoiceUrl(null)}
+                    className="text-rose-500 hover:underline text-[11px] font-semibold cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
+              {/* Comment / Reply Input Row (Like X / Instagram / Facebook) */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={replyNote}
+                  onChange={(e) => setReplyNote(e.target.value)}
+                  placeholder={`Post your ${replyChoice} reply (or tap mic for a 60s voice note)...`}
+                  className="flex-1 text-xs sm:text-sm px-4 py-2.5 bg-slate-100 dark:bg-ink-950 border border-slate-200/80 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white"
+                />
+
+                {isRec ? (
+                  <button
+                    type="button"
+                    onClick={stopQuickMic}
+                    className="px-3.5 py-2.5 rounded-full bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 animate-pulse cursor-pointer shrink-0"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>{formatAudioDuration(recSec)}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startQuickMic}
+                    className="p-2.5 rounded-full bg-slate-100 dark:bg-ink-800 hover:bg-brand-50 dark:hover:bg-brand-500/20 text-slate-600 dark:text-zinc-300 hover:text-brand-600 transition-colors cursor-pointer shrink-0"
+                    title="Record 60s voice note"
+                  >
+                    <Mic className="w-4 h-4" />
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-glow transition-all cursor-pointer shrink-0 active:scale-95"
+                >
+                  <span>{hasUserVoted ? 'Reply' : `Vote ${replyChoice}`}</span>
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </form>
           )}
         </div>
       </div>

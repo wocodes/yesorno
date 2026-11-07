@@ -93,11 +93,15 @@ export interface Issue {
   invitedGroups: string[]; // Allowed groups if private
   yesCount: number;
   noCount: number;
+  likesCount?: number;
+  favoritesCount?: number;
   responses: VoteSubmission[];
   images?: string[]; // Attached images/photos by creator
   creatorVoiceNote?: VoiceAttachment; // Voice note briefing attached by the creator
   featured?: boolean;
   summary?: IssueSummaryInsights;
+  isDeletedByAuthor?: boolean;
+  deletedAt?: string;
 }
 
 export interface ModerationResult {

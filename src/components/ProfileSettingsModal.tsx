@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, User, Settings, Globe2, Sparkles, UserPlus, Check, 
-  ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users
+  ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users, Bookmark, Heart
 } from 'lucide-react';
 import { UserProfile, Issue, IssueCategory, IssueRegion, VoiceFilterType } from '../types';
 import { TOP_CREATORS_AND_VOTERS, TopCreatorProfile } from '../utils/auth';
@@ -13,6 +13,8 @@ interface Props {
   user: UserProfile;
   issues: Issue[];
   userVotes: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
+  userLikes?: Record<string, boolean>;
+  userFavorites?: Record<string, boolean>;
   onUpdateUser: (updated: UserProfile) => void;
   onSignOut: () => void;
   onOpenIssue: (issue: Issue) => void;
@@ -47,6 +49,8 @@ export const ProfileSettingsModal: React.FC<Props> = ({
   user,
   issues,
   userVotes,
+  userLikes = {},
+  userFavorites = {},
   onUpdateUser,
   onSignOut,
   onOpenIssue,
@@ -114,6 +118,8 @@ export const ProfileSettingsModal: React.FC<Props> = ({
     i => i.creatorId === user.id || i.creatorEmail === user.email || i.author === user.name
   );
   const votedIssues = issues.filter(i => !!userVotes[i.id]);
+  const favoritedIssues = issues.filter(i => !!userFavorites[i.id]);
+  const likedIssues = issues.filter(i => !!userLikes[i.id]);
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -504,6 +510,50 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Saved Favourites & Liked Issues */}
+              <div className="card p-4 sm:p-5 space-y-2.5">
+                <h3 className="text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
+                  <Bookmark className="w-4 h-4 text-amber-500" />
+                  <span>Your Favourites ({favoritedIssues.length}) &amp; Likes ({likedIssues.length})</span>
+                </h3>
+                {favoritedIssues.length === 0 && likedIssues.length === 0 ? (
+                  <p className="text-xs text-slate-400">You haven&apos;t favourited or liked any issues yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {[...new Map([...favoritedIssues, ...likedIssues].map(i => [i.id, i])).values()].map((iss) => {
+                      const isFav = !!userFavorites[iss.id];
+                      const isLkd = !!userLikes[iss.id];
+                      return (
+                        <div
+                          key={iss.id}
+                          onClick={() => {
+                            onClose();
+                            onOpenIssue(iss);
+                          }}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10 flex items-center justify-between gap-2 cursor-pointer hover:border-brand-400"
+                        >
+                          <span className="text-xs font-semibold text-ink-950 dark:text-white truncate">
+                            {iss.isDeletedByAuthor ? 'Deleted by Author' : iss.title}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isFav && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                                <Bookmark className="w-2.5 h-2.5 fill-current" /> Favourite
+                              </span>
+                            )}
+                            {isLkd && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300">
+                                <Heart className="w-2.5 h-2.5 fill-current" /> Liked
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Recent Votes History */}

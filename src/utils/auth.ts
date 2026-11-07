@@ -225,6 +225,17 @@ export function saveStoredUser(user: UserProfile | null): void {
 }
 
 /**
+ * Checks whether the current user is the creator/author of an issue
+ */
+export function isIssueCreator(issue: Issue, user: UserProfile | null): boolean {
+  if (!user) return false;
+  if (issue.creatorId && issue.creatorId === user.id) return true;
+  if (issue.creatorEmail && issue.creatorEmail.toLowerCase() === user.email.toLowerCase()) return true;
+  if (!issue.isAnonymousAuthor && issue.author.toLowerCase() === user.name.toLowerCase()) return true;
+  return false;
+}
+
+/**
  * Checks if a user has permission to view and vote on an issue
  */
 export function canUserAccessIssue(issue: Issue, user: UserProfile | null): { 
@@ -235,17 +246,13 @@ export function canUserAccessIssue(issue: Issue, user: UserProfile | null): {
     return { canAccess: false, reason: 'restricted' };
   }
 
-  if (issue.visibility === 'public') {
-    return { canAccess: true, reason: 'public' };
+  // Creator always has full access
+  if (isIssueCreator(issue, user)) {
+    return { canAccess: true, reason: 'creator' };
   }
 
-  // Creator has full access
-  if (
-    (issue.creatorId && issue.creatorId === user.id) || 
-    (issue.creatorEmail && issue.creatorEmail.toLowerCase() === user.email.toLowerCase()) ||
-    issue.author === user.name
-  ) {
-    return { canAccess: true, reason: 'creator' };
+  if (issue.visibility === 'public') {
+    return { canAccess: true, reason: 'public' };
   }
 
   // Check email invite

@@ -4,6 +4,8 @@ import { isLocalEnvironment } from './auth';
 
 const STORAGE_KEY_ISSUES = 'civicpulse_issues_v1';
 const STORAGE_KEY_USER_VOTES = 'civicpulse_user_votes_v1';
+const STORAGE_KEY_USER_LIKES = 'civicpulse_user_likes_v1';
+const STORAGE_KEY_USER_FAVORITES = 'civicpulse_user_favorites_v1';
 
 /**
  * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).
@@ -74,10 +76,50 @@ export function recordUserVote(issueId: string, choice: 'YES' | 'NO', responseId
   }
 }
 
+export function getUserLikesMap(): Record<string, boolean> {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_USER_LIKES);
+    if (!data) return {};
+    const parsed = JSON.parse(data);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveUserLikesMap(map: Record<string, boolean>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_USER_LIKES, JSON.stringify(map));
+  } catch (err) {
+    console.error('Failed to save user likes:', err);
+  }
+}
+
+export function getUserFavoritesMap(): Record<string, boolean> {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_USER_FAVORITES);
+    if (!data) return {};
+    const parsed = JSON.parse(data);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveUserFavoritesMap(map: Record<string, boolean>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_USER_FAVORITES, JSON.stringify(map));
+  } catch (err) {
+    console.error('Failed to save user favorites:', err);
+  }
+}
+
 export function resetToDefaults(): Issue[] {
   const defaults = getDefaultIssues();
   localStorage.removeItem(STORAGE_KEY_ISSUES);
   localStorage.removeItem(STORAGE_KEY_USER_VOTES);
+  localStorage.removeItem(STORAGE_KEY_USER_LIKES);
+  localStorage.removeItem(STORAGE_KEY_USER_FAVORITES);
   saveIssues(defaults);
   return defaults;
 }
