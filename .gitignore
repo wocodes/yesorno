@@ -1,3 +1,10 @@
 
 client_secret_*.json
 *.crdownload
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+/public/data/*.sqlite*
+/public/data/*.json
+/dist/data/*.sqlite*
+/dist/data/*.json

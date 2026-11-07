@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Share2, Copy, Check, ExternalLink, Download, 
-  Sparkles, Image as ImageIcon, Smartphone, Monitor, Loader2 
+  Sparkles, Image as ImageIcon, Smartphone, Monitor, Loader2,
+  Flame, BookOpen, Zap
 } from 'lucide-react';
 import { Issue, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
 import { buildIssueSharePayload } from '../utils/share';
 import { 
+  CardStyle,
   CardFormat, 
   generateIssueCardDataUrl, 
   downloadIssueCard, 
@@ -31,6 +33,7 @@ export const ShareIssueModal: React.FC<Props> = ({
   colorTone = 'vibrant',
   currentUser
 }) => {
+  const [style, setStyle] = useState<CardStyle>('bold');
   const [format, setFormat] = useState<CardFormat>('landscape');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,7 +54,7 @@ export const ShareIssueModal: React.FC<Props> = ({
     }
   }, []);
 
-  // Generate crisp canvas card preview whenever issue, format, or colorTone changes
+  // Generate crisp canvas card preview whenever issue, style, format, or colorTone changes
   useEffect(() => {
     if (!isOpen || !issue) {
       setPreviewUrl(null);
@@ -61,7 +64,7 @@ export const ShareIssueModal: React.FC<Props> = ({
     let isMounted = true;
     setIsGenerating(true);
 
-    generateIssueCardDataUrl(issue, { format, colorTone })
+    generateIssueCardDataUrl(issue, { style, format, colorTone })
       .then((url) => {
         if (isMounted) {
           setPreviewUrl(url);
@@ -76,7 +79,7 @@ export const ShareIssueModal: React.FC<Props> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, issue, format, colorTone]);
+  }, [isOpen, issue, style, format, colorTone]);
 
   if (!isOpen || !issue) return null;
 
@@ -90,9 +93,9 @@ export const ShareIssueModal: React.FC<Props> = ({
     if (!issue || isDownloading) return;
     try {
       setIsDownloading(true);
-      await downloadIssueCard(issue, { format, colorTone });
-      recordEngagementAction('card_download', issue.title);
-      notifyAdminIssueShared(issue, 'Downloaded Social Image Card (.PNG)', currentUser);
+      await downloadIssueCard(issue, { style, format, colorTone });
+      recordEngagementAction('card_download', `${issue.title} (${style})`);
+      notifyAdminIssueShared(issue, `Downloaded Social Image Card (${style.toUpperCase()})`, currentUser);
     } catch (err) {
       console.error('Failed to download card:', err);
     } finally {
@@ -104,14 +107,13 @@ export const ShareIssueModal: React.FC<Props> = ({
   const handleCopyImage = async () => {
     if (!issue) return;
     try {
-      const ok = await copyIssueCardToClipboard(issue, { format, colorTone });
+      const ok = await copyIssueCardToClipboard(issue, { style, format, colorTone });
       if (ok) {
         setCopiedImage(true);
-        recordEngagementAction('card_copy', issue.title);
-        notifyAdminIssueShared(issue, 'Copied Image Card to Clipboard', currentUser);
+        recordEngagementAction('card_copy', `${issue.title} (${style})`);
+        notifyAdminIssueShared(issue, `Copied Image Card to Clipboard (${style.toUpperCase()})`, currentUser);
         setTimeout(() => setCopiedImage(false), 3000);
       } else {
-        // Fallback to text copy if image clipboard write is blocked
         await handleCopyText();
       }
     } catch {
@@ -123,10 +125,10 @@ export const ShareIssueModal: React.FC<Props> = ({
   const handleShareFile = async () => {
     if (!issue) return;
     try {
-      const shared = await shareIssueCardFile(issue, { format, colorTone });
+      const shared = await shareIssueCardFile(issue, { style, format, colorTone });
       if (shared) {
-        recordEngagementAction('share', `${issue.title} (Image File)`);
-        notifyAdminIssueShared(issue, 'Native Image File Share', currentUser);
+        recordEngagementAction('share', `${issue.title} (Image File - ${style})`);
+        notifyAdminIssueShared(issue, `Native Image File Share (${style.toUpperCase()})`, currentUser);
       }
     } catch {
       // User cancelled
@@ -168,7 +170,7 @@ export const ShareIssueModal: React.FC<Props> = ({
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-lg bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden max-h-[92vh] flex flex-col animate-slide-up overscroll-contain">
+      <div className="relative w-full max-w-xl bg-white dark:bg-ink-900 rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden max-h-[92vh] flex flex-col animate-slide-up overscroll-contain">
         
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-ink-950 via-ink-900 to-brand-950 text-white flex items-center justify-between shrink-0">
@@ -181,7 +183,7 @@ export const ShareIssueModal: React.FC<Props> = ({
                 <span>Share &amp; Export Issue Card</span>
               </h3>
               <p className="text-[11px] text-zinc-400">
-                Download a beautiful marketing image card or share link directly
+                Choose a design style, download high-res PNG, or share directly
               </p>
             </div>
           </div>
@@ -197,7 +199,54 @@ export const ShareIssueModal: React.FC<Props> = ({
         {/* Scrollable Content Body */}
         <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1">
 
-          {/* Card Format Selector & Dimension Pill */}
+          {/* Style Selector Pills (Bold Duelist, Editorial, Midnight Neon) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              Card Style Concept
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-ink-950 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setStyle('bold')}
+                className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  style === 'bold'
+                    ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-soft font-bold'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">Bold Duelist</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStyle('editorial')}
+                className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  style === 'editorial'
+                    ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-soft font-bold'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span className="truncate">Editorial</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStyle('neon')}
+                className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  style === 'neon'
+                    ? 'bg-white dark:bg-brand-600 text-ink-950 dark:text-white shadow-soft font-bold'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="truncate">Midnight Neon</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Aspect Ratio Selector & Resolution Badge */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-950 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 text-xs font-semibold">
               <button
@@ -237,7 +286,7 @@ export const ShareIssueModal: React.FC<Props> = ({
             {isGenerating ? (
               <div className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-2 text-zinc-400 bg-ink-950">
                 <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
-                <span className="text-xs">Generating high-res card...</span>
+                <span className="text-xs">Rendering card concept...</span>
               </div>
             ) : previewUrl ? (
               <div className="relative w-full flex items-center justify-center bg-black/40">
@@ -245,11 +294,11 @@ export const ShareIssueModal: React.FC<Props> = ({
                   src={previewUrl}
                   alt={`${issue.title} Share Card`}
                   className={`w-full object-contain ${
-                    format === 'square' ? 'max-h-[300px]' : 'max-h-[250px]'
+                    format === 'square' ? 'max-h-[320px]' : 'max-h-[260px]'
                   }`}
                 />
-                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-mono border border-white/10 pointer-events-none">
-                  HD PNG
+                <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-mono border border-white/10 pointer-events-none uppercase">
+                  {style} • HD PNG
                 </div>
               </div>
             ) : null}
