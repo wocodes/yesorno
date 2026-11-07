@@ -1,6 +1,5 @@
 import { Issue } from '../types';
 import { INITIAL_ISSUES } from '../data/initialIssues';
-import { isLocalEnvironment } from './auth';
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
 const STORAGE_KEY_USER_VOTES = 'yesorno_user_votes_v1';
@@ -8,15 +7,11 @@ const STORAGE_KEY_USER_LIKES = 'yesorno_user_likes_v1';
 const STORAGE_KEY_USER_FAVORITES = 'yesorno_user_favorites_v1';
 
 /**
- * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).
- * In production builds, `import.meta.env.DEV` is statically `false` so Rollup/Vite
- * completely tree-shakes `INITIAL_ISSUES` (~28KB of demo data) out of the production bundle.
+ * Returns default seed issues across all platforms and environments.
+ * Ensures that any new visitor or device immediately has rich deliberations to vote on.
  */
-function getDefaultIssues(): Issue[] {
-  if (import.meta.env.DEV && isLocalEnvironment()) {
-    return INITIAL_ISSUES;
-  }
-  return [];
+export function getDefaultIssues(): Issue[] {
+  return INITIAL_ISSUES;
 }
 
 export function loadIssues(): Issue[] {
@@ -28,7 +23,7 @@ export function loadIssues(): Issue[] {
       return defaults;
     }
     const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed)) {
+    if (!Array.isArray(parsed) || parsed.length === 0) {
       if (defaults.length > 0) saveIssues(defaults);
       return defaults;
     }
@@ -49,9 +44,53 @@ export function saveIssues(issues: Issue[]): void {
   try {
     if (Array.isArray(issues)) {
       localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(issues));
+      // Asynchronously sync to cloud server storage for multi-device sync
+      pushIssuesToServer(issues);
     }
   } catch (err) {
     console.error('Failed to save issues to storage:', err);
+  }
+}
+
+/**
+ * Pushes issues to the server-side persistence API (/api-issues.php)
+ */
+export async function pushIssuesToServer(issues: Issue[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? '/api-issues.php'
+      : '/api-issues.php';
+
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issues }),
+    });
+  } catch {
+    // Silent fallback
+  }
+}
+
+/**
+ * Fetches shared issues from the cloud API and merges them with local storage
+ */
+export async function fetchServerIssues(): Promise<Issue[] | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? '/api-issues.php'
+      : '/api-issues.php';
+
+    const res = await fetch(endpoint);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 

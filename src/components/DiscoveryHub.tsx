@@ -126,7 +126,19 @@ export const DiscoveryHub: React.FC<Props> = ({
   }, [enrichedIssues]);
 
   if (issues.length === 0) {
-    return null;
+    return (
+      <section className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
+        <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
+          <Globe2 className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          Discovery Radar is Ready
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+          No deliberations have been published yet. Be the first to launch an issue or participate in your community.
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -289,7 +301,32 @@ export const DiscoveryHub: React.FC<Props> = ({
           )}
 
           {/* Top 3 Leaderboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {topSpotlight.length === 0 ? (
+            <div className="card p-8 sm:p-10 text-center space-y-2.5 border-dashed">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200">
+                No issues match this view
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
+                No active deliberations in this category or region yet. Explore overall trending or pick another filter.
+              </p>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('trending');
+                    setSelectedRegion('All Regions');
+                  }}
+                  className="btn-brand text-xs py-1.5 px-3.5 cursor-pointer"
+                >
+                  Show All Top Deliberations
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={`grid grid-cols-1 ${fullPage ? 'sm:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-3'} gap-3.5`}>
             {topSpotlight.map(({ issue, metrics, region }, index) => {
               const rankColors = [
                 'from-amber-500 to-orange-500 text-white',
@@ -385,6 +422,7 @@ export const DiscoveryHub: React.FC<Props> = ({
               );
             })}
           </div>
+          )}
 
           {/* Category Quick-Jump Footer */}
           {mode === 'category' && onFilterByCategory && (

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
-  getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap
+  getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
+  fetchServerIssues
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
 import { 
@@ -341,10 +342,28 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, [currentUser]);
 
-  // Sync issues to localStorage
+  // Sync issues to localStorage and cloud server
   useEffect(() => {
     saveIssues(issues);
   }, [issues]);
+
+  // Cloud Sync: On mount, fetch shared issues from server API and merge with local issues
+  useEffect(() => {
+    fetchServerIssues().then((serverIssues) => {
+      if (serverIssues && serverIssues.length > 0) {
+        setIssues((prev) => {
+          const map = new Map<string, Issue>();
+          serverIssues.forEach((i) => map.set(i.id, i));
+          prev.forEach((i) => {
+            if (!map.has(i.id)) map.set(i.id, i);
+          });
+          const merged = Array.from(map.values());
+          saveIssues(merged);
+          return merged;
+        });
+      }
+    });
+  }, []);
 
   // Sync currentUser to localStorage and navigate straight to the dashboard upon sign-in
   const handleSelectUser = (user: UserProfile | null) => {
