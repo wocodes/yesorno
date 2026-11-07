@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="civic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="50%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="check-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded squircle -->
+  <rect width="512" height="512" rx="120" fill="url(#civic-grad)"/>
+  
+  <!-- Outer ballot box outline -->
+  <rect x="96" y="160" width="320" height="240" rx="28" fill="none" stroke="#ffffff" stroke-width="24" stroke-opacity="0.3"/>
+  
+  <!-- Ballot slot -->
+  <line x1="160" y1="160" x2="352" y2="160" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+  
+  <!-- Big checkmark badge -->
+  <circle cx="256" cy="270" r="80" fill="url(#check-grad)" />
+  <path d="M220 270 L245 295 L295 245" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Audio wave pulse accents -->
+  <path d="M70 240 Q 55 270 70 300" fill="none" stroke="#a5b4fc" stroke-width="12" stroke-linecap="round" stroke-opacity="0.8"/>
+  <path d="M442 240 Q 457 270 442 300" fill="none" stroke="#a5b4fc" stroke-width="12" stroke-linecap="round" stroke-opacity="0.8"/>
+</svg>
+

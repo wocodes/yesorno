@@ -1,0 +1,110 @@
+export type VoteChoice = 'YES' | 'NO';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  bio?: string;
+  avatar?: string;
+  groups: string[];
+  region?: IssueRegion;
+  interests?: IssueCategory[];
+  followingCreators?: string[];
+  defaultAnonymous?: boolean;
+  defaultVoiceFilter?: VoiceFilterType;
+  onboardingCompleted?: boolean;
+}
+
+export type VoiceFilterType = 'none' | 'deep' | 'high' | 'robot' | 'radio';
+
+export interface VoiceAttachment {
+  audioUrl: string; // Base64 data URL or Object URL
+  durationSeconds: number;
+  mimeType: string;
+  createdAt: string;
+  voiceFilter?: VoiceFilterType; // Voice adjustment for anonymous privacy
+  isVoiceMasked?: boolean;
+}
+
+export interface VoteSubmission {
+  id: string;
+  issueId: string;
+  choice: VoteChoice;
+  isAnonymous: boolean;
+  authorName: string;
+  authorEmail?: string;
+  authorAlias?: string; // e.g. "Neighbor #319"
+  authorRole?: string; // e.g. "Resident (5 yrs)", "Small Business Owner"
+  note?: string;
+  voiceNote?: VoiceAttachment;
+  createdAt: string;
+  likesCount: number;
+  isReported?: boolean;
+}
+
+export type IssueCategory = 
+  | 'All'
+  | 'Family & Home'
+  | 'Workplace & Career'
+  | 'Community & Neighborhood'
+  | 'Religious & Faith'
+  | 'Clubs & Groups'
+  | 'Politics & Policy'
+  | 'Environment & Climate'
+  | 'Economy & Finance'
+  | 'Education & Campus'
+  | 'Private & Internal';
+
+export type IssueVisibility = 'public' | 'private';
+
+export type IssueRegion = 
+  | 'Global / Remote'
+  | 'North America'
+  | 'Europe & UK'
+  | 'Africa & Middle East'
+  | 'Asia-Pacific'
+  | 'Local District';
+
+export interface IssueSummaryInsights {
+  consensusHeadline: string;
+  keyArgumentsYes: string[];
+  keyArgumentsNo: string[];
+  sentimentTrend: 'Strongly Favor' | 'Leaning Yes' | 'Divided' | 'Leaning No' | 'Strongly Oppose';
+  lastUpdated: string;
+}
+
+export interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  category: IssueCategory;
+  region?: IssueRegion;
+  tags: string[];
+  author: string;
+  creatorId?: string;
+  creatorEmail?: string;
+  isAnonymousAuthor?: boolean;
+  createdAt: string;
+  closingDate: string; // ISO string representing exact deadline set by user
+  durationLabel: string; // e.g. "24 Hours", "3 Days", "7 Days", "Custom"
+  visibility: IssueVisibility;
+  invitedEmails: string[]; // Allowed emails if private
+  invitedGroups: string[]; // Allowed groups if private
+  yesCount: number;
+  noCount: number;
+  responses: VoteSubmission[];
+  images?: string[]; // Attached images/photos by creator
+  creatorVoiceNote?: VoiceAttachment; // Voice note briefing attached by the creator
+  featured?: boolean;
+  summary?: IssueSummaryInsights;
+}
+
+export interface ModerationResult {
+  isAppropriate: boolean;
+  flags: string[];
+  suggestedAction?: string;
+  severity: 'clean' | 'warning' | 'rejected';
+}
+
+export type AppView = 'landing' | 'app' | 'auth';

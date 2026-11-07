@@ -1,0 +1,914 @@
+import { useState, useEffect, useMemo } from 'react';
+import { 
+  loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults 
+} from './utils/storage';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS } from './utils/auth';
+import { getInitialTheme, applyTheme, ThemeMode } from './utils/theme';
+import { updateDocumentMetaForIssue } from './utils/share';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice } from './types';
+import { Navbar, FeedSortOption } from './components/Navbar';
+import { IssueCard } from './components/IssueCard';
+import { VoteModal } from './components/VoteModal';
+import { IssueDetailModal } from './components/IssueDetailModal';
+import { CreateIssueModal } from './components/CreateIssueModal';
+import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal';
+import { ShareIssueModal } from './components/ShareIssueModal';
+import { DiscoveryHub, inferIssueRegion } from './components/DiscoveryHub';
+import { OnboardingModal } from './components/OnboardingModal';
+import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { LandingPage } from './components/LandingPage';
+import { AuthPage } from './components/AuthPage';
+import { ToastContainer, ToastMessage } from './components/Toast';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { 
+  ShieldCheck, Filter, Home, User, Vote, Clock, Plus,
+  MapPin, Sparkles, Sliders, Globe, UserCheck
+} from 'lucide-react';
+
+function getInitialView(user: UserProfile | null): AppView {
+  const hash = window.location.hash.replace('#', '');
+  const params = new URLSearchParams(window.location.search);
+  const hasSharedIssue = params.has('issue');
+
+  if (hash === 'app' || hasSharedIssue) {
+    return user ? 'app' : 'auth';
+  }
+  if (hash === 'auth') {
+    return 'auth';
+  }
+  return 'landing';
+}
+
+export function App() {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredUser());
+  const [currentView, setCurrentView] = useState<AppView>(() => getInitialView(getStoredUser()));
+  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
+
+  const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
+  const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
+  
+  const [selectedCategory, setSelectedCategory] = useState<IssueCategory>('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<FeedSortOption>('for-you');
+  const [regionScope, setRegionScope] = useState<'my-region-worldwide' | 'all-regions'>('my-region-worldwide');
+  const [interestScope, setInterestScope] = useState<'my-interests-mixed' | 'all-categories'>('my-interests-mixed');
+
+  // Modals state
+  const [activeVoteIssue, setActiveVoteIssue] = useState<Issue | null>(null);
+  const [initialVoteChoice, setInitialVoteChoice] = useState<VoteChoice | null>(null);
+  const [activeDetailIssue, setActiveDetailIssue] = useState<Issue | null>(null);
+  const [activeShareIssue, setActiveShareIssue] = useState<Issue | null>(null);
+  const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Toasts
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Apply theme class to <html>
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // Sync OpenGraph / document meta tags when an issue is opened or shared
+  useEffect(() => {
+    updateDocumentMetaForIssue(activeDetailIssue || activeShareIssue || null);
+  }, [activeDetailIssue, activeShareIssue]);
+
+  // If URL has ?issue=<id> and user is authenticated, auto-open that issue
+  useEffect(() => {
+    if (!currentUser) return;
+    const params = new URLSearchParams(window.location.search);
+    const sharedId = params.get('issue');
+    if (sharedId) {
+      const found = issues.find(i => i.id === sharedId);
+      if (found) {
+        setActiveDetailIssue(found);
+      }
+    }
+  }, [currentUser, issues]);
+
+  const addToast = (type: 'success' | 'info' | 'warning', title: string, description?: string) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    setToasts(prev => [...prev, { id, type, title, description }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Strict Auth-Protected Navigation
+  const handleNavigate = (view: AppView) => {
+    if (view === 'app' && !currentUser) {
+      setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
+      setCurrentView('auth');
+      window.location.hash = 'auth';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setAuthPromptMessage(null);
+    setCurrentView(view);
+    window.location.hash = view === 'landing' ? '' : view;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'app') {
+        if (!currentUser) {
+          setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
+          setCurrentView('auth');
+          window.location.hash = 'auth';
+        } else {
+          setCurrentView('app');
+        }
+      } else if (hash === 'auth') {
+        setCurrentView('auth');
+      } else if (hash === '' || hash === 'landing') {
+        setCurrentView('landing');
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [currentUser]);
+
+  // Sync issues to localStorage
+  useEffect(() => {
+    saveIssues(issues);
+  }, [issues]);
+
+  // Sync currentUser to localStorage
+  const handleSelectUser = (user: UserProfile | null) => {
+    setCurrentUser(user);
+    saveStoredUser(user);
+    if (user) {
+      setAuthPromptMessage(null);
+      if (!user.onboardingCompleted) {
+        setIsOnboardingOpen(true);
+      } else {
+        addToast('success', `Signed in as ${user.name}`);
+      }
+    } else {
+      setActiveDetailIssue(null);
+      setActiveVoteIssue(null);
+      setIsCreateModalOpen(false);
+      setIsProfileSettingsOpen(false);
+      setIsOnboardingOpen(false);
+      setCurrentView('auth');
+      window.location.hash = 'auth';
+      addToast('info', 'Signed out');
+    }
+  };
+
+  // Handle completing the 3-step onboarding flow
+  const handleCompleteOnboarding = (updatedUser: UserProfile) => {
+    setCurrentUser(updatedUser);
+    saveStoredUser(updatedUser);
+    setIsOnboardingOpen(false);
+    setSortBy('for-you');
+    setRegionScope('my-region-worldwide');
+    setInterestScope('my-interests-mixed');
+    addToast(
+      'success',
+      'Personalized Feed Ready!',
+      `Prioritizing ${updatedUser.region || 'Worldwide'} + Worldwide and ${(updatedUser.interests || []).length} interests.`
+    );
+  };
+
+  // Handle updating user profile & settings from ProfileSettingsModal
+  const handleUpdateUserProfile = (updated: UserProfile) => {
+    setCurrentUser(updated);
+    saveStoredUser(updated);
+    addToast('success', 'Preferences Saved', 'Your feed priority & profile settings are updated.');
+  };
+
+  // Open Vote Modal with auth check
+  const handleOpenQuickVote = (issue: Issue, choice?: VoteChoice) => {
+    if (!currentUser) {
+      setAuthPromptMessage('Please sign in to cast your vote.');
+      handleNavigate('auth');
+      return;
+    }
+    setInitialVoteChoice(choice || null);
+    setActiveVoteIssue(issue);
+  };
+
+  // Handle vote submission
+  const handleVoteSubmit = (submission: VoteSubmission) => {
+    setIssues(prevIssues => {
+      return prevIssues.map(issue => {
+        if (issue.id === submission.issueId) {
+          const isYes = submission.choice === 'YES';
+          return {
+            ...issue,
+            yesCount: isYes ? issue.yesCount + 1 : issue.yesCount,
+            noCount: !isYes ? issue.noCount + 1 : issue.noCount,
+            responses: [submission, ...issue.responses]
+          };
+        }
+        return issue;
+      });
+    });
+
+    recordUserVote(submission.issueId, submission.choice, submission.id);
+    setUserVotes(getUserVotesMap());
+
+    // Update activeDetailIssue if open
+    if (activeDetailIssue && activeDetailIssue.id === submission.issueId) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        const isYes = submission.choice === 'YES';
+        return {
+          ...prev,
+          yesCount: isYes ? prev.yesCount + 1 : prev.yesCount,
+          noCount: !isYes ? prev.noCount + 1 : prev.noCount,
+          responses: [submission, ...prev.responses]
+        };
+      });
+    }
+
+    addToast(
+      'success',
+      `Your ${submission.choice} vote was recorded`,
+      submission.voiceNote 
+        ? 'Voice note attached.'
+        : submission.isAnonymous
+        ? 'Submitted anonymously.'
+        : 'Thank you for sharing your perspective.'
+    );
+  };
+
+  // Handle new issue creation
+  const handleCreateIssue = (newIssue: Issue) => {
+    setIssues(prev => [newIssue, ...prev]);
+    addToast(
+      'success', 
+      'Issue Published', 
+      newIssue.visibility === 'private'
+        ? `Restricted to invited circle members.`
+        : `Open for voting (${newIssue.durationLabel}).`
+    );
+  };
+
+  // Handle add email invite to private issue
+  const handleAddInvite = (issueId: string, email: string) => {
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId && !issue.invitedEmails.includes(email)) {
+        return { ...issue, invitedEmails: [...issue.invitedEmails, email] };
+      }
+      return issue;
+    }));
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => prev ? { ...prev, invitedEmails: [...prev.invitedEmails, email] } : null);
+    }
+    addToast('success', 'Invite Added', `${email} can now vote on this issue.`);
+  };
+
+  // Handle add group invite to private issue
+  const handleAddGroupInvite = (issueId: string, group: string) => {
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId && !issue.invitedGroups.includes(group)) {
+        return { ...issue, invitedGroups: [...issue.invitedGroups, group] };
+      }
+      return issue;
+    }));
+
+    if (activeDetailIssue && activeDetailIssue.id === issueId) {
+      setActiveDetailIssue(prev => prev ? { ...prev, invitedGroups: [...prev.invitedGroups, group] } : null);
+    }
+    addToast('success', 'Group Added', `Members of "${group}" can now participate.`);
+  };
+
+  // Handle like on response
+  const handleLikeResponse = (responseId: string) => {
+    setIssues(prev => prev.map(issue => ({
+      ...issue,
+      responses: issue.responses.map(resp => {
+        if (resp.id === responseId) {
+          return { ...resp, likesCount: (resp.likesCount || 0) + 1 };
+        }
+        return resp;
+      })
+    })));
+
+    if (activeDetailIssue) {
+      setActiveDetailIssue(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.id === responseId) {
+              return { ...resp, likesCount: (resp.likesCount || 0) + 1 };
+            }
+            return resp;
+          })
+        };
+      });
+    }
+  };
+
+  // Handle report on response
+  const handleReportResponse = (_responseId: string) => {
+    addToast('info', 'Report Received', 'Flagged for community guidelines review.');
+  };
+
+  // Reset demo data
+  const handleResetData = () => {
+    if (window.confirm('Reset all issues and votes back to default sample data?')) {
+      const reset = resetToDefaults();
+      setIssues(reset);
+      setUserVotes({});
+      setActiveDetailIssue(null);
+      setActiveVoteIssue(null);
+      addToast('info', 'Sample Issues Restored');
+    }
+  };
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: issues.length };
+    issues.forEach(issue => {
+      counts[issue.category] = (counts[issue.category] || 0) + 1;
+    });
+    return counts;
+  }, [issues]);
+
+  // Overall Statistics
+  const stats = useMemo(() => {
+    let totalVotes = 0;
+    let totalVoiceNotes = 0;
+
+    issues.forEach(i => {
+      totalVotes += i.yesCount + i.noCount;
+      totalVoiceNotes += i.responses.filter(r => !!r.voiceNote).length;
+    });
+
+    return { totalVotes, totalVoiceNotes, totalIssues: issues.length };
+  }, [issues]);
+
+  // Filtered & Sorted Issues with Region + Worldwide and Interests Priority
+  const filteredIssues = useMemo(() => {
+    const userRegion = currentUser?.region;
+    const userInterests = currentUser?.interests || [];
+    const followedCreatorIds = currentUser?.followingCreators || [];
+
+    // Helper: compute priority score for an issue based on user preferences
+    const computePriorityScore = (issue: Issue): number => {
+      let score = 0;
+      const issueReg = inferIssueRegion(issue);
+
+      // 1. Region Priority:
+      // Exact region match gets highest priority (+300), Worldwide ('Global / Remote') gets mixed in (+150)
+      if (userRegion && userRegion !== 'Global / Remote') {
+        if (issueReg === userRegion) {
+          score += 300;
+        } else if (issueReg === 'Global / Remote') {
+          score += 150;
+        }
+      } else if (userRegion === 'Global / Remote' && issueReg === 'Global / Remote') {
+        score += 200;
+      }
+
+      // 2. Interests Priority:
+      // Issues matching user's selected categories get boosted (+200), Private/Global issues get mixed in
+      if (userInterests.length > 0 && userInterests.includes(issue.category)) {
+        score += 200;
+      }
+
+      // 3. Followed Creators / Voters Priority:
+      if (followedCreatorIds.length > 0) {
+        const matchesFollowed = followedCreatorIds.some(followed => {
+          const fLower = followed.toLowerCase();
+          const authorLower = issue.author.toLowerCase();
+          if (authorLower.includes(fLower) || fLower.includes(authorLower)) return true;
+          const creator = TOP_CREATORS_AND_VOTERS.find(c => c.id === followed || c.name.toLowerCase() === fLower);
+          return Boolean(
+            creator && (
+              authorLower.includes(creator.name.toLowerCase()) ||
+              creator.name.toLowerCase().includes(authorLower)
+            )
+          );
+        });
+        if (matchesFollowed) {
+          score += 120;
+        }
+      }
+
+      return score;
+    };
+
+    let result = issues.filter(issue => {
+      const matchesCategory = selectedCategory === 'All' || issue.category === selectedCategory;
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch = !query || 
+        issue.title.toLowerCase().includes(query) ||
+        issue.description.toLowerCase().includes(query) ||
+        issue.tags.some(t => t.toLowerCase().includes(query));
+
+      if (!matchesCategory || !matchesSearch) return false;
+
+      // Region Scope filter: When 'my-region-worldwide' is active and user selected a specific region,
+      // show issues from that region AND issues from users who selected Worldwide ('Global / Remote')
+      if (
+        regionScope === 'my-region-worldwide' &&
+        userRegion &&
+        userRegion !== 'Global / Remote'
+      ) {
+        const issueReg = inferIssueRegion(issue);
+        if (issueReg !== userRegion && issueReg !== 'Global / Remote') {
+          return false;
+        }
+      }
+
+      // Interest Scope filter: When 'my-interests-mixed' is active and selectedCategory === 'All' and user has interests,
+      // show issues matching their selected interests OR issues marked Worldwide ('Global / Remote') so they stay mixed
+      if (
+        interestScope === 'my-interests-mixed' &&
+        selectedCategory === 'All' &&
+        userInterests.length > 0
+      ) {
+        const issueReg = inferIssueRegion(issue);
+        const matchesInterest = userInterests.includes(issue.category);
+        const isWorldwideIssue = issueReg === 'Global / Remote';
+        if (!matchesInterest && !isWorldwideIssue) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    result = [...result].sort((a, b) => {
+      const totalA = a.yesCount + a.noCount;
+      const totalB = b.yesCount + b.noCount;
+
+      if (sortBy === 'for-you') {
+        const scoreDiff = computePriorityScore(b) - computePriorityScore(a);
+        if (scoreDiff !== 0) return scoreDiff;
+        return totalB - totalA;
+      }
+      if (sortBy === 'active') return totalB - totalA;
+      if (sortBy === 'perspectives') return b.responses.length - a.responses.length;
+      if (sortBy === 'yes') {
+        const pctA = totalA > 0 ? a.yesCount / totalA : 0;
+        const pctB = totalB > 0 ? b.yesCount / totalB : 0;
+        return pctB - pctA;
+      }
+      if (sortBy === 'closing') {
+        return new Date(a.closingDate || '').getTime() - new Date(b.closingDate || '').getTime();
+      }
+      return 0;
+    });
+
+    return result;
+  }, [issues, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope]);
+
+  // Landing view
+  if (currentView === 'landing') {
+    return (
+      <>
+        <LandingPage
+          onNavigate={handleNavigate}
+          onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+          onSelectCategory={(cat) => setSelectedCategory(cat)}
+          currentUser={currentUser}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+        <CommunityGuidelinesModal
+          isOpen={isGuidelinesOpen}
+          onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        <PWAInstallPrompt />
+      </>
+    );
+  }
+
+  // Enforce Auth Protection: If user is not logged in, always render AuthPage
+  if (currentView === 'auth' || !currentUser) {
+    return (
+      <>
+        <AuthPage
+          currentUser={currentUser}
+          onSelectUser={handleSelectUser}
+          onNavigate={handleNavigate}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          authPromptMessage={authPromptMessage || (!currentUser ? 'Sign in required to view, create, and vote on issues.' : null)}
+        />
+        <CommunityGuidelinesModal
+          isOpen={isGuidelinesOpen}
+          onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        <PWAInstallPrompt />
+      </>
+    );
+  }
+
+  // Main Authenticated Ballot Workspace
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 pb-20 sm:pb-12 transition-colors">
+      {/* Navigation */}
+      <Navbar
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+        onOpenCreateModal={() => setIsCreateModalOpen(true)}
+        onOpenProfileSettings={() => setIsProfileSettingsOpen(true)}
+        onResetData={handleResetData}
+        categoryCounts={categoryCounts}
+        currentView={currentView}
+        onNavigate={handleNavigate}
+        currentUser={currentUser}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+
+      {/* Main Content Area */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
+        {/* Sleek, Compact Command Banner */}
+        <section className="relative overflow-hidden rounded-3xl bg-aurora-dark border border-white/10 p-5 sm:p-6 text-white shadow-soft">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
+          <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-semibold">
+                <Clock className="w-3 h-3 text-emerald-400" />
+                <span>It takes less than 1 min to make your voice heard and make an impact</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+                Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
+              </h1>
+            </div>
+
+            {/* Compact Telemetry Strip + Action */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-4 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-2.5 backdrop-blur-md text-xs">
+                <div>
+                  <span className="font-mono font-bold text-emerald-400 text-sm">{stats.totalVotes}</span>
+                  <span className="text-zinc-400 ml-1">votes</span>
+                </div>
+                <span className="text-white/15">|</span>
+                <div>
+                  <span className="font-mono font-bold text-brand-300 text-sm">{stats.totalVoiceNotes}</span>
+                  <span className="text-zinc-400 ml-1">audio notes</span>
+                </div>
+                <span className="text-white/15">|</span>
+                <div>
+                  <span className="font-mono font-bold text-amber-300 text-sm">{stats.totalIssues}</span>
+                  <span className="text-zinc-400 ml-1">issues</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-brand text-xs py-2.5 px-4 shadow-glow cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Issue</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Discovery & Trending Pulse Hub (Overall, By Region, By Category, Closing Soon, Hotly Debated) */}
+        <DiscoveryHub
+          issues={issues}
+          onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+          onQuickVote={handleOpenQuickVote}
+          onFilterByCategory={(cat) => setSelectedCategory(cat)}
+        />
+
+        {/* Personalized Feed Priority & Region/Interests Control Bar */}
+        <div className="card p-3.5 sm:p-4 bg-white/90 dark:bg-ink-900/90 border border-brand-200/60 dark:border-brand-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink-950 dark:text-white mr-1">
+              <Sparkles className="w-4 h-4 text-brand-500" />
+              <span>Your Feed Priority:</span>
+            </span>
+
+            {/* Region + Worldwide Toggle */}
+            <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setRegionScope('my-region-worldwide')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  regionScope === 'my-region-worldwide'
+                    ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <MapPin className="w-3 h-3" />
+                <span>
+                  {currentUser.region && currentUser.region !== 'Global / Remote'
+                    ? `${currentUser.region} + Worldwide`
+                    : 'Worldwide Priority'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegionScope('all-regions')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  regionScope === 'all-regions'
+                    ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Globe className="w-3 h-3" />
+                <span>All Regions</span>
+              </button>
+            </div>
+
+            {/* Interests + Worldwide Mix Toggle */}
+            {currentUser.interests && currentUser.interests.length > 0 && (
+              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setInterestScope('my-interests-mixed')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    interestScope === 'my-interests-mixed'
+                      ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>My Interests ({currentUser.interests.length}) + Worldwide</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterestScope('all-categories')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                    interestScope === 'all-categories'
+                      ? 'bg-white dark:bg-brand-600 text-brand-700 dark:text-white shadow-2xs'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  All Topics
+                </button>
+              </div>
+            )}
+
+            {/* Following badge */}
+            {currentUser.followingCreators && currentUser.followingCreators.length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-400/30">
+                <UserCheck className="w-3 h-3" />
+                <span>Following {currentUser.followingCreators.length}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsOnboardingOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            >
+              Setup Wizard
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsProfileSettingsOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 dark:bg-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-400/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Profile &amp; Preferences</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Section Header */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              {selectedCategory === 'All' ? 'Active Ballots' : selectedCategory}
+            </h2>
+            <span className="text-xs bg-brand-50 dark:bg-brand-500/20 border border-brand-200/80 dark:border-brand-400/30 text-brand-700 dark:text-brand-300 font-bold px-2 py-0.5 rounded-full">
+              {filteredIssues.length}
+            </span>
+          </div>
+
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+            >
+              Clear &quot;{searchQuery}&quot;
+            </button>
+          )}
+        </div>
+
+        {/* Issues Grid */}
+        {issues.length === 0 ? (
+          <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
+            <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
+              <Vote className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              No active issues published yet
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+              Launch the first time-bound YES/NO ballot for your workplace, family, community, or private circle.
+            </p>
+            <div className="pt-2 flex justify-center">
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create First Issue</span>
+              </button>
+            </div>
+          </div>
+        ) : filteredIssues.length === 0 ? (
+          <div className="card p-10 text-center space-y-3 border-dashed">
+            <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
+              <Filter className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching issues found</h3>
+            <div className="pt-1 flex flex-wrap justify-center gap-2">
+              <button
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setSearchQuery('');
+                  setRegionScope('all-regions');
+                  setInterestScope('all-categories');
+                }}
+                className="btn-ghost text-xs"
+              >
+                Show All Regions &amp; Topics
+              </button>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-brand text-xs"
+              >
+                Create Issue
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+            {filteredIssues.map((issue) => {
+              const voteRecord = userVotes[issue.id];
+              return (
+                <IssueCard
+                  key={issue.id}
+                  issue={issue}
+                  currentUser={currentUser}
+                  onOpenDetails={(iss) => setActiveDetailIssue(iss)}
+                  onQuickVote={handleOpenQuickVote}
+                  onShareIssue={(iss) => setActiveShareIssue(iss)}
+                  hasUserVoted={!!voteRecord}
+                  userVoteChoice={voteRecord?.choice}
+                />
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* Mobile Sticky Bottom Bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl border-t border-white/10 py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400">
+        <button
+          onClick={() => handleNavigate('landing')}
+          className="flex flex-col items-center gap-1 hover:text-white transition-colors"
+        >
+          <Home className="w-4 h-4" />
+          <span>Home</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setSelectedCategory('All');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="flex flex-col items-center gap-1 text-brand-400 font-bold"
+        >
+          <Vote className="w-4 h-4" />
+          <span>Ballot</span>
+        </button>
+
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex flex-col items-center gap-1 text-brand-300 font-bold"
+        >
+          <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center -mt-5 shadow-glow border-2 border-ink-950">
+            +
+          </div>
+          <span>New</span>
+        </button>
+
+        <button
+          onClick={() => setIsProfileSettingsOpen(true)}
+          className="flex flex-col items-center gap-1 hover:text-white transition-colors"
+        >
+          <User className="w-4 h-4" />
+          <span>Profile</span>
+        </button>
+
+        <button
+          onClick={() => setIsGuidelinesOpen(true)}
+          className="flex flex-col items-center gap-1 hover:text-white transition-colors"
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>Rules</span>
+        </button>
+      </div>
+
+      {/* Modals */}
+      <VoteModal
+        issue={activeVoteIssue}
+        initialChoice={initialVoteChoice}
+        isOpen={!!activeVoteIssue}
+        onClose={() => {
+          setActiveVoteIssue(null);
+          setInitialVoteChoice(null);
+        }}
+        onSubmitVote={handleVoteSubmit}
+        onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+        currentUser={currentUser}
+      />
+
+      <IssueDetailModal
+        issue={activeDetailIssue}
+        isOpen={!!activeDetailIssue}
+        onClose={() => setActiveDetailIssue(null)}
+        onOpenVoteModal={(choice) => {
+          if (activeDetailIssue) {
+            handleOpenQuickVote(activeDetailIssue, choice);
+          }
+        }}
+        onShareIssue={(iss) => setActiveShareIssue(iss)}
+        currentUser={currentUser}
+        hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
+        userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
+        onLikeResponse={handleLikeResponse}
+        onReportResponse={handleReportResponse}
+        onAddInvite={handleAddInvite}
+        onAddGroupInvite={handleAddGroupInvite}
+      />
+
+      <ShareIssueModal
+        issue={activeShareIssue}
+        isOpen={!!activeShareIssue}
+        onClose={() => setActiveShareIssue(null)}
+      />
+
+      <CreateIssueModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateIssue={handleCreateIssue}
+        onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+        currentUser={currentUser}
+      />
+
+      <CommunityGuidelinesModal
+        isOpen={isGuidelinesOpen}
+        onClose={() => setIsGuidelinesOpen(false)}
+      />
+
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        user={currentUser}
+        issues={issues}
+        onComplete={handleCompleteOnboarding}
+      />
+
+      <ProfileSettingsModal
+        isOpen={isProfileSettingsOpen}
+        onClose={() => setIsProfileSettingsOpen(false)}
+        user={currentUser}
+        onUpdateUser={handleUpdateUserProfile}
+        onSignOut={() => handleSelectUser(null)}
+        issues={issues}
+        userVotes={userVotes}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onOpenIssue={(iss) => setActiveDetailIssue(iss)}
+      />
+
+      {/* Notifications & PWA Install */}
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
+      <PWAInstallPrompt />
+    </div>
+  );
+}
+
+export default App;

@@ -1,0 +1,38 @@
+{
+  "name": "CivicPulse - Voice & Civic Polling",
+  "short_name": "CivicPulse",
+  "description": "Mobile-first civic polling with voice notes, anonymous privacy, and respectful deliberation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "lang": "en",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "social",
+    "productivity",
+    "utilities"
+  ],
+  "shortcuts": [
+    {
+      "name": "Active Issues",
+      "url": "/#issues",
+      "description": "View and vote on current civic issues"
+    },
+    {
+      "name": "Propose an Issue",
+      "url": "/#propose",
+      "description": "Submit a proposal for community deliberation"
+    }
+  ]
+}
+

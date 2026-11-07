@@ -1,0 +1,92 @@
+name: CI & Deploy to Production (Hostinger)
+
+on:
+  # 1. Validate TypeScript & Production Bundle when pushing feature branches or opening PRs into main
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # JOB 1: Build & Verify (Runs on every feature branch push and PR to main)
+  # ============================================================================
+  build-and-verify:
+    name: Typecheck & Production Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle (Demo Data stripped via import.meta.env.DEV=false)
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+        run: npm run build
+
+      - name: Verify zero demo seed data in production bundle
+        run: |
+          if grep -rq "elena@civic.board" dist/assets/; then
+            echo "❌ ERROR: Demo seed data found in production bundle!"
+            exit 1
+          fi
+          echo "✅ Verified: Zero demo data present in dist/ production assets."
+
+      - name: Upload production artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dist
+          path: |
+            dist/
+            dist/.htaccess
+          include-hidden-files: true
+          retention-days: 5
+
+  # ============================================================================
+  # JOB 2: Deploy to Production (Runs ONLY when merged/pushed to `main` branch)
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production (yesorno.chillon.top)
+    needs: build-and-verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://yesorno.chillon.top
+
+    steps:
+      - name: Download built production artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: production-dist
+          path: ./dist
+
+      - name: Deploy dist/ to Hostinger via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.FTP_PORT || 21 }}
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
+          dangerous-clean-slate: false
+
