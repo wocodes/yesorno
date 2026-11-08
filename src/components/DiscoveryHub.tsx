@@ -1,18 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Flame, Globe2, Clock, Sparkles, Scale, ThumbsUp, ThumbsDown,
+  Flame, Globe2, Clock, Sparkles, Scale,
   ChevronDown, ChevronUp, MapPin, Layers
 } from 'lucide-react';
-import { Issue, IssueCategory, IssueRegion, VoteChoice } from '../types';
+import { Issue, IssueCategory, IssueRegion, VoteChoice, UserProfile, VoteSubmission } from '../types';
 import { computeIssueMetrics } from '../utils/summary';
+import { IssueCard } from './IssueCard';
 
 interface Props {
   issues: Issue[];
+  currentUser?: UserProfile | null;
   onOpenDetails: (issue: Issue) => void;
   onQuickVote: (issue: Issue, choice?: VoteChoice) => void;
+  onInlineSubmitVote?: (submission: VoteSubmission) => void;
+  onDeleteIssue?: (issueId: string) => void;
+  onEditIssue?: (issue: Issue) => void;
+  onToggleLikeIssue?: (issueId: string) => void;
+  onToggleFavoriteIssue?: (issueId: string) => void;
+  onShareIssue?: (issue: Issue) => void;
   onFilterByCategory?: (cat: IssueCategory) => void;
+  onOpenProfile?: (user: { name: string; username?: string; role?: string; avatar?: string; email?: string }) => void;
   fullPage?: boolean;
   userVotes?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
+  userLikes?: Record<string, boolean>;
+  userFavorites?: Record<string, boolean>;
 }
 
 type DiscoveryMode = 'trending' | 'region' | 'category' | 'closing' | 'debated';
@@ -66,11 +77,21 @@ export function inferIssueRegion(issue: Issue): IssueRegion {
 
 export const DiscoveryHub: React.FC<Props> = ({
   issues,
+  currentUser,
   onOpenDetails,
   onQuickVote,
+  onInlineSubmitVote = () => {},
+  onDeleteIssue,
+  onEditIssue,
+  onToggleLikeIssue,
+  onToggleFavoriteIssue,
+  onShareIssue = () => {},
   onFilterByCategory,
+  onOpenProfile,
   fullPage = false,
-  userVotes = {}
+  userVotes = {},
+  userLikes = {},
+  userFavorites = {},
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [mode, setMode] = useState<DiscoveryMode>('trending');
@@ -338,109 +359,50 @@ export const DiscoveryHub: React.FC<Props> = ({
               </div>
             </div>
           ) : (
-            <div className={`grid grid-cols-1 ${fullPage ? 'sm:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-3'} gap-3.5`}>
-            {topSpotlight.map(({ issue, metrics, region }, index) => {
-              const rankColors = [
-                'from-amber-500 to-orange-500 text-white',
-                'from-brand-500 to-purple-500 text-white',
-                'from-emerald-500 to-teal-500 text-white'
-              ];
-
-              return (
-                <div
-                  key={issue.id}
-                  className="bg-slate-50/80 dark:bg-ink-950/70 rounded-2xl p-4 hover:bg-slate-100/80 dark:hover:bg-ink-950 transition-all flex flex-col justify-between gap-3 group"
-                >
-                  <div className="space-y-2">
-                    {/* Top Row: Rank Badge + Region + Time */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={`w-6 h-6 rounded-lg bg-gradient-to-br ${rankColors[index] || rankColors[0]} font-extrabold text-[11px] flex items-center justify-center shrink-0 shadow-2xs`}>
-                          #{index + 1}
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 max-w-2xl mx-auto w-full pt-1">
+              {topSpotlight.map(({ issue, region }, index) => {
+                const voteRecord = userVotes[issue.id];
+                return (
+                  <div key={issue.id} className="relative">
+                    {/* Rank pill for top spotlight issues */}
+                    {mode === 'trending' && index < 3 && (
+                      <div className="mb-2 flex items-center justify-between px-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
+                          index === 0
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                            : index === 1
+                            ? 'bg-slate-200/80 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                            : 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30'
+                        }`}>
+                          <span>#{index + 1} Trending Pulse</span>
                         </span>
-                        <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-300 truncate flex items-center gap-1">
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
                           <MapPin className="w-3 h-3 text-brand-500 shrink-0" />
-                          {region}
+                          <span>{region}</span>
                         </span>
-                      </div>
-
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 shrink-0">
-                        {SPHERE_ICONS[issue.category] || '🗳️'} {issue.category.split(' ')[0]}
-                      </span>
-                    </div>
-
-                    {/* Issue Title */}
-                    <h3
-                      onClick={() => onOpenDetails(issue)}
-                      className={`text-xs sm:text-sm font-bold transition-colors line-clamp-2 cursor-pointer leading-snug ${
-                        issue.isDeletedByAuthor
-                          ? 'italic text-slate-400 dark:text-zinc-500'
-                          : 'text-ink-950 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400'
-                      }`}
-                    >
-                      {issue.isDeletedByAuthor ? 'Deleted by Author' : issue.title}
-                    </h3>
-                  </div>
-
-                  {/* Bottom Telemetry & Quick Vote */}
-                  <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-white/[0.06]">
-                    {/* Mini Consensus Bar or Lock if not voted */}
-                    {userVotes[issue.id] ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px] font-bold">
-                          <span className="text-emerald-600 dark:text-emerald-400">YES {metrics.yesPercent}%</span>
-                          <span className="text-slate-400 dark:text-zinc-500 font-mono text-[10px]">
-                            {metrics.totalVotes} votes
-                            {metrics.voiceNotesCount > 0 && ` • ${metrics.voiceNotesCount} 🎙️`}
-                          </span>
-                          <span className="text-rose-600 dark:text-rose-400">NO {metrics.noPercent}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex">
-                          <div className="bg-emerald-500 h-full" style={{ width: `${metrics.yesPercent}%` }} />
-                          <div className="bg-rose-500 h-full" style={{ width: `${metrics.noPercent}%` }} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400 py-0.5">
-                        <span className="font-medium">Vote to reveal results</span>
-                        <span className="font-mono text-[10px] text-slate-400">{metrics.totalVotes} votes</span>
                       </div>
                     )}
-
-                    {/* Quick Action Row */}
-                    <div className="flex items-center justify-between gap-2 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => onOpenDetails(issue)}
-                        className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                      >
-                        View Digest →
-                      </button>
-
-                      {!issue.isDeletedByAuthor && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => onQuickVote(issue, 'YES')}
-                            className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
-                          >
-                            <ThumbsUp className="w-2.5 h-2.5" /> YES
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onQuickVote(issue, 'NO')}
-                            className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
-                          >
-                            <ThumbsDown className="w-2.5 h-2.5" /> NO
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <IssueCard
+                      issue={issue}
+                      currentUser={currentUser || null}
+                      onOpenDetails={onOpenDetails}
+                      onQuickVote={onQuickVote}
+                      onInlineSubmitVote={onInlineSubmitVote}
+                      onDeleteIssue={onDeleteIssue}
+                      onEditIssue={onEditIssue}
+                      onToggleLikeIssue={onToggleLikeIssue}
+                      onToggleFavoriteIssue={onToggleFavoriteIssue}
+                      onShareIssue={onShareIssue}
+                      hasUserVoted={Boolean(voteRecord)}
+                      userVoteChoice={voteRecord?.choice}
+                      isLiked={Boolean(userLikes[issue.id])}
+                      isFavorited={Boolean(userFavorites[issue.id])}
+                      onOpenProfile={onOpenProfile}
+                    />
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
           )}
 
           {/* Category Quick-Jump Footer */}

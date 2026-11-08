@@ -2048,6 +2048,7 @@ export function App() {
         ) : currentView === 'discovery' ? (
           <DiscoveryHub
             issues={issues}
+            currentUser={currentUser}
             onOpenDetails={(iss) => {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
@@ -2056,12 +2057,21 @@ export function App() {
               window.location.hash = `issue/${iss.id}`;
             }}
             onQuickVote={handleOpenQuickVote}
+            onInlineSubmitVote={handleVoteSubmit}
+            onDeleteIssue={handleDeleteIssueByAuthor}
+            onEditIssue={handleEditIssue}
+            onToggleLikeIssue={handleToggleLikeIssue}
+            onToggleFavoriteIssue={handleToggleFavoriteIssue}
+            onShareIssue={(iss) => setActiveShareIssue(iss)}
+            onOpenProfile={handleOpenProfile}
             onFilterByCategory={(cat) => {
               setSelectedCategory(cat);
               handleNavigate('app');
             }}
             fullPage
             userVotes={userVotes}
+            userLikes={userLikes}
+            userFavorites={userFavorites}
           />
         ) : (
           <>
