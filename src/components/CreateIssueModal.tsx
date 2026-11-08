@@ -75,7 +75,7 @@ export const CreateIssueModal: React.FC<Props> = ({
   const userRegion: IssueRegion = currentUser?.region || 'Global / Remote';
 
   const [tagsInput, setTagsInput] = useState('');
-  const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[3]); // 7 Days default
+  const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[5]); // 30 Days default
   const [activeTool, setActiveTool] = useState<ActiveToolPanel>(null);
 
   // Media attachments
@@ -220,6 +220,7 @@ export const CreateIssueModal: React.FC<Props> = ({
     setShowDescription(false);
     setImages([]);
     setCreatorVoice(null);
+    setDuration(DURATION_OPTIONS[5]);
     setActiveTool(null);
     onClose();
   };

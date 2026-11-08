@@ -275,7 +275,7 @@ export async function generateQuestionForSlot(
   }
 
   const now = new Date();
-  const closingDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const closingDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const newIssue: Issue = {
     id: `issue-daily-${slotKey}-${Math.random().toString(36).substring(2, 6)}`,
@@ -289,7 +289,7 @@ export async function generateQuestionForSlot(
     creatorAvatar: GEMINI_AUTHOR_AVATAR,
     createdAt: now.toISOString(),
     closingDate,
-    durationLabel: '7 Days',
+    durationLabel: '30 Days',
     visibility: 'public',
     invitedEmails: [],
     invitedGroups: [],
