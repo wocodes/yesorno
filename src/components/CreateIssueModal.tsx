@@ -292,7 +292,11 @@ export const CreateIssueModal: React.FC<Props> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-12 sm:pt-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-ink-950/75 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain"
+      style={{
+        paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-issue-title"

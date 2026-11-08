@@ -236,7 +236,12 @@ export const AuthPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Top Bar */}
-      <div className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between">
+      <div 
+        className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between pwa-safe-top"
+        style={{
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+        }}
+      >
         <div 
           onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
           className="flex items-center gap-2 cursor-pointer"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Settings, Compass, Palette, BarChart3 
+  RotateCcw, User, Home, Lock, Download, Compass, Palette, BarChart3 
 } from 'lucide-react';
 import { IssueCategory, AppView, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
@@ -18,7 +18,7 @@ interface Props {
   onSortChange: (sort: FeedSortOption) => void;
   onOpenGuidelines: () => void;
   onOpenCreateModal: () => void;
-  onOpenProfileSettings: () => void;
+  onOpenProfileSettings?: () => void;
   onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
   onResetData: () => void;
   categoryCounts?: Record<string, number>;
@@ -56,7 +56,6 @@ export const Navbar: React.FC<Props> = ({
   onSortChange,
   onOpenGuidelines,
   onOpenCreateModal,
-  onOpenProfileSettings,
   onOpenProfile,
   onResetData,
   currentView,
@@ -67,7 +66,12 @@ export const Navbar: React.FC<Props> = ({
   onToggleColorTone
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors">
+    <header 
+      className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors pwa-safe-top"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }}
+    >
       {/* Top Bar */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
         <div className="flex items-center justify-between gap-3">
@@ -179,39 +183,38 @@ export const Navbar: React.FC<Props> = ({
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
             </button>
 
-            {/* User Profile & Settings Button */}
+            {/* User Profile Avatar */}
             {currentUser ? (
-              <div className="flex items-center bg-zinc-100/90 dark:bg-ink-800 rounded-xl p-0.5 border border-slate-200/50 dark:border-white/5">
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile?.({
-                    username: currentUser.username,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    email: currentUser.email,
-                    role: currentUser.role,
-                  })}
-                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-white dark:hover:bg-ink-700 text-xs font-semibold transition-all cursor-pointer"
-                  title="View your public profile"
-                >
-                  {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-black/10" />
-                  ) : (
-                    <User className="w-4 h-4 text-brand-500" />
-                  )}
-                  <span className="max-w-[85px] truncate hidden sm:inline text-ink-900 dark:text-white font-semibold">
-                    {currentUser.name.split(' ')[0]}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenProfileSettings}
-                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-ink-700 text-zinc-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer"
-                  title="Preferences & Settings"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.({
+                  username: currentUser.username,
+                  name: currentUser.name,
+                  avatar: currentUser.avatar,
+                  email: currentUser.email,
+                  role: currentUser.role,
+                })}
+                className="flex items-center gap-2 p-0.5 rounded-full hover:opacity-85 transition-opacity cursor-pointer group"
+                title="View your public profile"
+              >
+                {currentUser.avatar ? (
+                  <img 
+                    src={currentUser.avatar} 
+                    alt={currentUser.name} 
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200 dark:ring-white/10 group-hover:ring-brand-500 transition-all" 
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name)}`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs ring-2 ring-slate-200 dark:ring-white/10 group-hover:ring-brand-500 transition-all">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="max-w-[85px] truncate hidden sm:inline text-ink-900 dark:text-white font-semibold text-xs">
+                  {currentUser.name.split(' ')[0]}
+                </span>
+              </button>
             ) : (
               <button
                 onClick={() => onNavigate('auth')}

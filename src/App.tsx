@@ -1693,7 +1693,12 @@ export function App() {
 
   // Main Authenticated Issue Workspace
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 pb-20 sm:pb-12 transition-colors">
+    <div 
+      className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors"
+      style={{
+        paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
+    >
       {/* Navigation */}
       <Navbar
         selectedCategory={selectedCategory}
@@ -2007,11 +2012,19 @@ export function App() {
           </>
         )}
         {/* Spacer for bottom navigation spacing */}
-        <div className="h-16 sm:h-8" />
+        <div 
+          className="sm:h-8" 
+          style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} 
+        />
       </main>
 
       {/* Mobile Sticky Bottom Bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift">
+      <div 
+        className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl pt-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift border-t border-white/5 mobile-bottom-nav"
+        style={{
+          paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))',
+        }}
+      >
         <button
           onClick={() => handleNavigate('app')}
           className={`flex flex-col items-center gap-1 transition-colors ${

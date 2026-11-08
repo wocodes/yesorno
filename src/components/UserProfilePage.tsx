@@ -146,7 +146,7 @@ export const UserProfilePage: React.FC<Props> = ({
               <img
                 src={profile.avatar}
                 alt={profile.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-4 ring-white dark:ring-ink-900 shadow-lift bg-white dark:bg-ink-800"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-white dark:ring-ink-900 shadow-lift bg-white dark:bg-ink-800"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name)}&backgroundColor=4f46e5,0d9488,d97706,e11d48`;
                 }}

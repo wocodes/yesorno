@@ -208,10 +208,13 @@ export const ProfileSettingsModal: React.FC<Props> = ({
     >
       <div className="relative w-full max-w-2xl bg-white dark:bg-ink-900 sm:rounded-3xl shadow-lift border border-slate-200/80 dark:border-white/10 overflow-hidden h-full sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up overscroll-contain">
         {/* Top Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-950 text-white">
+        <div 
+          className="p-5 sm:p-6 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-950 text-white"
+          style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3.5">
-              <div className="w-14 h-14 rounded-2xl bg-brand-500/20 border border-brand-400/30 flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shrink-0">
+              <div className="w-14 h-14 rounded-full bg-brand-500/20 border border-brand-400/30 flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shrink-0">
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
@@ -977,7 +980,10 @@ export const ProfileSettingsModal: React.FC<Props> = ({
         </div>
 
         {/* Sticky Save Footer */}
-        <div className="p-4 bg-white dark:bg-ink-900 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3">
+        <div 
+          className="p-4 bg-white dark:bg-ink-900 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
             {savedNotice && (
               <>

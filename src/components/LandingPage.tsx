@@ -288,7 +288,12 @@ export const LandingPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-aurora-dark text-white flex flex-col font-sans selection:bg-brand-500 selection:text-white overflow-x-hidden">
       {/* Glassmorphic Sticky Navigation */}
-      <nav className="sticky top-0 z-40 bg-ink-950/85 backdrop-blur-2xl shadow-xs">
+      <nav 
+        className="sticky top-0 z-40 bg-ink-950/85 backdrop-blur-2xl shadow-xs pwa-safe-top"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div 
             onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
