@@ -44,7 +44,7 @@ export const AuthPage: React.FC<Props> = ({
   onNavigate,
   theme,
   onToggleTheme,
-  colorTone = 'vibrant',
+  colorTone = 'toned',
   onToggleColorTone,
   authPromptMessage,
   onOpenLegal,

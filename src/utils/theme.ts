@@ -41,9 +41,9 @@ export function getInitialColorTone(): ColorTone {
     if (saved === 'vibrant' || saved === 'toned') {
       return saved;
     }
-    return 'vibrant';
+    return 'toned';
   } catch {
-    return 'vibrant';
+    return 'toned';
   }
 }
 

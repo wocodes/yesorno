@@ -3,9 +3,39 @@ import { INITIAL_ISSUES } from '../data/initialIssues';
 import { isLocalEnvironment } from './auth';
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
+const STORAGE_KEY_DELETED_ISSUE_IDS = 'yesorno_deleted_issue_ids_v1';
 const STORAGE_KEY_USER_VOTES = 'yesorno_user_votes_v1';
 const STORAGE_KEY_USER_LIKES = 'yesorno_user_likes_v1';
 const STORAGE_KEY_USER_FAVORITES = 'yesorno_user_favorites_v1';
+
+/**
+ * Retrieves set of permanently deleted issue IDs
+ */
+export function getDeletedIssueIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED_ISSUE_IDS);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Records an issue ID as deleted so it can never reappear in feeds or cloud sync
+ */
+export function recordDeletedIssueId(issueId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedIssueIds();
+    set.add(issueId);
+    localStorage.setItem(STORAGE_KEY_DELETED_ISSUE_IDS, JSON.stringify(Array.from(set)));
+  } catch (err) {
+    console.error('Failed to record deleted issue id:', err);
+  }
+}
 
 /**
  * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).
@@ -14,13 +44,15 @@ const STORAGE_KEY_USER_FAVORITES = 'yesorno_user_favorites_v1';
  */
 export function getDefaultIssues(): Issue[] {
   if (import.meta.env.DEV && isLocalEnvironment()) {
-    return INITIAL_ISSUES;
+    const deletedIds = getDeletedIssueIds();
+    return INITIAL_ISSUES.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
   }
   return [];
 }
 
 export function loadIssues(): Issue[] {
   const defaults = getDefaultIssues();
+  const deletedIds = getDeletedIssueIds();
   try {
     const data = localStorage.getItem(STORAGE_KEY_ISSUES);
     if (!data) {
@@ -32,13 +64,12 @@ export function loadIssues(): Issue[] {
       if (defaults.length > 0) saveIssues(defaults);
       return defaults;
     }
-    // Verify each issue has essential structure
-    const valid = parsed.every(i => i && typeof i === 'object' && typeof i.id === 'string' && Array.isArray(i.responses));
-    if (!valid) {
-      if (defaults.length > 0) saveIssues(defaults);
-      return defaults;
-    }
-    return parsed;
+    // Verify each issue has essential structure and filter out any deleted issues
+    const valid = parsed
+      .filter(i => i && typeof i === 'object' && typeof i.id === 'string' && Array.isArray(i.responses))
+      .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
+
+    return valid;
   } catch (err) {
     console.error('Failed to load issues from storage:', err);
     return defaults;
@@ -48,9 +79,11 @@ export function loadIssues(): Issue[] {
 export function saveIssues(issues: Issue[]): void {
   try {
     if (Array.isArray(issues)) {
-      localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(issues));
+      const deletedIds = getDeletedIssueIds();
+      const activeIssues = issues.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
+      localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(activeIssues));
       // Asynchronously sync to cloud server storage for multi-device sync
-      pushIssuesToServer(issues);
+      pushIssuesToServer(activeIssues);
     }
   } catch (err) {
     console.error('Failed to save issues to storage:', err);
@@ -91,7 +124,8 @@ export async function fetchServerIssues(): Promise<Issue[] | null> {
     if (!res.ok) return null;
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      return data;
+      const deletedIds = getDeletedIssueIds();
+      return data.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
     }
     return null;
   } catch {

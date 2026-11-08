@@ -27,6 +27,7 @@ interface Props {
 }
 
 const ALL_INTERESTS: { category: IssueCategory; label: string; emoji: string }[] = [
+  { category: 'Counselling', label: 'Counselling', emoji: '🛋️' },
   { category: 'Business', label: 'Business', emoji: '💼' },
   { category: 'Gender', label: 'Gender', emoji: '⚧️' },
   { category: 'Entertainment', label: 'Entertainment', emoji: '🎬' },
@@ -106,7 +107,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
     return Array.from(map.values());
   }, [issues]);
 
-  const [defaultAnonymous, setDefaultAnonymous] = useState<boolean>(user.defaultAnonymous ?? true);
+  const [defaultAnonymous, setDefaultAnonymous] = useState<boolean>(user.defaultAnonymous ?? false);
   const [defaultVoiceFilter, setDefaultVoiceFilter] = useState<VoiceFilterType>(user.defaultVoiceFilter || 'deep');
   const [savedNotice, setSavedNotice] = useState(false);
 
@@ -122,7 +123,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
       setRegion(user.region || 'North America');
       setInterests(user.interests || []);
       setFollowing(user.followingCreators || []);
-      setDefaultAnonymous(user.defaultAnonymous ?? true);
+      setDefaultAnonymous(user.defaultAnonymous ?? false);
       setDefaultVoiceFilter(user.defaultVoiceFilter || 'deep');
     }
   }, [isOpen, user]);

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
-  fetchServerIssues,
+  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds,
   apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
@@ -45,6 +45,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
+import { ContactPage } from './components/ContactPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
@@ -60,6 +61,9 @@ function getInitialView(user: UserProfile | null): AppView {
 
   if (hash === 'landing') {
     return 'landing';
+  }
+  if (hash === 'contact') {
+    return 'contact';
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
@@ -102,22 +106,38 @@ export function App() {
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalDocTab | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
 
   // Automated Gemini Daily Polarizing Questions: 3 times a day (morning, afternoon, evening)
+  const issuesRef = useRef(issues);
+  issuesRef.current = issues;
+
   useEffect(() => {
-    checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
-      setIssues(prev => [...newlyCreated, ...prev]);
-    });
-    const interval = setInterval(() => {
-      checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
-        setIssues(prev => [...newlyCreated, ...prev]);
+    checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
+      setIssues(prev => {
+        const existingIds = new Set(prev.map(i => i.id));
+        const unique = newlyCreated.filter(i => !existingIds.has(i.id));
+        if (unique.length === 0) return prev;
+        return [...unique, ...prev];
       });
-    }, 120000);
+    }, currentUser?.region);
+
+    const interval = setInterval(() => {
+      checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
+        setIssues(prev => {
+          const existingIds = new Set(prev.map(i => i.id));
+          const unique = newlyCreated.filter(i => !existingIds.has(i.id));
+          if (unique.length === 0) return prev;
+          return [...unique, ...prev];
+        });
+      }, currentUser?.region);
+    }, 300000); // Poll once every 5 minutes
+
     return () => clearInterval(interval);
-  }, [issues]);
+  }, [currentUser?.region]);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -347,6 +367,7 @@ export function App() {
         if (found) {
           setActiveDetailIssue(found);
           setCurrentView('issue');
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         }
       } else if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
         if (!currentUser) {
@@ -360,6 +381,9 @@ export function App() {
           setActiveDetailIssue(null);
           setCurrentView(hash as AppView);
         }
+      } else if (hash === 'contact') {
+        setActiveDetailIssue(null);
+        setCurrentView('contact');
       } else if (hash === 'auth') {
         setCurrentView('auth');
       } else if (hash === '' || hash === 'landing') {
@@ -382,11 +406,16 @@ export function App() {
       fetchServerIssues().then((serverIssues) => {
         if (serverIssues && serverIssues.length > 0) {
           setIssues((prev) => {
+            const deletedIds = getDeletedIssueIds();
             const map = new Map<string, Issue>();
-            serverIssues.forEach((i) => map.set(i.id, i));
-            prev.forEach((i) => {
-              if (!map.has(i.id)) map.set(i.id, i);
-            });
+            serverIssues
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .forEach((i) => map.set(i.id, i));
+            prev
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .forEach((i) => {
+                if (!map.has(i.id)) map.set(i.id, i);
+              });
             const merged = Array.from(map.values());
             saveIssues(merged);
             return merged;
@@ -597,31 +626,17 @@ export function App() {
     if (!deletingIssueId) return;
     const issueId = deletingIssueId;
 
-    setIssues(prev => prev.map(issue => {
-      if (issue.id === issueId) {
-        return {
-          ...issue,
-          title: 'Deleted by Author',
-          description: 'Deleted by Author',
-          isDeletedByAuthor: true,
-          deletedAt: new Date().toISOString(),
-          images: undefined,
-          creatorVoiceNote: undefined,
-        };
-      }
-      return issue;
-    }));
+    // Permanently record deleted ID so it never returns in feed or cloud sync
+    recordDeletedIssueId(issueId);
+
+    const nextIssues = issues.filter(issue => issue.id !== issueId);
+    setIssues(nextIssues);
+    saveIssues(nextIssues);
 
     if (activeDetailIssue && activeDetailIssue.id === issueId) {
-      setActiveDetailIssue(prev => prev ? {
-        ...prev,
-        title: 'Deleted by Author',
-        description: 'Deleted by Author',
-        isDeletedByAuthor: true,
-        deletedAt: new Date().toISOString(),
-        images: undefined,
-        creatorVoiceNote: undefined,
-      } : null);
+      setActiveDetailIssue(null);
+      setCurrentView('app');
+      window.location.hash = '';
     }
 
     apiRecordDeleteIssue(issueId);
@@ -629,8 +644,8 @@ export function App() {
 
     addToast(
       'info',
-      'Issue Deleted by Author',
-      'Topic and description now show "Deleted by Author" while keeping all responses.'
+      'Issue Deleted',
+      'The issue has been completely removed from the feed.'
     );
     recordEngagementAction('issue_deleted');
   };
@@ -647,6 +662,24 @@ export function App() {
         ? `Restricted to invited circle members.`
         : `Open for voting (${newIssue.durationLabel}).`
     );
+  };
+
+  const handleEditIssue = (issue: Issue) => {
+    setEditingIssue(issue);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleUpdateIssue = (updatedIssue: Issue) => {
+    setIssues(prev => {
+      const nextIssues = prev.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+    if (activeDetailIssue && activeDetailIssue.id === updatedIssue.id) {
+      setActiveDetailIssue(updatedIssue);
+    }
+    setEditingIssue(null);
+    addToast('success', 'Issue Updated', 'Your changes have been saved.');
   };
 
   // Handle add email invite to private issue
@@ -1197,6 +1230,7 @@ export function App() {
     };
 
     let result = issues.filter(issue => {
+      if (issue.isDeletedByAuthor) return false;
       const matchesCategory = selectedCategory === 'All' || issue.category === selectedCategory;
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch = !query || 
@@ -1349,6 +1383,35 @@ export function App() {
     );
   }
 
+  // Contact view (available to both authenticated and guest visitors)
+  if (currentView === 'contact') {
+    return (
+      <>
+        <ContactPage
+          onNavigate={handleNavigate}
+          currentUser={currentUser}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
+          onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+          onOpenLegal={(tab) => setLegalModalTab(tab)}
+        />
+        <CommunityGuidelinesModal
+          isOpen={isGuidelinesOpen}
+          onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <LegalModal
+          isOpen={legalModalTab !== null}
+          initialTab={legalModalTab || 'terms'}
+          onClose={() => setLegalModalTab(null)}
+        />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        <PWAInstallPrompt />
+      </>
+    );
+  }
+
   // Enforce Auth Protection: If user is not logged in, always render AuthPage
   if (currentView === 'auth' || !currentUser) {
     return (
@@ -1424,6 +1487,7 @@ export function App() {
             }}
             onInlineSubmitVote={handleVoteSubmit}
             onDeleteIssue={handleDeleteIssueByAuthor}
+            onEditIssue={handleEditIssue}
             onToggleLikeIssue={handleToggleLikeIssue}
             onToggleFavoriteIssue={handleToggleFavoriteIssue}
             onShareIssue={(iss) => setActiveShareIssue(iss)}
@@ -1462,6 +1526,7 @@ export function App() {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
               setCurrentView('issue');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
               window.location.hash = `issue/${iss.id}`;
             }}
             onQuickVote={handleOpenQuickVote}
@@ -1654,11 +1719,13 @@ export function App() {
                           recordUserInterestFromIssue(iss);
                           setActiveDetailIssue(iss);
                           setCurrentView('issue');
+                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
                           window.location.hash = `issue/${iss.id}`;
                         }}
                         onQuickVote={handleOpenQuickVote}
                         onInlineSubmitVote={handleVoteSubmit}
                         onDeleteIssue={handleDeleteIssueByAuthor}
+                        onEditIssue={handleEditIssue}
                         onToggleLikeIssue={handleToggleLikeIssue}
                         onToggleFavoriteIssue={handleToggleFavoriteIssue}
                         onShareIssue={(iss) => setActiveShareIssue(iss)}
@@ -1780,8 +1847,13 @@ export function App() {
 
       <CreateIssueModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingIssue(null);
+        }}
         onCreateIssue={handleCreateIssue}
+        onUpdateIssue={handleUpdateIssue}
+        editingIssue={editingIssue}
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         currentUser={currentUser}
       />

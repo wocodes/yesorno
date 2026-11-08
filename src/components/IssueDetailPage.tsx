@@ -3,7 +3,7 @@ import {
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Heart, User, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
-  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag
+  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
@@ -31,6 +31,7 @@ interface Props {
   onOpenVoteModal: (initialChoice?: VoteChoice) => void;
   onInlineSubmitVote: (submission: VoteSubmission) => void;
   onDeleteIssue?: (issueId: string) => void;
+  onEditIssue?: (issue: Issue) => void;
   onToggleLikeIssue?: (issueId: string) => void;
   onToggleFavoriteIssue?: (issueId: string) => void;
   onShareIssue: (issue: Issue) => void;
@@ -57,6 +58,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     onOpenVoteModal,
     onInlineSubmitVote,
     onDeleteIssue,
+    onEditIssue,
     onToggleLikeIssue,
     onToggleFavoriteIssue,
     onShareIssue,
@@ -114,7 +116,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     return acc + 1 + (resp.replies?.length || 0);
   }, 0);
 
-  // Highlight linked comment if URL query parameter ?c=<commentId> is present
+  // Scroll to top upon opening an issue so top navigation, question and creator are never cut off
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -127,9 +129,11 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 350);
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
     } catch {
-      // Ignore
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, [issue.id]);
 
@@ -441,6 +445,18 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               >
                 <Flag className="w-3.5 h-3.5" />
                 <span>Report</span>
+              </button>
+            )}
+
+            {/* Creator Edit Issue Button */}
+            {isCreator && !isDeleted && onEditIssue && (
+              <button
+                type="button"
+                onClick={() => onEditIssue(issue)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit Issue</span>
               </button>
             )}
 

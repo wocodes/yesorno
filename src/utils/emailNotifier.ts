@@ -6,7 +6,8 @@ export type NotificationEvent =
   | 'login'
   | 'create_issue'
   | 'comment'
-  | 'share';
+  | 'share'
+  | 'contact_message';
 
 interface NotifyPayload {
   event: NotificationEvent;
@@ -263,6 +264,31 @@ export function notifyAdminIssueShared(
       issueTitle: issue.title,
       platform,
       url: issueUrl,
+    },
+  });
+}
+
+/**
+ * Dispatches a user contact form submission to the admin via backend notification
+ */
+export async function sendContactMessage(params: {
+  name: string;
+  email: string;
+  category: string;
+  subject?: string;
+  message: string;
+}): Promise<boolean> {
+  return sendAdminNotification({
+    event: 'contact_message',
+    user: {
+      name: params.name,
+      email: params.email,
+    },
+    data: {
+      category: params.category,
+      subject: params.subject || `Inquiry regarding ${params.category}`,
+      message: params.message,
+      submittedAt: new Date().toISOString(),
     },
   });
 }

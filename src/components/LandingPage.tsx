@@ -39,6 +39,20 @@ interface SphereShowcase {
 
 const SPHERES: SphereShowcase[] = [
   {
+    id: 'Counselling',
+    icon: '🛋️',
+    title: 'Counselling',
+    category: 'Counselling',
+    visibility: 'Public',
+    deadline: '24d left',
+    example: 'Should I confront my close friend about unpaid debt from 6 months ago?',
+    yesCount: 284,
+    noCount: 92,
+    sampleQuote: 'Address it with grace in private; true friendship can survive honesty, but festering resentment destroys it.',
+    sampleAuthor: 'Anon-Neighbor-288',
+    voiceFilter: 'Natural'
+  },
+  {
     id: 'Workplace',
     icon: '💼',
     title: 'Workplace',
@@ -216,7 +230,7 @@ export const LandingPage: React.FC<Props> = ({
   currentUser,
   theme,
   onToggleTheme,
-  colorTone = 'vibrant',
+  colorTone = 'toned',
   onToggleColorTone
 }) => {
   const [mockChoice, setMockChoice] = useState<'YES' | 'NO' | null>('YES');
@@ -797,6 +811,9 @@ export const LandingPage: React.FC<Props> = ({
             )}
             <button onClick={onOpenGuidelines} className="hover:text-white transition-colors cursor-pointer">
               Community Guidelines
+            </button>
+            <button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors cursor-pointer">
+              Contact
             </button>
             <button onClick={() => onNavigate('auth')} className="hover:text-white transition-colors cursor-pointer">
               Sign In

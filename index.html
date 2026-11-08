@@ -57,7 +57,8 @@
           var isDark = saved ? saved === 'dark' : (!window.matchMedia || !window.matchMedia('(prefers-color-scheme: light)').matches);
           if (isDark) document.documentElement.classList.add('dark');
           var savedTone = localStorage.getItem('yesorno_color_tone_v1');
-          if (savedTone === 'toned') document.documentElement.classList.add('tone-muted');
+          var isToned = savedTone ? savedTone === 'toned' : true;
+          if (isToned) document.documentElement.classList.add('tone-muted');
         } catch (e) {}
       })();
     </script>

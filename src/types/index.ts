@@ -69,13 +69,14 @@ export interface VoteSubmission {
 
 export type IssueCategory = 
   | 'All'
-  | 'Family & Home'
-  | 'Workplace & Career'
-  | 'Community & Neighborhood'
-  | 'Religious & Faith'
+  | 'Counselling'
   | 'Business'
   | 'Gender'
   | 'Entertainment'
+  | 'Workplace & Career'
+  | 'Family & Home'
+  | 'Community & Neighborhood'
+  | 'Religious & Faith'
   | 'Politics & Policy'
   | 'Environment & Climate'
   | 'Economy & Finance'
@@ -158,4 +159,4 @@ export interface ModerationResult {
   severity: 'clean' | 'warning' | 'rejected';
 }
 
-export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue';
+export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue' | 'contact';

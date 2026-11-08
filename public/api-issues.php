@@ -143,10 +143,10 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
 
 // Hydrates issues with responses, replies, and reactions into the expected frontend format
 function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
-    $sql = "SELECT * FROM issues";
+    $sql = "SELECT * FROM issues WHERE is_deleted = 0";
     $params = [];
     if ($since) {
-        $sql .= " WHERE updated_at >= :since";
+        $sql .= " AND updated_at >= :since";
         $params[':since'] = $since;
     }
     $sql .= " ORDER BY created_at DESC";
