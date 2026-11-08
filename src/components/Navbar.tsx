@@ -7,7 +7,7 @@ import { IssueCategory, AppView, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
 import { isAdminUser } from '../utils/auth';
 
-export type FeedSortOption = 'for-you' | 'active' | 'closing' | 'yes' | 'perspectives';
+export type FeedSortOption = 'for-you' | 'active' | 'newest' | 'closing' | 'yes' | 'perspectives';
 
 interface Props {
   selectedCategory: IssueCategory;
@@ -19,6 +19,7 @@ interface Props {
   onOpenGuidelines: () => void;
   onOpenCreateModal: () => void;
   onOpenProfileSettings: () => void;
+  onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
   onResetData: () => void;
   categoryCounts?: Record<string, number>;
   currentView: AppView;
@@ -56,6 +57,7 @@ export const Navbar: React.FC<Props> = ({
   onOpenGuidelines,
   onOpenCreateModal,
   onOpenProfileSettings,
+  onOpenProfile,
   onResetData,
   currentView,
   onNavigate,
@@ -178,23 +180,47 @@ export const Navbar: React.FC<Props> = ({
             </button>
 
             {/* User Profile & Settings Button */}
-            <button
-              onClick={() => (currentUser ? onOpenProfileSettings() : onNavigate('auth'))}
-              className="flex items-center gap-2 py-1.5 px-3 rounded-xl bg-zinc-100/90 dark:bg-ink-800 hover:bg-zinc-200/80 dark:hover:bg-ink-700 text-xs font-semibold transition-all cursor-pointer"
-              title="Profile, Preferences & Settings"
-            >
-              {currentUser?.avatar ? (
-                <img src={currentUser.avatar} alt={currentUser.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-black/10" />
-              ) : (
+            {currentUser ? (
+              <div className="flex items-center bg-zinc-100/90 dark:bg-ink-800 rounded-xl p-0.5 border border-slate-200/50 dark:border-white/5">
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.({
+                    username: currentUser.username,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar,
+                    email: currentUser.email,
+                    role: currentUser.role,
+                  })}
+                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-white dark:hover:bg-ink-700 text-xs font-semibold transition-all cursor-pointer"
+                  title="View your public profile"
+                >
+                  {currentUser.avatar ? (
+                    <img src={currentUser.avatar} alt={currentUser.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-black/10" />
+                  ) : (
+                    <User className="w-4 h-4 text-brand-500" />
+                  )}
+                  <span className="max-w-[85px] truncate hidden sm:inline text-ink-900 dark:text-white font-semibold">
+                    {currentUser.name.split(' ')[0]}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenProfileSettings}
+                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-ink-700 text-zinc-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white transition-colors cursor-pointer"
+                  title="Preferences & Settings"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => onNavigate('auth')}
+                className="flex items-center gap-2 py-1.5 px-3 rounded-xl bg-zinc-100/90 dark:bg-ink-800 hover:bg-zinc-200/80 dark:hover:bg-ink-700 text-xs font-semibold transition-all cursor-pointer"
+              >
                 <User className="w-4 h-4 text-brand-500" />
-              )}
-              <span className="max-w-[90px] truncate hidden sm:inline text-ink-900 dark:text-white font-semibold">
-                {currentUser ? currentUser.name.split(' ')[0] : 'Sign In'}
-              </span>
-              {currentUser && (
-                <Settings className="w-3.5 h-3.5 text-zinc-400 hidden sm:inline" />
-              )}
-            </button>
+                <span>Sign In</span>
+              </button>
+            )}
 
             {/* Create Issue Button */}
             <button
@@ -274,8 +300,9 @@ export const Navbar: React.FC<Props> = ({
               onChange={(e) => onSortChange(e.target.value as FeedSortOption)}
               className="text-xs bg-white/90 dark:bg-ink-900 rounded-xl px-2.5 py-1.5 text-ink-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="for-you">✨ For You (Priority)</option>
+              <option value="for-you">🔥 Trending &amp; New (For You)</option>
               <option value="active">Most Active</option>
+              <option value="newest">Newest First</option>
               <option value="closing">Closing Soon</option>
               <option value="yes">Highest Yes%</option>
               <option value="perspectives">Most Responses</option>

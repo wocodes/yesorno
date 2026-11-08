@@ -3,7 +3,8 @@ import {
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Heart, User, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
-  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil
+  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil,
+  CheckCircle2
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
@@ -48,6 +49,7 @@ interface Props {
   onShareComment?: (issue: Issue, author: string, text: string, commentId: string) => void;
   onAddInvite?: (issueId: string, email: string) => void;
   onAddGroupInvite?: (issueId: string, group: string) => void;
+  onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
 }
 
 export const IssueDetailPage: React.FC<Props> = (props) => {
@@ -68,6 +70,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     isFavorited = false,
     onAddCommentReply,
     onToggleCommentReaction,
+    onOpenProfile,
   } = props;
   const [activeTab, setActiveTab] = useState<'perspectives' | 'digest' | 'brief'>('perspectives');
   const [filter, setFilter] = useState<'ALL' | 'YES' | 'NO' | 'VOICE'>('ALL');
@@ -78,6 +81,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   const [replyNote, setReplyNote] = useState('');
   const [replyAnon, setReplyAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
   const [alias] = useState(() => generateCivicAlias());
+
+  // Keep replyChoice synced when userVoteChoice prop updates
+  useEffect(() => {
+    if (userVoteChoice) {
+      setReplyChoice(userVoteChoice);
+    }
+  }, [userVoteChoice]);
 
   // Inline Quick Voice Recording
   const [isRec, setIsRec] = useState(false);
@@ -138,30 +148,30 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   }, [issue.id]);
 
   const handleInstantVoteTap = (choice: VoteChoice) => {
+    // Once voted, vote/stance CANNOT be changed
+    if (hasUserVoted) return;
+
     if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) {
       onOpenVoteModal(choice);
       return;
     }
 
-    if (!hasUserVoted) {
-      playHapticChime(choice === 'YES' ? 'yes' : 'no');
-      triggerVoteConfetti(choice === 'YES');
-      const submission: VoteSubmission = {
-        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        issueId: issue.id,
-        choice,
-        isAnonymous: replyAnon,
-        authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
-        authorUsername: !replyAnon ? currentUser.username : undefined,
-        authorEmail: !replyAnon ? currentUser.email : undefined,
-        authorAlias: replyAnon ? alias : undefined,
-        authorRole: !replyAnon ? currentUser.role : undefined,
-        createdAt: new Date().toISOString(),
-        likesCount: 0,
-      };
-      onInlineSubmitVote(submission);
-    }
-
+    playHapticChime(choice === 'YES' ? 'yes' : 'no');
+    triggerVoteConfetti(choice === 'YES');
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice,
+      isAnonymous: replyAnon,
+      authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !replyAnon ? currentUser.username : undefined,
+      authorEmail: !replyAnon ? currentUser.email : undefined,
+      authorAlias: replyAnon ? alias : undefined,
+      authorRole: !replyAnon ? currentUser.role : undefined,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
     setReplyChoice(choice);
   };
 
@@ -341,27 +351,81 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
         {/* Creator Info Strip */}
         <div className="p-5 sm:p-6 pb-4 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
           <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={authorInfo.avatarUrl}
-              alt={authorInfo.fullName}
-              className="w-10 h-10 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
-              }}
-            />
+            {issue.isAnonymousAuthor || !onOpenProfile ? (
+              <img
+                src={authorInfo.avatarUrl}
+                alt={authorInfo.fullName}
+                className="w-10 h-10 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenProfile({
+                  username: authorInfo.username,
+                  name: authorInfo.fullName || authorInfo.displayName,
+                  avatar: authorInfo.avatarUrl,
+                  email: issue.creatorEmail,
+                })}
+                className="rounded-full shrink-0 hover:ring-2 hover:ring-brand-500/50 transition-all cursor-pointer"
+                title={`View ${authorInfo.displayName}'s profile`}
+              >
+                <img
+                  src={authorInfo.avatarUrl}
+                  alt={authorInfo.fullName}
+                  className="w-10 h-10 rounded-full object-cover border border-black/10 dark:border-white/10"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                  }}
+                />
+              </button>
+            )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white truncate">
-                  {authorInfo.displayName}
-                </span>
+                {issue.isAnonymousAuthor || !onOpenProfile ? (
+                  <span className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white truncate">
+                    {authorInfo.displayName}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile({
+                      username: authorInfo.username,
+                      name: authorInfo.fullName || authorInfo.displayName,
+                      avatar: authorInfo.avatarUrl,
+                      email: issue.creatorEmail,
+                    })}
+                    className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors truncate text-left cursor-pointer"
+                    title={`View ${authorInfo.displayName}'s profile`}
+                  >
+                    {authorInfo.displayName}
+                  </button>
+                )}
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                   {relativeTime}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate">
-                {authorInfo.fullName}
-              </span>
+              {issue.isAnonymousAuthor || !onOpenProfile ? (
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate">
+                  {authorInfo.fullName}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile({
+                    username: authorInfo.username,
+                    name: authorInfo.fullName || authorInfo.displayName,
+                    avatar: authorInfo.avatarUrl,
+                    email: issue.creatorEmail,
+                  })}
+                  className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-ink-900 dark:hover:text-zinc-300 block truncate text-left cursor-pointer"
+                >
+                  {authorInfo.fullName}
+                </button>
+              )}
             </div>
           </div>
 
@@ -570,7 +634,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
           <form onSubmit={handleSubmitReply} className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-bold text-ink-900 dark:text-zinc-200">
-                {hasUserVoted ? 'Add to your perspective / Update stance' : 'Cast your stance & reply'}
+                {hasUserVoted ? 'Your stance & perspective' : 'Cast your stance & reply'}
               </span>
 
               {/* Anonymous Toggle */}
@@ -588,32 +652,74 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               </button>
             </div>
 
+            {/* Voted Stance Permanent Strip */}
+            {hasUserVoted && (
+              <div className="flex items-center justify-between p-2.5 px-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/10 text-xs">
+                <span className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300">
+                  <Lock className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                  <span>
+                    You voted <strong className={userVoteChoice === 'YES' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{userVoteChoice}</strong>. Votes are permanent and cannot be changed.
+                  </span>
+                </span>
+              </div>
+            )}
+
             {/* 1-Tap YES / NO Choice Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleInstantVoteTap('YES')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
-                  replyChoice === 'YES'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01]'
-                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
+                  hasUserVoted && userVoteChoice === 'YES'
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                    : hasUserVoted && userVoteChoice !== 'YES'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : replyChoice === 'YES'
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
+                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
                 }`}
               >
-                <ThumbsUp className="w-4 h-4" />
-                <span>VOTE YES</span>
+                {hasUserVoted && userVoteChoice === 'YES' ? (
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                ) : (
+                  <ThumbsUp className="w-4 h-4" />
+                )}
+                <span>
+                  {hasUserVoted
+                    ? userVoteChoice === 'YES'
+                      ? 'VOTED YES ✓'
+                      : 'NO (LOCKED)'
+                    : 'VOTE YES'}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleInstantVoteTap('NO')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
-                  replyChoice === 'NO'
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01]'
-                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
+                  hasUserVoted && userVoteChoice === 'NO'
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-400'
+                    : hasUserVoted && userVoteChoice !== 'NO'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : replyChoice === 'NO'
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
+                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
                 }`}
               >
-                <ThumbsDown className="w-4 h-4" />
-                <span>VOTE NO</span>
+                {hasUserVoted && userVoteChoice === 'NO' ? (
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                ) : (
+                  <ThumbsDown className="w-4 h-4" />
+                )}
+                <span>
+                  {hasUserVoted
+                    ? userVoteChoice === 'NO'
+                      ? 'VOTED NO ✓'
+                      : 'YES (LOCKED)'
+                    : 'VOTE NO'}
+                </span>
               </button>
             </div>
 
@@ -791,20 +897,50 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300">
-                            {resp.isAnonymous ? (
-                              <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                            ) : (
+                          {resp.isAnonymous || !onOpenProfile ? (
+                            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
+                              {resp.isAnonymous ? (
+                                <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-zinc-500" />
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onOpenProfile({
+                                username: resp.authorUsername,
+                                name: resp.authorName,
+                                email: resp.authorEmail,
+                                role: resp.authorRole,
+                              })}
+                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer"
+                              title={`View ${resp.authorName}'s profile`}
+                            >
                               <User className="w-3.5 h-3.5 text-zinc-500" />
-                            )}
-                          </div>
+                            </button>
+                          )}
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-ink-950 dark:text-white">
-                                {resp.isAnonymous 
-                                  ? resp.authorAlias || 'Anonymous' 
-                                  : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
-                              </span>
+                              {resp.isAnonymous || !onOpenProfile ? (
+                                <span className="text-xs font-bold text-ink-950 dark:text-white">
+                                  {resp.authorAlias || 'Anonymous'}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenProfile({
+                                    username: resp.authorUsername,
+                                    name: resp.authorName,
+                                    email: resp.authorEmail,
+                                    role: resp.authorRole,
+                                  })}
+                                  className="text-xs font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                  title={`View ${resp.authorName}'s profile`}
+                                >
+                                  {resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member')}
+                                </button>
+                              )}
                               {resp.authorRole && (
                                 <span className="text-[11px] text-slate-400">• {resp.authorRole}</span>
                               )}
@@ -968,11 +1104,25 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             return (
                               <div key={reply.id} className="text-xs space-y-1 bg-slate-50 dark:bg-white/[0.02] p-2.5 rounded-xl">
                                 <div className="flex items-center justify-between">
-                                  <span className="font-bold text-ink-950 dark:text-white">
-                                    {reply.isAnonymous 
-                                      ? reply.authorAlias || 'Anonymous' 
-                                      : (reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member'))}
-                                  </span>
+                                  {reply.isAnonymous || !onOpenProfile ? (
+                                    <span className="font-bold text-ink-950 dark:text-white">
+                                      {reply.authorAlias || 'Anonymous'}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProfile({
+                                        username: reply.authorUsername,
+                                        name: reply.authorName,
+                                        email: reply.authorEmail,
+                                        role: reply.authorRole,
+                                      })}
+                                      className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                      title={`View ${reply.authorName}'s profile`}
+                                    >
+                                      {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
+                                    </button>
+                                  )}
                                   <span className="text-[10px] text-slate-400">
                                     {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                   </span>

@@ -1222,37 +1222,45 @@ export const IssueDetailModal: React.FC<Props> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
+                    disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
                     onClick={(e) => {
+                      if (hasUserVoted) return;
                       setReplyChoice('YES');
-                      if (!hasUserVoted && !replyNote.trim() && !voiceUrl) {
+                      if (!replyNote.trim() && !voiceUrl) {
                         handleQuickSocialSubmit(e, 'YES');
                       }
                     }}
-                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
-                      (replyChoice === 'YES' || userVoteChoice === 'YES')
-                        ? 'bg-emerald-600 text-white shadow-glow-emerald'
-                        : 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30'
+                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all ${
+                      hasUserVoted && userVoteChoice !== 'YES'
+                        ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400'
+                        : (replyChoice === 'YES' || userVoteChoice === 'YES')
+                        ? 'bg-emerald-600 text-white shadow-glow-emerald cursor-pointer'
+                        : 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30 cursor-pointer'
                     }`}
                   >
                     <ThumbsUp className="w-3 h-3" />
-                    <span>YES</span>
+                    <span>YES {hasUserVoted && userVoteChoice === 'YES' ? '✓' : ''}</span>
                   </button>
                   <button
                     type="button"
+                    disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
                     onClick={(e) => {
+                      if (hasUserVoted) return;
                       setReplyChoice('NO');
-                      if (!hasUserVoted && !replyNote.trim() && !voiceUrl) {
+                      if (!replyNote.trim() && !voiceUrl) {
                         handleQuickSocialSubmit(e, 'NO');
                       }
                     }}
-                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
-                      (replyChoice === 'NO' || userVoteChoice === 'NO') && replyChoice !== 'YES'
-                        ? 'bg-rose-600 text-white shadow-glow-rose'
-                        : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-400/30'
+                    className={`px-3 py-1 rounded-full font-extrabold flex items-center gap-1 transition-all ${
+                      hasUserVoted && userVoteChoice !== 'NO'
+                        ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400'
+                        : (replyChoice === 'NO' || userVoteChoice === 'NO') && replyChoice !== 'YES'
+                        ? 'bg-rose-600 text-white shadow-glow-rose cursor-pointer'
+                        : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-400/30 cursor-pointer'
                     }`}
                   >
                     <ThumbsDown className="w-3 h-3" />
-                    <span>NO</span>
+                    <span>NO {hasUserVoted && userVoteChoice === 'NO' ? '✓' : ''}</span>
                   </button>
                 </div>
 

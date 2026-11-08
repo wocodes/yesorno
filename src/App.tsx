@@ -29,11 +29,13 @@ import {
   notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice, CommentReply } from './types';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply } from './types';
+import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
 import { IssueDetailPage } from './components/IssueDetailPage';
+import { UserProfilePage } from './components/UserProfilePage';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CreateIssueModal } from './components/CreateIssueModal';
 import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal';
@@ -49,6 +51,7 @@ import { ContactPage } from './components/ContactPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
+import { resolveUserProfile } from './utils/userProfile';
 import { 
   Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles
 } from 'lucide-react';
@@ -64,6 +67,9 @@ function getInitialView(user: UserProfile | null): AppView {
   }
   if (hash === 'contact') {
     return 'contact';
+  }
+  if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+    return 'profile';
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
@@ -103,6 +109,7 @@ export function App() {
   const [initialVoteChoice, setInitialVoteChoice] = useState<VoteChoice | null>(null);
   const [activeDetailIssue, setActiveDetailIssue] = useState<Issue | null>(null);
   const [activeShareIssue, setActiveShareIssue] = useState<Issue | null>(null);
+  const [activeProfileUser, setActiveProfileUser] = useState<PublicUserProfile | null>(null);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalDocTab | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -151,6 +158,12 @@ export function App() {
   useEffect(() => {
     applyColorTone(colorTone);
   }, [colorTone]);
+
+  // Apply animations class to <html> based on user preference or local storage
+  useEffect(() => {
+    const enabled = currentUser?.animationsEnabled ?? areAnimationsEnabled();
+    applyAnimationsClass(enabled);
+  }, [currentUser?.animationsEnabled]);
 
   const handleToggleTheme = () => {
     setTheme(prev => {
@@ -265,11 +278,16 @@ export function App() {
     return () => document.removeEventListener('click', onDocumentClick, true);
   }, []);
 
+  // Derive live issue for detail view to ensure instant reactivity with issues state
+  const liveDetailIssue = useMemo(() => {
+    if (!activeDetailIssue) return null;
+    return issues.find(i => i.id === activeDetailIssue.id) || activeDetailIssue;
+  }, [activeDetailIssue, issues]);
+
   // Lock background page scroll whenever any modal is open
   useEffect(() => {
     const isAnyModalOpen = Boolean(
       activeVoteIssue ||
-      activeDetailIssue ||
       activeShareIssue ||
       isGuidelinesOpen ||
       legalModalTab !== null ||
@@ -290,7 +308,6 @@ export function App() {
     }
   }, [
     activeVoteIssue,
-    activeDetailIssue,
     activeShareIssue,
     isGuidelinesOpen,
     legalModalTab,
@@ -301,7 +318,7 @@ export function App() {
 
   // Sync OpenGraph / document meta tags and clean slug URL when an issue is opened or shared
   useEffect(() => {
-    const targetIssue = activeDetailIssue || activeShareIssue || null;
+    const targetIssue = liveDetailIssue || activeShareIssue || null;
     updateDocumentMetaForIssue(targetIssue);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       if (targetIssue) {
@@ -313,7 +330,7 @@ export function App() {
         window.history.replaceState(null, '', `/${window.location.hash || '#app'}`);
       }
     }
-  }, [activeDetailIssue, activeShareIssue]);
+  }, [liveDetailIssue, activeShareIssue]);
 
   // If URL has /{slug-of-the-issue-question}-{id} or ?issue=<id> and user is authenticated, auto-open that issue
   useEffect(() => {
@@ -381,6 +398,13 @@ export function App() {
           setActiveDetailIssue(null);
           setCurrentView(hash as AppView);
         }
+      } else if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+        const userHandle = hash.replace(/^(profile|user)\//, '');
+        const resolved = resolveUserProfile({ username: userHandle }, issues, currentUser);
+        setActiveProfileUser(resolved);
+        setActiveDetailIssue(null);
+        setCurrentView('profile');
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       } else if (hash === 'contact') {
         setActiveDetailIssue(null);
         setCurrentView('contact');
@@ -393,7 +417,66 @@ export function App() {
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
-  }, [currentUser]);
+  }, [currentUser, issues]);
+
+  // Handle direct navigation to profile on initial page load if hash present
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+      const userHandle = hash.replace(/^(profile|user)\//, '');
+      const resolved = resolveUserProfile({ username: userHandle }, issues, currentUser);
+      setActiveProfileUser(resolved);
+      setActiveDetailIssue(null);
+      setCurrentView('profile');
+    }
+  }, []);
+
+  // Open user profile page
+  const handleOpenProfile = (target: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => {
+    const resolved = resolveUserProfile(target, issues, currentUser);
+    setActiveProfileUser(resolved);
+    setActiveDetailIssue(null);
+    setCurrentView('profile');
+    window.location.hash = `profile/${encodeURIComponent(resolved.username)}`;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
+  // Toggle follow user profile
+  const handleToggleFollowProfile = (targetProfile: PublicUserProfile) => {
+    if (!currentUser) {
+      setAuthPromptMessage('Please sign in to follow community members.');
+      handleNavigate('auth');
+      return;
+    }
+    const currentFollowing = currentUser.followingCreators || [];
+    const targetHandle = targetProfile.username;
+    const targetName = targetProfile.name;
+    const targetId = targetProfile.id || targetHandle;
+
+    const isFollowing = currentFollowing.some(f => {
+      const fClean = f.replace(/^@/, '').toLowerCase();
+      return fClean === targetHandle.toLowerCase() || f.toLowerCase() === targetName.toLowerCase() || f === targetId;
+    });
+
+    let updatedFollowing: string[];
+    if (isFollowing) {
+      updatedFollowing = currentFollowing.filter(f => {
+        const fClean = f.replace(/^@/, '').toLowerCase();
+        return !(fClean === targetHandle.toLowerCase() || f.toLowerCase() === targetName.toLowerCase() || f === targetId);
+      });
+      addToast('info', 'Unfollowed', `You unfollowed @${targetProfile.username}.`);
+    } else {
+      updatedFollowing = [...currentFollowing, `@${targetProfile.username}`];
+      addToast('success', 'Following!', `You are now following @${targetProfile.username}. Their issues will be prioritized in your feed.`);
+    }
+
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      followingCreators: updatedFollowing,
+    };
+    setCurrentUser(updatedUser);
+    saveStoredUser(updatedUser);
+  };
 
   // Sync issues to localStorage and cloud server
   useEffect(() => {
@@ -526,7 +609,7 @@ export function App() {
     setActiveVoteIssue(issue);
   };
 
-  // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies)
+  // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies; votes cannot be changed once cast)
   const handleVoteSubmit = (submission: VoteSubmission) => {
     const targetIssue = issues.find(i => i.id === submission.issueId);
     recordUserInterestFromIssue(targetIssue);
@@ -534,21 +617,32 @@ export function App() {
     const hasExistingVote = Boolean(existingVote);
     const hasContent = Boolean(submission.note || submission.voiceNote);
 
+    // If user has already voted, switching vote/stance is strictly forbidden!
+    if (hasExistingVote) {
+      if (existingVote.choice !== submission.choice) {
+        addToast(
+          'warning',
+          'Vote is permanent',
+          `You already voted ${existingVote.choice} on this issue. Votes cannot be changed once cast.`
+        );
+        return;
+      }
+      if (!hasContent) {
+        addToast(
+          'info',
+          'Already voted',
+          `You already voted ${existingVote.choice} on this issue.`
+        );
+        return;
+      }
+    }
+
     setIssues(prevIssues => {
-      return prevIssues.map(issue => {
+      const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
-          let nextYes = issue.yesCount;
-          let nextNo = issue.noCount;
-
-          if (!hasExistingVote) {
-            nextYes = isYes ? issue.yesCount + 1 : issue.yesCount;
-            nextNo = !isYes ? issue.noCount + 1 : issue.noCount;
-          } else if (existingVote.choice !== submission.choice) {
-            // User switched stance from YES->NO or NO->YES
-            nextYes = isYes ? issue.yesCount + 1 : Math.max(0, issue.yesCount - 1);
-            nextNo = !isYes ? issue.noCount + 1 : Math.max(0, issue.noCount - 1);
-          }
+          const nextYes = !hasExistingVote ? (isYes ? issue.yesCount + 1 : issue.yesCount) : issue.yesCount;
+          const nextNo = !hasExistingVote ? (!isYes ? issue.noCount + 1 : issue.noCount) : issue.noCount;
 
           return {
             ...issue,
@@ -559,14 +653,20 @@ export function App() {
         }
         return issue;
       });
+      saveIssues(nextIssues);
+      return nextIssues;
     });
 
-    recordUserVote(submission.issueId, submission.choice, submission.id);
-    setUserVotes(getUserVotesMap());
+    const savedResponseId = hasContent ? submission.id : existingVote?.responseId;
+    recordUserVote(submission.issueId, submission.choice, savedResponseId);
+    setUserVotes(prev => ({
+      ...prev,
+      [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
+    }));
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
-    if (!hasExistingVote || existingVote.choice !== submission.choice) {
+    if (!hasExistingVote) {
       recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
     }
     if (submission.note) {
@@ -585,15 +685,9 @@ export function App() {
       setActiveDetailIssue(prev => {
         if (!prev) return null;
         const isYes = submission.choice === 'YES';
-        let nextYes = prev.yesCount;
-        let nextNo = prev.noCount;
-        if (!hasExistingVote) {
-          nextYes = isYes ? prev.yesCount + 1 : prev.yesCount;
-          nextNo = !isYes ? prev.noCount + 1 : prev.noCount;
-        } else if (existingVote.choice !== submission.choice) {
-          nextYes = isYes ? prev.yesCount + 1 : Math.max(0, prev.yesCount - 1);
-          nextNo = !isYes ? prev.noCount + 1 : Math.max(0, prev.noCount - 1);
-        }
+        const nextYes = !hasExistingVote ? (isYes ? prev.yesCount + 1 : prev.yesCount) : prev.yesCount;
+        const nextNo = !hasExistingVote ? (!isYes ? prev.noCount + 1 : prev.noCount) : prev.noCount;
+
         return {
           ...prev,
           yesCount: nextYes,
@@ -603,8 +697,8 @@ export function App() {
       });
     }
 
-    // Do not show a toast when the user is adding a reply to an existing vote (since the reply appears instantly)
-    if (!(hasExistingVote && hasContent)) {
+    // Show toast for new votes or added perspectives
+    if (!hasExistingVote) {
       addToast(
         'success',
         `Your ${submission.choice} vote was recorded`,
@@ -613,6 +707,14 @@ export function App() {
           : submission.note
           ? 'Perspective posted to the thread.'
           : 'Tap Reply below the card if you want to add a quick note or voice clip.'
+      );
+    } else if (hasContent) {
+      addToast(
+        'success',
+        'Perspective posted',
+        submission.voiceNote
+          ? 'Voice note attached to your perspective.'
+          : 'Your perspective has been posted to the thread.'
       );
     }
   };
@@ -1178,40 +1280,78 @@ export function App() {
     return { totalVotes, totalVoiceNotes, totalIssues: issues.length };
   }, [issues]);
 
-  // Filtered & Sorted Issues with Region + Worldwide and Interests Priority
+  // Filtered & Sorted Issues: Default ('for-you') blends Trending momentum + Newest issues,
+  // prioritized by user interests & region (without hiding posts if user hasn't selected any)
   const filteredIssues = useMemo(() => {
     const userRegion = currentUser?.region;
     const userInterests = currentUser?.interests || [];
     const followedCreatorIds = currentUser?.followingCreators || [];
 
-    // Helper: compute priority score for an issue based on user preferences
-    const computePriorityScore = (issue: Issue): number => {
-      let score = 0;
-      const issueReg = inferIssueRegion(issue);
+    // Helper: compute ranking score for the default feed ('for-you'):
+    // Blends Trending momentum + Newest freshness, boosted by user interests & region.
+    // If user has not selected/saved interests or region, all posts rank purely by trending + freshness.
+    const computeFeedScore = (issue: Issue): number => {
+      const now = Date.now();
+      const issueCreatedTime = new Date(issue.createdAt || '').getTime() || (now - 86400000 * 3);
+      const ageHours = Math.max(0, (now - issueCreatedTime) / (1000 * 60 * 60));
 
-      // 1. Region Priority:
-      // Exact region match gets highest priority (+300), Worldwide ('Global / Remote') gets mixed in (+150)
-      if (userRegion && userRegion !== 'Global / Remote') {
-        if (issueReg === userRegion) {
-          score += 300;
-        } else if (issueReg === 'Global / Remote') {
-          score += 150;
+      // 1. Trending Momentum:
+      // High weight on votes (5 pts), perspectives (10 pts), voice clips (14 pts), and likes (3 pts)
+      const totalVotes = issue.yesCount + issue.noCount;
+      const responsesCount = issue.responses?.length || 0;
+      const voiceNotesCount = issue.responses?.filter(r => !!r.voiceNote).length || 0;
+      const likesCount = issue.likesCount || 0;
+
+      // Close split debate bonus (balanced YES/NO ratios generate intense viral engagement)
+      let debateBonus = 0;
+      if (totalVotes >= 3) {
+        const splitRatio = Math.min(issue.yesCount, issue.noCount) / Math.max(issue.yesCount, issue.noCount);
+        debateBonus = splitRatio * 30; // up to +30 points for contentious 50-50 splits
+      }
+
+      // Smooth decay on engagement momentum so hot active debates outrank dormant ancient polls
+      const engagementRaw = (totalVotes * 5) + (responsesCount * 10) + (voiceNotesCount * 14) + (likesCount * 3) + debateBonus;
+      const engagementDecay = Math.max(0.18, Math.exp(-ageHours / 72));
+      const trendingScore = engagementRaw * engagementDecay;
+
+      // 2. Newest / Freshness Factor:
+      // Gives strong visibility to newly published issues alongside top trending ones
+      // An issue under 6h gets up to +140 bonus, under 24h gets +45 bonus
+      const freshnessScore = Math.max(0, 140 * Math.exp(-ageHours / 18));
+
+      // 3. Featured Editorial Bonus:
+      const featuredScore = issue.featured ? 35 : 0;
+
+      // 4. Personalized Interests Boost (only applied if user selected/saved any):
+      let interestScore = 0;
+      if (userInterests.length > 0) {
+        if (userInterests.includes(issue.category) || issue.category === 'Private & Internal') {
+          interestScore = 140;
         }
-      } else if (userRegion === 'Global / Remote' && issueReg === 'Global / Remote') {
-        score += 200;
       }
 
-      // 2. Interests Priority:
-      // Issues matching user's selected categories get boosted (+200), Private/Global issues get mixed in
-      if (userInterests.length > 0 && userInterests.includes(issue.category)) {
-        score += 200;
+      // 5. Personalized Region Boost (only applied if user selected/saved any):
+      let regionScore = 0;
+      if (userRegion && userRegion !== 'Global / Remote') {
+        const issueReg = inferIssueRegion(issue);
+        if (issueReg === userRegion) {
+          regionScore = 140;
+        } else if (issueReg === 'Global / Remote') {
+          regionScore = 45;
+        }
+      } else if (userRegion === 'Global / Remote') {
+        const issueReg = inferIssueRegion(issue);
+        if (issueReg === 'Global / Remote') {
+          regionScore = 55;
+        }
       }
 
-      // 3. Followed Creators / Voters Priority:
+      // 6. Followed Creators Boost:
+      let followedScore = 0;
       if (followedCreatorIds.length > 0) {
+        const authorLower = issue.author.toLowerCase();
         const matchesFollowed = followedCreatorIds.some(followed => {
           const fLower = followed.toLowerCase();
-          const authorLower = issue.author.toLowerCase();
           if (authorLower.includes(fLower) || fLower.includes(authorLower)) return true;
           const creator = TOP_CREATORS_AND_VOTERS.find(c => c.id === followed || c.name.toLowerCase() === fLower);
           return Boolean(
@@ -1222,11 +1362,11 @@ export function App() {
           );
         });
         if (matchesFollowed) {
-          score += 120;
+          followedScore = 80;
         }
       }
 
-      return score;
+      return trendingScore + freshnessScore + featuredScore + interestScore + regionScore + followedScore;
     };
 
     let result = issues.filter(issue => {
@@ -1241,19 +1381,8 @@ export function App() {
       if (!matchesCategory || !matchesSearch) return false;
       if (showFavoritesOnly && !userFavorites[issue.id]) return false;
 
-      // If a user hasn't selected any interests yet (and isn't actively searching, filtering by category, or viewing Favourites),
-      // show them nothing in the default homepage feed so they are encouraged to use Search or Discovery.
-      if (
-        userInterests.length === 0 &&
-        selectedCategory === 'All' &&
-        !query &&
-        !showFavoritesOnly
-      ) {
-        return false;
-      }
-
-      // Region Scope filter: When 'my-region-worldwide' is active and user selected a specific region,
-      // show issues from that region AND issues from users who selected Worldwide ('Global / Remote')
+      // Region Scope filter: When 'my-region-worldwide' is explicitly active and user selected a specific region,
+      // show issues from that region AND Worldwide ('Global / Remote')
       if (
         regionScope === 'my-region-worldwide' &&
         userRegion &&
@@ -1261,19 +1390,6 @@ export function App() {
       ) {
         const issueReg = inferIssueRegion(issue);
         if (issueReg !== userRegion && issueReg !== 'Global / Remote') {
-          return false;
-        }
-      }
-
-      // Interest Scope filter: When 'my-interests-mixed' is active and selectedCategory === 'All' and user has interests,
-      // show issues matching their selected interests (plus Private Circle issues they have access to)
-      if (
-        interestScope === 'my-interests-mixed' &&
-        selectedCategory === 'All' &&
-        userInterests.length > 0
-      ) {
-        const matchesInterest = userInterests.includes(issue.category) || issue.category === 'Private & Internal';
-        if (!matchesInterest) {
           return false;
         }
       }
@@ -1286,9 +1402,12 @@ export function App() {
       const totalB = b.yesCount + b.noCount;
 
       if (sortBy === 'for-you') {
-        const scoreDiff = computePriorityScore(b) - computePriorityScore(a);
+        const scoreDiff = computeFeedScore(b) - computeFeedScore(a);
         if (scoreDiff !== 0) return scoreDiff;
-        return totalB - totalA;
+        return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
+      }
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
       }
       if (sortBy === 'active') return totalB - totalA;
       if (sortBy === 'perspectives') return b.responses.length - a.responses.length;
@@ -1460,6 +1579,7 @@ export function App() {
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         onOpenProfileSettings={() => setIsProfileSettingsOpen(true)}
+        onOpenProfile={handleOpenProfile}
         onResetData={handleResetData}
         categoryCounts={categoryCounts}
         currentView={currentView}
@@ -1472,17 +1592,47 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'issue' && activeDetailIssue ? (
+        {currentView === 'profile' && activeProfileUser ? (
+          <UserProfilePage
+            profile={activeProfileUser}
+            currentUser={currentUser}
+            issues={issues}
+            onBack={() => {
+              setActiveProfileUser(null);
+              handleNavigate('app');
+            }}
+            onOpenIssue={(iss) => {
+              recordUserInterestFromIssue(iss);
+              setActiveDetailIssue(iss);
+              setCurrentView('issue');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              window.location.hash = `issue/${iss.id}`;
+            }}
+            onQuickVote={handleOpenQuickVote}
+            onInlineSubmitVote={handleVoteSubmit}
+            onToggleFollow={handleToggleFollowProfile}
+            onOpenSettings={() => setIsProfileSettingsOpen(true)}
+            onOpenProfile={handleOpenProfile}
+            userVotes={userVotes}
+            userLikes={userLikes}
+            userFavorites={userFavorites}
+            onToggleLikeIssue={handleToggleLikeIssue}
+            onToggleFavoriteIssue={handleToggleFavoriteIssue}
+            onShareIssue={(iss) => setActiveShareIssue(iss)}
+            onDeleteIssue={handleDeleteIssueByAuthor}
+            onEditIssue={handleEditIssue}
+          />
+        ) : currentView === 'issue' && liveDetailIssue ? (
           <IssueDetailPage
-            issue={activeDetailIssue}
+            issue={liveDetailIssue}
             currentUser={currentUser}
             onClose={() => {
               setActiveDetailIssue(null);
               handleNavigate('app');
             }}
             onOpenVoteModal={(choice) => {
-              if (activeDetailIssue) {
-                handleOpenQuickVote(activeDetailIssue, choice);
+              if (liveDetailIssue) {
+                handleOpenQuickVote(liveDetailIssue, choice);
               }
             }}
             onInlineSubmitVote={handleVoteSubmit}
@@ -1491,10 +1641,10 @@ export function App() {
             onToggleLikeIssue={handleToggleLikeIssue}
             onToggleFavoriteIssue={handleToggleFavoriteIssue}
             onShareIssue={(iss) => setActiveShareIssue(iss)}
-            hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
-            userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
-            isLiked={activeDetailIssue ? !!userLikes[activeDetailIssue.id] : false}
-            isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
+            hasUserVoted={liveDetailIssue ? !!userVotes[liveDetailIssue.id] : false}
+            userVoteChoice={liveDetailIssue ? userVotes[liveDetailIssue.id]?.choice : undefined}
+            isLiked={liveDetailIssue ? !!userLikes[liveDetailIssue.id] : false}
+            isFavorited={liveDetailIssue ? !!userFavorites[liveDetailIssue.id] : false}
             onAddCommentReply={handleAddCommentReply}
             onToggleCommentReaction={handleToggleCommentReaction}
             onLikeResponse={handleLikeResponse}
@@ -1504,6 +1654,7 @@ export function App() {
             onShareComment={handleShareComment}
             onAddInvite={handleAddInvite}
             onAddGroupInvite={handleAddGroupInvite}
+            onOpenProfile={handleOpenProfile}
           />
         ) : currentView === 'analytics' && isAdminUser(currentUser) ? (
           <AdminAnalyticsPage
@@ -1620,50 +1771,7 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {(!currentUser.interests || currentUser.interests.length === 0) &&
-            selectedCategory === 'All' &&
-            !searchQuery.trim() &&
-            !showFavoritesOnly ? (
-              <div className="card p-8 sm:p-10 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Your personalized feed starts with what matters to you
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-                  You haven&apos;t selected any interests yet. Use <strong>Search</strong> or explore <strong>Discovery</strong> to find issues — as you vote, like, or interact with issues, we&apos;ll automatically build your interests profile!
-                </p>
-                <div className="pt-2 flex flex-wrap justify-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate('discovery')}
-                    className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
-                  >
-                    <Compass className="w-4 h-4" />
-                    <span>Explore Discovery</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSearchMobile(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>Use Search</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileSettingsOpen(true)}
-                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
-                  >
-                    <span>Pick Interests</span>
-                  </button>
-                </div>
-              </div>
-            ) : issues.length === 0 ? (
+            {issues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
                 <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Vote className="w-6 h-6" />
@@ -1707,6 +1815,21 @@ export function App() {
               </div>
             ) : (
               <>
+                {currentUser && (!currentUser.interests || currentUser.interests.length === 0) && selectedCategory === 'All' && !searchQuery.trim() && !showFavoritesOnly && (
+                  <div className="mb-3 p-3 rounded-2xl bg-brand-50/70 dark:bg-brand-500/10 border border-brand-200/60 dark:border-brand-500/20 flex items-center justify-between gap-3 text-xs">
+                    <span className="flex items-center gap-2 text-slate-700 dark:text-zinc-300">
+                      <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
+                      <span>Showing all trending &amp; new issues. Personalize your feed anytime by picking interests.</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileSettingsOpen(true)}
+                      className="px-2.5 py-1 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold shrink-0 cursor-pointer text-[11px]"
+                    >
+                      Pick Interests
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:gap-5 max-w-2xl mx-auto w-full">
                   {visibleIssues.map((issue) => {
                     const voteRecord = userVotes[issue.id];
@@ -1733,6 +1856,7 @@ export function App() {
                         userVoteChoice={voteRecord?.choice}
                         isLiked={!!userLikes[issue.id]}
                         isFavorited={!!userFavorites[issue.id]}
+                        onOpenProfile={handleOpenProfile}
                       />
                     );
                   })}
@@ -1820,6 +1944,7 @@ export function App() {
       <VoteModal
         issue={activeVoteIssue}
         initialChoice={initialVoteChoice}
+        existingVoteChoice={activeVoteIssue ? userVotes[activeVoteIssue.id]?.choice : undefined}
         isOpen={!!activeVoteIssue}
         onClose={() => {
           setActiveVoteIssue(null);

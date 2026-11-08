@@ -16,6 +16,8 @@ export interface UserProfile {
   followingCreators?: string[];
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
+  soundEnabled?: boolean;
+  animationsEnabled?: boolean;
   onboardingCompleted?: boolean;
 }
 
@@ -159,4 +161,18 @@ export interface ModerationResult {
   severity: 'clean' | 'warning' | 'rejected';
 }
 
-export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue' | 'contact';
+export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue' | 'contact' | 'profile';
+
+export interface PublicUserProfile {
+  id?: string;
+  name: string;
+  username: string;
+  email?: string;
+  role?: string;
+  bio?: string;
+  avatar?: string;
+  region?: IssueRegion;
+  groups?: string[];
+  interests?: IssueCategory[];
+  isVerified?: boolean;
+}

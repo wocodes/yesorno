@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ThumbsUp, ThumbsDown, MessageSquare, Mic, CheckCircle2, 
   Lock, Clock, Image as ImageIcon, ArrowUpRight, Share2,
@@ -28,6 +28,7 @@ interface Props {
   userVoteChoice?: 'YES' | 'NO';
   isLiked?: boolean;
   isFavorited?: boolean;
+  onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -79,6 +80,7 @@ export const IssueCard: React.FC<Props> = ({
   userVoteChoice,
   isLiked = false,
   isFavorited = false,
+  onOpenProfile,
 }) => {
   const metrics = computeIssueMetrics(issue);
   const access = canUserAccessIssue(issue, currentUser);
@@ -98,6 +100,13 @@ export const IssueCard: React.FC<Props> = ({
   const [inlineAnon, setInlineAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
   const [alias] = useState(() => generateCivicAlias());
 
+  // Keep inlineChoice synced when userVoteChoice prop updates
+  useEffect(() => {
+    if (userVoteChoice) {
+      setInlineChoice(userVoteChoice);
+    }
+  }, [userVoteChoice]);
+
   // Inline Quick Voice Recording State
   const [isRecordingInline, setIsRecordingInline] = useState(false);
   const [recSeconds, setRecSeconds] = useState(0);
@@ -113,29 +122,39 @@ export const IssueCard: React.FC<Props> = ({
       return;
     }
 
-    // If user hasn't voted yet, cast their vote immediately in 1 tap (like X/Instagram like + reply)
-    // and open the inline reply composer so they can optionally type a quick reply or attach audio!
-    if (!hasUserVoted) {
-      playHapticChime(choice === 'YES' ? 'yes' : 'no');
-      triggerVoteConfetti(choice === 'YES');
-      const submission: VoteSubmission = {
-        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        issueId: issue.id,
-        choice,
-        isAnonymous: inlineAnon,
-        authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
-        authorUsername: !inlineAnon ? currentUser.username : undefined,
-        authorEmail: !inlineAnon ? currentUser.email : undefined,
-        authorAlias: inlineAnon ? alias : undefined,
-        authorRole: !inlineAnon ? currentUser.role : undefined,
-        createdAt: new Date().toISOString(),
-        likesCount: 0,
-      };
-      onInlineSubmitVote(submission);
+    // Once voted, vote/stance CANNOT change
+    if (hasUserVoted) {
+      if (userVoteChoice === choice) {
+        setShowInlineComposer(prev => !prev);
+      }
+      return;
     }
+
+    // New vote: cast immediately in 1 tap
+    playHapticChime(choice === 'YES' ? 'yes' : 'no');
+    triggerVoteConfetti(choice === 'YES');
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice,
+      isAnonymous: inlineAnon,
+      authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !inlineAnon ? currentUser.username : undefined,
+      authorEmail: !inlineAnon ? currentUser.email : undefined,
+      authorAlias: inlineAnon ? alias : undefined,
+      authorRole: !inlineAnon ? currentUser.role : undefined,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
 
     setInlineChoice(choice);
     setShowInlineComposer(true);
+  };
+
+  const handleInlineChoiceChange = (choice: VoteChoice) => {
+    if (hasUserVoted) return; // Stance locked once voted
+    setInlineChoice(choice);
   };
 
   const startInlineMic = async () => {
@@ -311,18 +330,63 @@ export const IssueCard: React.FC<Props> = ({
           {/* Creator Profile, FirstName, Time & Category Bar */}
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <div className="flex items-center gap-2 min-w-0">
-              <img
-                src={authorInfo.avatarUrl}
-                alt={authorInfo.fullName}
-                className="w-6 h-6 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
-                }}
-              />
+              {issue.isAnonymousAuthor || !onOpenProfile ? (
+                <img
+                  src={authorInfo.avatarUrl}
+                  alt={authorInfo.fullName}
+                  className="w-6 h-6 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenProfile({
+                      username: authorInfo.username,
+                      name: authorInfo.fullName || authorInfo.displayName,
+                      avatar: authorInfo.avatarUrl,
+                      email: issue.creatorEmail,
+                    });
+                  }}
+                  className="rounded-full shrink-0 hover:ring-2 hover:ring-brand-500/50 transition-all cursor-pointer"
+                  title={`View ${authorInfo.displayName}'s profile`}
+                >
+                  <img
+                    src={authorInfo.avatarUrl}
+                    alt={authorInfo.fullName}
+                    className="w-6 h-6 rounded-full object-cover border border-black/10 dark:border-white/10"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                    }}
+                  />
+                </button>
+              )}
               <div className="flex items-center gap-1.5 min-w-0 text-xs">
-                <span className="font-bold text-ink-950 dark:text-white truncate">
-                  {authorInfo.displayName}
-                </span>
+                {issue.isAnonymousAuthor || !onOpenProfile ? (
+                  <span className="font-bold text-ink-950 dark:text-white truncate">
+                    {authorInfo.displayName}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenProfile({
+                        username: authorInfo.username,
+                        name: authorInfo.fullName || authorInfo.displayName,
+                        avatar: authorInfo.avatarUrl,
+                        email: issue.creatorEmail,
+                      });
+                    }}
+                    className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors truncate text-left cursor-pointer"
+                    title={`View ${authorInfo.displayName}'s profile`}
+                  >
+                    {authorInfo.displayName}
+                  </button>
+                )}
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                   {relativeTime}
@@ -561,40 +625,77 @@ export const IssueCard: React.FC<Props> = ({
               <span>Digest</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
-          ) : hasUserVoted ? (
-            <button
-              type="button"
-              onClick={() => {
-                setInlineChoice(userVoteChoice || 'YES');
-                setShowInlineComposer(!showInlineComposer);
-              }}
-              className={`flex items-center gap-1 py-1.5 px-2.5 sm:px-3 font-bold rounded-xl text-[11px] sm:text-xs whitespace-nowrap transition-colors cursor-pointer ${
-                userVoteChoice === 'YES'
-                  ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
-                  : 'bg-rose-50 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>{userVoteChoice} • Reply</span>
-            </button>
           ) : (
             <div className="flex items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('YES')}
-                className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95"
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
+                title={
+                  hasUserVoted
+                    ? userVoteChoice === 'YES'
+                      ? 'You voted YES (tap to add note/audio)'
+                      : 'You already voted NO (votes cannot be changed)'
+                    : 'Vote YES'
+                }
+                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
+                  hasUserVoted && userVoteChoice === 'YES'
+                    ? 'bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-400 cursor-pointer active:scale-95'
+                    : hasUserVoted && userVoteChoice !== 'YES'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white cursor-pointer active:scale-95'
+                }`}
               >
-                <ThumbsUp className="w-3 h-3 shrink-0" />
-                <span>YES</span>
+                {hasUserVoted && userVoteChoice === 'YES' ? (
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                ) : (
+                  <ThumbsUp className="w-3 h-3 shrink-0" />
+                )}
+                <span>{hasUserVoted && userVoteChoice === 'YES' ? 'YES ✓' : 'YES'}</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('NO')}
-                className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95"
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
+                title={
+                  hasUserVoted
+                    ? userVoteChoice === 'NO'
+                      ? 'You voted NO (tap to add note/audio)'
+                      : 'You already voted YES (votes cannot be changed)'
+                    : 'Vote NO'
+                }
+                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
+                  hasUserVoted && userVoteChoice === 'NO'
+                    ? 'bg-rose-600 text-white shadow-xs ring-1 ring-rose-400 cursor-pointer active:scale-95'
+                    : hasUserVoted && userVoteChoice !== 'NO'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white cursor-pointer active:scale-95'
+                }`}
               >
-                <ThumbsDown className="w-3 h-3 shrink-0" />
-                <span>NO</span>
+                {hasUserVoted && userVoteChoice === 'NO' ? (
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                ) : (
+                  <ThumbsDown className="w-3 h-3 shrink-0" />
+                )}
+                <span>{hasUserVoted && userVoteChoice === 'NO' ? 'NO ✓' : 'NO'}</span>
               </button>
+
+              {/* Reply toggle button when voted */}
+              {hasUserVoted && (
+                <button
+                  type="button"
+                  onClick={() => setShowInlineComposer(!showInlineComposer)}
+                  title="Add comment or voice perspective"
+                  className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                    showInlineComposer
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-600 dark:text-zinc-300'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -608,29 +709,44 @@ export const IssueCard: React.FC<Props> = ({
         >
           <div className="flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-slate-500 dark:text-zinc-400">Your Stance:</span>
-              <button
-                type="button"
-                onClick={() => setInlineChoice('YES')}
-                className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer ${
-                  inlineChoice === 'YES'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400'
-                }`}
-              >
-                👍 YES
-              </button>
-              <button
-                type="button"
-                onClick={() => setInlineChoice('NO')}
-                className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer ${
-                  inlineChoice === 'NO'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400'
-                }`}
-              >
-                👎 NO
-              </button>
+              {hasUserVoted ? (
+                <span className="inline-flex items-center gap-1.5 font-bold text-slate-600 dark:text-zinc-300">
+                  <Lock className="w-3 h-3 text-brand-500 shrink-0" />
+                  <span>Your Vote:</span>
+                  <span className={`px-2 py-0.5 rounded-md font-extrabold ${
+                    userVoteChoice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                  }`}>
+                    {userVoteChoice === 'YES' ? '👍 YES ✓' : '👎 NO ✓'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">(Final)</span>
+                </span>
+              ) : (
+                <>
+                  <span className="font-bold text-slate-500 dark:text-zinc-400">Your Stance:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineChoiceChange('YES')}
+                    className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
+                      inlineChoice === 'YES'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-emerald-50 hover:text-emerald-700'
+                    }`}
+                  >
+                    👍 YES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineChoiceChange('NO')}
+                    className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
+                      inlineChoice === 'NO'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-rose-50 hover:text-rose-700'
+                    }`}
+                  >
+                    👎 NO
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

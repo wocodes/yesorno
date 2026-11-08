@@ -1,9 +1,75 @@
 import confetti from 'canvas-confetti';
 
+export const STORAGE_KEY_SOUNDS = 'yesorno_sounds_enabled_v1';
+export const STORAGE_KEY_ANIMATIONS = 'yesorno_animations_enabled_v1';
+
+/**
+ * Returns whether sounds and audio chimes are enabled
+ */
+export function areSoundsEnabled(): boolean {
+  try {
+    const val = localStorage.getItem(STORAGE_KEY_SOUNDS);
+    if (val !== null) return val === 'true';
+    return true; // Enabled by default
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Sets sounds enabled state and persists to localStorage
+ */
+export function setSoundsEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_SOUNDS, String(enabled));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Returns whether animations and confetti are enabled
+ */
+export function areAnimationsEnabled(): boolean {
+  try {
+    const val = localStorage.getItem(STORAGE_KEY_ANIMATIONS);
+    if (val !== null) return val === 'true';
+    return true; // Enabled by default
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Applies the disable-animations class to <html> for instant global CSS suppression
+ */
+export function applyAnimationsClass(enabled: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (enabled) {
+    document.documentElement.classList.remove('disable-animations');
+  } else {
+    document.documentElement.classList.add('disable-animations');
+  }
+}
+
+/**
+ * Sets animations enabled state, persists to localStorage, and updates document class
+ */
+export function setAnimationsEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_ANIMATIONS, String(enabled));
+    applyAnimationsClass(enabled);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 /**
  * Triggers a classy, refined confetti celebration
  */
 export function triggerVoteConfetti(isYes = true): void {
+  if (!areAnimationsEnabled()) return;
+
   try {
     const colors = isYes 
       ? ['#10b981', '#34d399', '#6366f1', '#a7f3d0', '#fbbf24'] 
@@ -27,6 +93,8 @@ export function triggerVoteConfetti(isYes = true): void {
  * Plays an ultra-classy synthesized acoustic chime via Web Audio API
  */
 export function playHapticChime(type: 'yes' | 'no' | 'tap' = 'yes'): void {
+  if (!areSoundsEnabled()) return;
+
   try {
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
