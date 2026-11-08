@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
-  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds,
+  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds, LEGACY_MOCK_ISSUE_IDS,
   apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail, fetchServerProfileByEmail } from './utils/auth';
@@ -90,6 +90,7 @@ export function App() {
   const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
+  const [isInitialLoadingIssues, setIsInitialLoadingIssues] = useState(true);
   const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
   const [userLikes, setUserLikes] = useState<Record<string, boolean>>(() => getUserLikesMap());
   const [userFavorites, setUserFavorites] = useState<Record<string, boolean>>(() => getUserFavoritesMap());
@@ -533,15 +534,16 @@ export function App() {
   useEffect(() => {
     const syncFromCloud = () => {
       fetchServerIssues().then((serverIssues) => {
+        setIsInitialLoadingIssues(false);
         if (serverIssues && serverIssues.length > 0) {
           setIssues((prev) => {
             const deletedIds = getDeletedIssueIds();
             const map = new Map<string, Issue>();
             serverIssues
-              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => map.set(i.id, i));
             prev
-              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => {
                 if (!map.has(i.id)) map.set(i.id, i);
               });
@@ -550,6 +552,8 @@ export function App() {
             return merged;
           });
         }
+      }).catch(() => {
+        setIsInitialLoadingIssues(false);
       });
     };
 
@@ -1905,7 +1909,12 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {issues.length === 0 ? (
+            {isInitialLoadingIssues && issues.length === 0 ? (
+              <div className="card p-10 sm:p-12 text-center space-y-3">
+                <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Loading community issues from database...</p>
+              </div>
+            ) : issues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
                 <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Vote className="w-6 h-6" />

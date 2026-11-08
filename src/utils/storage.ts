@@ -1,5 +1,18 @@
 import { Issue, VoteSubmission, CommentReply } from '../types';
-import { INITIAL_ISSUES } from '../data/initialIssues';
+
+export const LEGACY_MOCK_ISSUE_IDS = new Set([
+  'issue-workplace-1',
+  'issue-family-1',
+  'issue-faith-1',
+  'issue-groups-1',
+  'issue-1',
+  'issue-econ-1',
+  'issue-env-1',
+  'issue-edu-1',
+  'issue-policy-1',
+  'issue-gender-1',
+  'issue-entertainment-1',
+]);
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
 const STORAGE_KEY_DELETED_ISSUE_IDS = 'yesorno_deleted_issue_ids_v1';
@@ -37,45 +50,32 @@ export function recordDeletedIssueId(issueId: string): void {
 }
 
 /**
- * Returns default system platform issues with deleted issues filtered out
+ * Default issues return empty array - all platform issues are loaded dynamically from the database
  */
 export function getDefaultIssues(): Issue[] {
-  const deletedIds = getDeletedIssueIds();
-  return INITIAL_ISSUES.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
+  return [];
 }
 
 export function loadIssues(): Issue[] {
-  const defaults = getDefaultIssues();
   const deletedIds = getDeletedIssueIds();
   try {
     const data = localStorage.getItem(STORAGE_KEY_ISSUES);
     if (!data) {
-      if (defaults.length > 0) saveIssues(defaults);
-      return defaults;
+      return [];
     }
     const parsed = JSON.parse(data);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      if (defaults.length > 0) saveIssues(defaults);
-      return defaults;
+      return [];
     }
-    // Verify each issue has essential structure and filter out any deleted issues
+    // Verify each issue has essential structure, filter out deleted and any old hardcoded mock issues
     const valid = parsed
       .filter(i => i && typeof i === 'object' && typeof i.id === 'string' && Array.isArray(i.responses))
-      .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
-
-    // Merge in defaults if any system issues are missing from storage
-    const validIds = new Set(valid.map(i => i.id));
-    const missingDefaults = defaults.filter(d => !validIds.has(d.id));
-    if (missingDefaults.length > 0) {
-      const combined = [...valid, ...missingDefaults];
-      saveIssues(combined);
-      return combined;
-    }
+      .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id));
 
     return valid;
   } catch (err) {
     console.error('Failed to load issues from storage:', err);
-    return defaults;
+    return [];
   }
 }
 
@@ -83,7 +83,7 @@ export function saveIssues(issues: Issue[]): void {
   try {
     if (Array.isArray(issues)) {
       const deletedIds = getDeletedIssueIds();
-      const activeIssues = issues.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
+      const activeIssues = issues.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id));
       localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(activeIssues));
       // Asynchronously sync to cloud server storage for multi-device sync
       pushIssuesToServer(activeIssues);
