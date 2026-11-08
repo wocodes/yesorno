@@ -138,6 +138,17 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         votesCast: 164
       },
       {
+        id: 'creator-william',
+        name: 'William Odiomonafe',
+        handle: '@william.civic',
+        role: 'Civic Lead & Founder',
+        region: 'Global / Remote',
+        specialty: 'Business & Policy',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        issuesCount: 32,
+        votesCast: 420
+      },
+      {
         id: 'creator-dean',
         name: 'University Academic Senate',
         handle: '@academic.senate',

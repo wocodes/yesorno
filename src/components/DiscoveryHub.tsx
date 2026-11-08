@@ -12,6 +12,7 @@ interface Props {
   onQuickVote: (issue: Issue, choice?: VoteChoice) => void;
   onFilterByCategory?: (cat: IssueCategory) => void;
   fullPage?: boolean;
+  userVotes?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
 }
 
 type DiscoveryMode = 'trending' | 'region' | 'category' | 'closing' | 'debated';
@@ -26,7 +27,10 @@ const REGIONS: { key: IssueRegion | 'All Regions'; icon: string }[] = [
 ];
 
 const SPHERE_ICONS: Record<string, string> = {
-  'Workplace & Career': '💼',
+  'Business': '💼',
+  'Gender': '⚧️',
+  'Entertainment': '🎬',
+  'Workplace & Career': '🏢',
   'Family & Home': '👨‍👩‍👧',
   'Community & Neighborhood': '🏡',
   'Religious & Faith': '🕊️',
@@ -64,7 +68,8 @@ export const DiscoveryHub: React.FC<Props> = ({
   onOpenDetails,
   onQuickVote,
   onFilterByCategory,
-  fullPage = false
+  fullPage = false,
+  userVotes = {}
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [mode, setMode] = useState<DiscoveryMode>('trending');
@@ -372,21 +377,28 @@ export const DiscoveryHub: React.FC<Props> = ({
 
                   {/* Bottom Telemetry & Quick Vote */}
                   <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-white/[0.06]">
-                    {/* Mini Consensus Bar */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-emerald-600 dark:text-emerald-400">YES {metrics.yesPercent}%</span>
-                        <span className="text-slate-400 dark:text-zinc-500 font-mono text-[10px]">
-                          {metrics.totalVotes} votes
-                          {metrics.voiceNotesCount > 0 && ` • ${metrics.voiceNotesCount} 🎙️`}
-                        </span>
-                        <span className="text-rose-600 dark:text-rose-400">NO {metrics.noPercent}%</span>
+                    {/* Mini Consensus Bar or Lock if not voted */}
+                    {userVotes[issue.id] ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px] font-bold">
+                          <span className="text-emerald-600 dark:text-emerald-400">YES {metrics.yesPercent}%</span>
+                          <span className="text-slate-400 dark:text-zinc-500 font-mono text-[10px]">
+                            {metrics.totalVotes} votes
+                            {metrics.voiceNotesCount > 0 && ` • ${metrics.voiceNotesCount} 🎙️`}
+                          </span>
+                          <span className="text-rose-600 dark:text-rose-400">NO {metrics.noPercent}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex">
+                          <div className="bg-emerald-500 h-full" style={{ width: `${metrics.yesPercent}%` }} />
+                          <div className="bg-rose-500 h-full" style={{ width: `${metrics.noPercent}%` }} />
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex">
-                        <div className="bg-emerald-500 h-full" style={{ width: `${metrics.yesPercent}%` }} />
-                        <div className="bg-rose-500 h-full" style={{ width: `${metrics.noPercent}%` }} />
+                    ) : (
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400 py-0.5">
+                        <span className="font-medium">Vote to reveal results</span>
+                        <span className="font-mono text-[10px] text-slate-400">{metrics.totalVotes} votes</span>
                       </div>
-                    </div>
+                    )}
 
                     {/* Quick Action Row */}
                     <div className="flex items-center justify-between gap-2 pt-0.5">

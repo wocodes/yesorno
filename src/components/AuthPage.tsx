@@ -52,11 +52,24 @@ export const AuthPage: React.FC<Props> = ({
 }) => {
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [groupInput, setGroupInput] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>(['Community Member']);
   const [showDemoProfiles, setShowDemoProfiles] = useState(false);
+
+  // Preset avatar choices for quick onboarding
+  const AVATAR_PRESETS = [
+    'https://api.dicebear.com/7.x/micah/svg?seed=jordan',
+    'https://api.dicebear.com/7.x/micah/svg?seed=alex',
+    'https://api.dicebear.com/7.x/micah/svg?seed=sarah',
+    'https://api.dicebear.com/7.x/micah/svg?seed=marcus',
+    'https://api.dicebear.com/7.x/micah/svg?seed=riley',
+    'https://api.dicebear.com/7.x/micah/svg?seed=william',
+  ];
 
   // Interactive Google Account Chooser Modal (when no VITE_GOOGLE_CLIENT_ID is set or user clicks Continue with Google)
   const [showGoogleChooser, setShowGoogleChooser] = useState(false);
@@ -70,16 +83,21 @@ export const AuthPage: React.FC<Props> = ({
   // Helper to merge any previously saved profile preferences (region, interests, followingCreators)
   const selectUserWithSavedPrefs = (baseUser: UserProfile, forceOnboarding = false) => {
     const saved = getSavedProfileByEmail(baseUser.email);
+    const cleanUsername = baseUser.username || (baseUser.email ? baseUser.email.split('@')[0].replace(/[^a-z0-9_]/g, '_') : undefined);
     if (saved && !forceOnboarding) {
       onSelectUser({
         ...baseUser,
         ...saved,
+        username: saved.username || cleanUsername,
+        displayPreference: saved.displayPreference || 'username',
         name: saved.name || baseUser.name,
         avatar: saved.avatar || baseUser.avatar,
       });
     } else {
       onSelectUser({
         ...baseUser,
+        username: cleanUsername,
+        displayPreference: baseUser.displayPreference || 'username',
         onboardingCompleted: forceOnboarding ? false : (baseUser.onboardingCompleted ?? false),
       });
     }
@@ -101,12 +119,15 @@ export const AuthPage: React.FC<Props> = ({
           callback: (response) => {
             const payload = decodeGoogleJwt(response.credential);
             if (payload) {
+              const derivedUsername = (payload.email || 'user').split('@')[0].replace(/[^a-z0-9_]/g, '_');
               selectUserWithSavedPrefs({
                 id: `google-${payload.sub}`,
                 name: payload.name || payload.email.split('@')[0],
+                username: derivedUsername,
+                displayPreference: 'username',
                 email: payload.email,
                 role: 'Verified Google Account',
-                avatar: payload.picture,
+                avatar: payload.picture || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(derivedUsername)}`,
                 groups: ['District 4 Council', 'Community Member']
               });
             }
@@ -147,9 +168,15 @@ export const AuthPage: React.FC<Props> = ({
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
 
+    const rawUsername = username.trim().replace(/^@/, '') || name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const chosenAvatar = avatarUrl.trim() || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(rawUsername)}`;
+
     const newUser: UserProfile = {
       id: `user-${Date.now()}`,
       name: name.trim(),
+      username: rawUsername,
+      avatar: chosenAvatar,
+      displayPreference: 'username',
       email: email.trim(),
       role: role.trim() || 'Community Member',
       groups: selectedGroups,
@@ -164,10 +191,14 @@ export const AuthPage: React.FC<Props> = ({
     e.preventDefault();
     if (!customGoogleEmail.trim()) return;
     const derivedName = customGoogleName.trim() || customGoogleEmail.split('@')[0];
+    const derivedUsername = customGoogleEmail.split('@')[0].replace(/[^a-z0-9_]/g, '_');
     selectUserWithSavedPrefs({
       id: `google-${Date.now()}`,
       name: derivedName,
+      username: derivedUsername,
+      displayPreference: 'username',
       email: customGoogleEmail.trim().toLowerCase(),
+      avatar: `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(derivedUsername)}`,
       role: 'Verified Google Account',
       groups: ['District 4 Council', 'Community Member']
     });
@@ -423,11 +454,78 @@ export const AuthPage: React.FC<Props> = ({
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      setName(newName);
+                      if (!usernameManuallyEdited) {
+                        const suggested = newName.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20);
+                        setUsername(suggested);
+                      }
+                    }}
                     placeholder="Jordan Miller"
                     className="w-full text-xs pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Username
+                  </label>
+                  <span className="text-[10px] text-zinc-400">Used publicly by default</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-xs font-bold text-zinc-400 select-none">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => {
+                      setUsernameManuallyEdited(true);
+                      setUsername(e.target.value.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase());
+                    }}
+                    placeholder="jordan_m"
+                    className="w-full text-xs pl-8 pr-3 py-2.5 bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Profile Picture / Avatar Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Profile Picture
+                </label>
+                <div className="flex items-center gap-3 mb-2.5">
+                  <img
+                    src={avatarUrl || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(username || 'civic')}`}
+                    alt="Avatar preview"
+                    className="w-11 h-11 rounded-full object-cover border-2 border-brand-500/30 bg-slate-100 dark:bg-ink-800 shrink-0"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {AVATAR_PRESETS.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setAvatarUrl(preset)}
+                        className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                          avatarUrl === preset
+                            ? 'border-brand-500 scale-110 shadow-sm'
+                            : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={preset} alt={`preset-${idx}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input
+                  type="url"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="Or paste custom image URL..."
+                  className="w-full text-[11px] px-3 py-2 bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white"
+                />
               </div>
 
               <div>

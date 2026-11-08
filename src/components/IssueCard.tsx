@@ -3,14 +3,15 @@ import {
   ThumbsUp, ThumbsDown, MessageSquare, Mic, CheckCircle2, 
   Lock, Clock, Image as ImageIcon, ArrowUpRight, Share2,
   UserCheck, Trash2, Send, ShieldCheck, Square, X,
-  Heart, Bookmark
+  Heart, Bookmark, Flag
 } from 'lucide-react';
 import { Issue, UserProfile, VoteChoice, VoteSubmission } from '../types';
-import { computeIssueMetrics } from '../utils/summary';
+import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay, getUserDisplayName } from '../utils/summary';
 import { canUserAccessIssue, isIssueCreator, TOP_CREATORS_AND_VOTERS } from '../utils/auth';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
+import { ReportIssueModal } from './ReportIssueModal';
 
 interface Props {
   issue: Issue;
@@ -29,8 +30,11 @@ interface Props {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
+  'Business': '💼',
+  'Gender': '⚧️',
+  'Entertainment': '🎬',
   'Family & Home': '👨‍👩‍👧',
-  'Workplace & Career': '💼',
+  'Workplace & Career': '🏢',
   'Community & Neighborhood': '🏡',
   'Religious & Faith': '🕊️',
   'Clubs & Groups': '👥',
@@ -42,11 +46,14 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const SHORT_CATEGORIES: Record<string, string> = {
+  'Business': 'Business',
+  'Gender': 'Gender',
+  'Entertainment': 'Entertainment',
   'Family & Home': 'Family',
   'Workplace & Career': 'Workplace',
   'Community & Neighborhood': 'Community',
   'Religious & Faith': 'Faith',
-  'Clubs & Groups': 'Clubs',
+  'Clubs & Groups': 'Business',
   'Politics & Policy': 'Policy',
   'Environment & Climate': 'Climate',
   'Economy & Finance': 'Economy',
@@ -76,9 +83,12 @@ export const IssueCard: React.FC<Props> = ({
   const hasImages = !isDeleted && issue.images && issue.images.length > 0;
   const catEmoji = CATEGORY_ICONS[issue.category] || '🗳️';
   const shortCat = SHORT_CATEGORIES[issue.category] || issue.category;
+  const authorInfo = getAuthorDisplay(issue, currentUser);
+  const relativeTime = formatRelativeTime(issue.createdAt);
 
   // Inline Social Reply Drawer State (X / Instagram / Facebook style instant reply)
   const [showInlineComposer, setShowInlineComposer] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [inlineChoice, setInlineChoice] = useState<VoteChoice>(userVoteChoice || 'YES');
   const [inlineNote, setInlineNote] = useState('');
   const [inlineAnon, setInlineAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
@@ -109,7 +119,8 @@ export const IssueCard: React.FC<Props> = ({
         issueId: issue.id,
         choice,
         isAnonymous: inlineAnon,
-        authorName: inlineAnon ? 'Anonymous Neighbor' : currentUser.name,
+        authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+        authorUsername: !inlineAnon ? currentUser.username : undefined,
         authorEmail: !inlineAnon ? currentUser.email : undefined,
         authorAlias: inlineAnon ? alias : undefined,
         authorRole: !inlineAnon ? currentUser.role : undefined,
@@ -188,7 +199,8 @@ export const IssueCard: React.FC<Props> = ({
       issueId: issue.id,
       choice: inlineChoice,
       isAnonymous: inlineAnon,
-      authorName: inlineAnon ? 'Anonymous Neighbor' : currentUser.name,
+      authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !inlineAnon ? currentUser.username : undefined,
       authorEmail: !inlineAnon ? currentUser.email : undefined,
       authorAlias: inlineAnon ? alias : undefined,
       authorRole: !inlineAnon ? currentUser.role : undefined,
@@ -291,35 +303,54 @@ export const IssueCard: React.FC<Props> = ({
       )}
 
       <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
-        <div className="space-y-2">
-          {/* Top Badges when NO image is present — strictly single-line horizontal scroll on small mobile */}
-          {!hasImages && (
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 whitespace-nowrap shrink-0">
-                  <span>{catEmoji}</span>
-                  <span>{shortCat}</span>
+        <div className="space-y-2.5">
+          {/* Creator Profile, FirstName, Time & Category Bar */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <img
+                src={authorInfo.avatarUrl}
+                alt={authorInfo.fullName}
+                className="w-6 h-6 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                }}
+              />
+              <div className="flex items-center gap-1.5 min-w-0 text-xs">
+                <span className="font-bold text-ink-950 dark:text-white truncate">
+                  {authorInfo.displayName}
                 </span>
-
-                {issue.visibility === 'private' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 whitespace-nowrap shrink-0">
-                    <Lock className="w-3 h-3 shrink-0" /> Private
-                  </span>
-                ) : null}
-
-                {issue.creatorVoiceNote && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap shrink-0">
-                    <Mic className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" /> Audio
-                  </span>
-                )}
+                <span className="text-slate-300 dark:text-zinc-600">•</span>
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
+                  {relativeTime}
+                </span>
               </div>
-
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold whitespace-nowrap shrink-0 ${metrics.timeRemaining.badgeColor}`}>
-                <Clock className="w-3 h-3 shrink-0" />
-                {metrics.timeRemaining.text}
-              </span>
             </div>
-          )}
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {issue.isFlagged || (issue.flagReportsCount && issue.flagReportsCount > 0) ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 whitespace-nowrap">
+                  ⚠️ Flagged
+                </span>
+              ) : null}
+
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 whitespace-nowrap">
+                <span>{catEmoji}</span>
+                <span>{shortCat}</span>
+              </span>
+
+              {issue.visibility === 'private' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                  <Lock className="w-3 h-3 shrink-0" /> Private
+                </span>
+              ) : null}
+
+              {issue.creatorVoiceNote && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 whitespace-nowrap">
+                  <Mic className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" /> Audio
+                </span>
+              )}
+            </div>
+          </div>
 
           {/* Followed Creator Indicator Strip */}
           {isFollowedCreator && (
@@ -355,33 +386,45 @@ export const IssueCard: React.FC<Props> = ({
           </p>
         </div>
 
-        {/* Consensus Split Meter */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-              <ThumbsUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>YES {metrics.yesPercent}%</span>
-              <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.yesCount})</span>
-            </span>
+        {/* Consensus Split Meter: ONLY visible to users who have voted */}
+        {hasUserVoted ? (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                <ThumbsUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>YES {metrics.yesPercent}%</span>
+                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.yesCount})</span>
+              </span>
 
-            <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1">
-              <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.noCount})</span>
-              <span>NO {metrics.noPercent}%</span>
-              <ThumbsDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-            </span>
+              <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.noCount})</span>
+                <span>NO {metrics.noPercent}%</span>
+                <ThumbsDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+              </span>
+            </div>
+            
+            <div className="h-2.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full" 
+                style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }} 
+              />
+              <div 
+                className="bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500 rounded-full ml-0.5" 
+                style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }} 
+              />
+            </div>
           </div>
-          
-          <div className="h-2.5 w-full bg-slate-100 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
-            <div 
-              className="bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full" 
-              style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }} 
-            />
-            <div 
-              className="bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500 rounded-full ml-0.5" 
-              style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }} 
-            />
+        ) : (
+          <div className="pt-1">
+            <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-zinc-400 py-1.5 px-3 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] border border-slate-200/50 dark:border-white/5">
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3 h-3 text-slate-400" />
+                <span>Vote to reveal results</span>
+              </span>
+              <span className="font-mono text-[10px] text-slate-400">{metrics.totalVotes} {metrics.totalVotes === 1 ? 'vote' : 'votes'}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Card Footer with Replies, Like/Heart, Favourite/Bookmark, Share, Delete & 1-Tap Voting */}
@@ -448,6 +491,18 @@ export const IssueCard: React.FC<Props> = ({
               className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/60 dark:hover:bg-ink-800 transition-colors cursor-pointer shrink-0"
             >
               <Share2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Flag / Report Issue Button */}
+          {!isDeleted && (
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              title="Report or flag inappropriate issue / non-question"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer shrink-0"
+            >
+              <Flag className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -651,6 +706,21 @@ export const IssueCard: React.FC<Props> = ({
             </button>
           </div>
         </form>
+      )}
+      {/* Report / Flag Issue Modal */}
+      {showReportModal && (
+        <ReportIssueModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          issue={issue}
+          currentUser={currentUser}
+          onReportSubmitted={() => {
+            issue.flagReportsCount = (issue.flagReportsCount || 0) + 1;
+            if (issue.flagReportsCount >= 2) {
+              issue.isFlagged = true;
+            }
+          }}
+        />
       )}
     </article>
   );

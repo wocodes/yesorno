@@ -194,7 +194,7 @@ export const INITIAL_ISSUES: Issue[] = [
     id: 'issue-groups-1',
     title: '[CLUB VOTE] Establish a \$20/year Shared Gear & Safety Equipment Pool for Cycling Club',
     description: 'Members vote: The TrailBlazers Cycling Club proposes a \$20 annual contribution to purchase 4 high-end torque wrenches, 2 bike repair stands, emergency bleed kits, and high-visibility club vests stored in a communal locker accessible by all members.',
-    category: 'Clubs & Groups',
+    category: 'Business',
     tags: ['Cycling', 'Club Commons', 'Equipment Sharing', 'Budget'],
     author: 'Marcus Chen (Club Ride Leader)',
     creatorId: 'user-marcus',
@@ -446,6 +446,76 @@ export const INITIAL_ISSUES: Issue[] = [
       ],
       keyArgumentsNo: [
         'Shorter night shifts will stretch project completion timelines by weeks.'
+      ],
+      sentimentTrend: 'Strongly Favor',
+      lastUpdated: new Date().toISOString()
+    },
+    responses: []
+  },
+  {
+    id: 'issue-gender-1',
+    title: 'Should corporate boards be required by law to maintain at least 40% gender parity?',
+    description: 'Proponents argue that legally backed representation breaks longstanding glass ceilings and improves governance. Skeptics argue nominations must remain purely merit-based without government mandates.',
+    category: 'Gender',
+    region: 'Global / Remote',
+    tags: ['Gender', 'Governance', 'Boardrooms', 'Equity'],
+    author: 'William Odiomonafe',
+    creatorEmail: 'william.odiomonafe@gmail.com',
+    creatorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    isAnonymousAuthor: false,
+    createdAt: new Date(NOW - 6 * HOUR).toISOString(),
+    closingDate: new Date(NOW + 6 * 24 * HOUR).toISOString(),
+    durationLabel: '7 Days',
+    visibility: 'public',
+    invitedEmails: [],
+    invitedGroups: [],
+    yesCount: 142,
+    noCount: 48,
+    likesCount: 29,
+    favoritesCount: 14,
+    summary: {
+      consensusHeadline: 'Substantial majority (75% YES) supports establishing statutory gender diversity targets for corporate boardrooms.',
+      keyArgumentsYes: [
+        'Accelerates historic inequities and broadens executive leadership perspectives.',
+        'Proven success in European benchmarks with positive fiscal governance correlations.'
+      ],
+      keyArgumentsNo: [
+        'Quotas may overlook qualified candidates and reduce boardroom autonomy.'
+      ],
+      sentimentTrend: 'Strongly Favor',
+      lastUpdated: new Date().toISOString()
+    },
+    responses: []
+  },
+  {
+    id: 'issue-entertainment-1',
+    title: 'Should AI-generated music and synthetic actor likenesses require explicit consent and perpetual royalty shares?',
+    description: 'Performing artists argue unconstrained generative cloning exploits their life work and threatens creative livelihoods. Tech producers claim synthetic voices democratize indie storytelling and sound design.',
+    category: 'Entertainment',
+    region: 'Global / Remote',
+    tags: ['Entertainment', 'AI', 'Copyright', 'Music', 'Cinema'],
+    author: 'William Odiomonafe',
+    creatorEmail: 'william.odiomonafe@gmail.com',
+    creatorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    isAnonymousAuthor: false,
+    createdAt: new Date(NOW - 3 * HOUR).toISOString(),
+    closingDate: new Date(NOW + 7 * 24 * HOUR).toISOString(),
+    durationLabel: '7 Days',
+    visibility: 'public',
+    invitedEmails: [],
+    invitedGroups: [],
+    yesCount: 188,
+    noCount: 31,
+    likesCount: 42,
+    favoritesCount: 19,
+    summary: {
+      consensusHeadline: 'Overwhelming support (86% YES) for protecting living artists against unlicensed synthetic reproduction.',
+      keyArgumentsYes: [
+        'A person’s voice and facial identity are non-negotiable personal rights.',
+        'Ensures original human performers participate in generative commercial upside.'
+      ],
+      keyArgumentsNo: [
+        'Stringent perpetual royalty regimes could stifle experimental digital art.'
       ],
       sentimentTrend: 'Strongly Favor',
       lastUpdated: new Date().toISOString()

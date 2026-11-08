@@ -4,7 +4,7 @@ import {
   Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus
 } from 'lucide-react';
 import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment } from '../types';
-import { moderateText, generateCivicAlias } from '../utils/moderation';
+import { moderateText, generateCivicAlias, validateIssueQuestion } from '../utils/moderation';
 import { VoiceRecorder } from './VoiceRecorder';
 import { fileToDataUrl } from '../utils/audio';
 
@@ -17,11 +17,13 @@ interface Props {
 }
 
 const CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
-  { key: 'Workplace & Career', label: 'Workplace', emoji: '💼' },
+  { key: 'Business', label: 'Business', emoji: '💼' },
+  { key: 'Gender', label: 'Gender', emoji: '⚧️' },
+  { key: 'Entertainment', label: 'Entertainment', emoji: '🎬' },
+  { key: 'Workplace & Career', label: 'Workplace', emoji: '🏢' },
   { key: 'Family & Home', label: 'Family', emoji: '👨‍👩‍👧' },
   { key: 'Community & Neighborhood', label: 'Community', emoji: '🏡' },
   { key: 'Religious & Faith', label: 'Faith', emoji: '🕊️' },
-  { key: 'Clubs & Groups', label: 'Clubs', emoji: '👥' },
   { key: 'Politics & Policy', label: 'Policy', emoji: '🏛️' },
   { key: 'Environment & Climate', label: 'Climate', emoji: '🌱' },
   { key: 'Economy & Finance', label: 'Economy', emoji: '📈' },
@@ -183,6 +185,8 @@ export const CreateIssueModal: React.FC<Props> = ({
     // Normalize question mark: strip any trailing ? or . or whitespace and append a single ?
     const normalizedTitle = title.trim().replace(/[?.!\s]+$/, '') + '?';
 
+    const cleanUsername = currentUser?.username ? currentUser.username.replace(/^@/, '') : undefined;
+
     const newIssue: Issue = {
       id: `issue-${Date.now()}`,
       title: normalizedTitle,
@@ -193,6 +197,8 @@ export const CreateIssueModal: React.FC<Props> = ({
       author: isAnonymous ? alias : (currentUser?.name || authorName.trim()),
       creatorId: currentUser?.id,
       creatorEmail: currentUser?.email,
+      creatorAvatar: isAnonymous ? undefined : currentUser?.avatar,
+      creatorUsername: isAnonymous ? undefined : cleanUsername,
       isAnonymousAuthor: isAnonymous,
       createdAt: new Date().toISOString(),
       closingDate: closingTime,
@@ -286,6 +292,19 @@ export const CreateIssueModal: React.FC<Props> = ({
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {titleMod.flags[0]}
               </p>
+            )}
+            {title.trim().length >= 3 && titleMod.isAppropriate && !validateIssueQuestion(title).isQuestion && (
+              <div className="text-[11px] text-amber-500 dark:text-amber-400 mt-1 flex items-start gap-1.5 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                <div className="min-w-0">
+                  <span className="font-semibold">{validateIssueQuestion(title).reason}</span>
+                  {validateIssueQuestion(title).suggestion && (
+                    <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-0.5 leading-snug">
+                      {validateIssueQuestion(title).suggestion}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 

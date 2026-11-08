@@ -33,7 +33,8 @@ import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice,
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
-import { IssueDetailModal } from './components/IssueDetailModal';
+import { IssueDetailPage } from './components/IssueDetailPage';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CreateIssueModal } from './components/CreateIssueModal';
 import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal';
 import { LegalModal, LegalDocTab } from './components/LegalModal';
@@ -46,6 +47,7 @@ import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
 import { 
   Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles
 } from 'lucide-react';
@@ -102,6 +104,20 @@ export function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
+
+  // Automated Gemini Daily Polarizing Questions: 3 times a day (morning, afternoon, evening)
+  useEffect(() => {
+    checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
+      setIssues(prev => [...newlyCreated, ...prev]);
+    });
+    const interval = setInterval(() => {
+      checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
+        setIssues(prev => [...newlyCreated, ...prev]);
+      });
+    }, 120000);
+    return () => clearInterval(interval);
+  }, [issues]);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -285,6 +301,7 @@ export function App() {
     const found = findIssueFromUrl(issues);
     if (found) {
       setActiveDetailIssue(found);
+      setCurrentView('issue');
     }
   }, [currentUser, issues]);
 
@@ -324,7 +341,14 @@ export function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
+      if (hash.startsWith('issue/')) {
+        const issueId = hash.replace('issue/', '');
+        const found = issues.find(i => i.id === issueId);
+        if (found) {
+          setActiveDetailIssue(found);
+          setCurrentView('issue');
+        }
+      } else if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
         if (!currentUser) {
           setAuthPromptMessage('Please sign in to view, create, and vote on issues.');
           setCurrentView('auth');
@@ -333,11 +357,13 @@ export function App() {
           setCurrentView('app');
           window.location.hash = 'app';
         } else {
+          setActiveDetailIssue(null);
           setCurrentView(hash as AppView);
         }
       } else if (hash === 'auth') {
         setCurrentView('auth');
       } else if (hash === '' || hash === 'landing') {
+        setActiveDetailIssue(null);
         setCurrentView(currentUser ? 'app' : 'landing');
       }
     };
@@ -562,11 +588,14 @@ export function App() {
     }
   };
 
-  // Handle creator deleting an issue topic & description while preserving all responses & votes
+  // Handle creator deleting an issue topic & description: opens sleek confirmation modal instead of browser alert
   const handleDeleteIssueByAuthor = (issueId: string) => {
-    if (!window.confirm('Delete this issue topic and description? Community votes and responses will be preserved, and the topic/description will display as "Deleted by Author".')) {
-      return;
-    }
+    setDeletingIssueId(issueId);
+  };
+
+  const handleConfirmDeleteIssue = () => {
+    if (!deletingIssueId) return;
+    const issueId = deletingIssueId;
 
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {
@@ -596,6 +625,7 @@ export function App() {
     }
 
     apiRecordDeleteIssue(issueId);
+    setDeletingIssueId(null);
 
     addToast(
       'info',
@@ -1379,7 +1409,39 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'analytics' && isAdminUser(currentUser) ? (
+        {currentView === 'issue' && activeDetailIssue ? (
+          <IssueDetailPage
+            issue={activeDetailIssue}
+            currentUser={currentUser}
+            onClose={() => {
+              setActiveDetailIssue(null);
+              handleNavigate('app');
+            }}
+            onOpenVoteModal={(choice) => {
+              if (activeDetailIssue) {
+                handleOpenQuickVote(activeDetailIssue, choice);
+              }
+            }}
+            onInlineSubmitVote={handleVoteSubmit}
+            onDeleteIssue={handleDeleteIssueByAuthor}
+            onToggleLikeIssue={handleToggleLikeIssue}
+            onToggleFavoriteIssue={handleToggleFavoriteIssue}
+            onShareIssue={(iss) => setActiveShareIssue(iss)}
+            hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
+            userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
+            isLiked={activeDetailIssue ? !!userLikes[activeDetailIssue.id] : false}
+            isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
+            onAddCommentReply={handleAddCommentReply}
+            onToggleCommentReaction={handleToggleCommentReaction}
+            onLikeResponse={handleLikeResponse}
+            onReportResponse={handleReportResponse}
+            onLikeCommentReply={handleLikeCommentReply}
+            onToggleReplyReaction={handleToggleReplyReaction}
+            onShareComment={handleShareComment}
+            onAddInvite={handleAddInvite}
+            onAddGroupInvite={handleAddGroupInvite}
+          />
+        ) : currentView === 'analytics' && isAdminUser(currentUser) ? (
           <AdminAnalyticsPage
             issues={issues}
             currentUser={currentUser}
@@ -1389,6 +1451,8 @@ export function App() {
             onOpenIssue={(iss) => {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
+              setCurrentView('issue');
+              window.location.hash = `issue/${iss.id}`;
             }}
           />
         ) : currentView === 'discovery' ? (
@@ -1397,6 +1461,8 @@ export function App() {
             onOpenDetails={(iss) => {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
+              setCurrentView('issue');
+              window.location.hash = `issue/${iss.id}`;
             }}
             onQuickVote={handleOpenQuickVote}
             onFilterByCategory={(cat) => {
@@ -1404,6 +1470,7 @@ export function App() {
               handleNavigate('app');
             }}
             fullPage
+            userVotes={userVotes}
           />
         ) : (
           <>
@@ -1455,7 +1522,7 @@ export function App() {
             </section>
 
             {/* Section Header */}
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-1 max-w-2xl mx-auto w-full">
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   {selectedCategory === 'All' ? 'Issues' : selectedCategory}
@@ -1575,7 +1642,7 @@ export function App() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 max-w-2xl mx-auto w-full">
                   {visibleIssues.map((issue) => {
                     const voteRecord = userVotes[issue.id];
                     return (
@@ -1586,6 +1653,8 @@ export function App() {
                         onOpenDetails={(iss) => {
                           recordUserInterestFromIssue(iss);
                           setActiveDetailIssue(iss);
+                          setCurrentView('issue');
+                          window.location.hash = `issue/${iss.id}`;
                         }}
                         onQuickVote={handleOpenQuickVote}
                         onInlineSubmitVote={handleVoteSubmit}
@@ -1694,34 +1763,11 @@ export function App() {
         currentUser={currentUser}
       />
 
-      <IssueDetailModal
-        issue={activeDetailIssue}
-        isOpen={!!activeDetailIssue}
-        onClose={() => setActiveDetailIssue(null)}
-        onOpenVoteModal={(choice) => {
-          if (activeDetailIssue) {
-            handleOpenQuickVote(activeDetailIssue, choice);
-          }
-        }}
-        onInlineSubmitVote={handleVoteSubmit}
-        onDeleteIssue={handleDeleteIssueByAuthor}
-        onToggleLikeIssue={handleToggleLikeIssue}
-        onToggleFavoriteIssue={handleToggleFavoriteIssue}
-        onShareIssue={(iss) => setActiveShareIssue(iss)}
-        currentUser={currentUser}
-        hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
-        userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
-        isLiked={activeDetailIssue ? !!userLikes[activeDetailIssue.id] : false}
-        isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
-        onLikeResponse={handleLikeResponse}
-        onReportResponse={handleReportResponse}
-        onAddCommentReply={handleAddCommentReply}
-        onLikeCommentReply={handleLikeCommentReply}
-        onToggleCommentReaction={handleToggleCommentReaction}
-        onToggleReplyReaction={handleToggleReplyReaction}
-        onShareComment={handleShareComment}
-        onAddInvite={handleAddInvite}
-        onAddGroupInvite={handleAddGroupInvite}
+      <DeleteConfirmModal
+        isOpen={Boolean(deletingIssueId)}
+        issueTitle={issues.find(i => i.id === deletingIssueId)?.title}
+        onClose={() => setDeletingIssueId(null)}
+        onConfirm={handleConfirmDeleteIssue}
       />
 
       <ShareIssueModal

@@ -31,11 +31,13 @@ interface Props {
 
 const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
   { key: 'All', shortLabel: 'All Issues', emoji: '🌐' },
-  { key: 'Workplace & Career', shortLabel: 'Workplace', emoji: '💼' },
+  { key: 'Business', shortLabel: 'Business', emoji: '💼' },
+  { key: 'Gender', shortLabel: 'Gender', emoji: '⚧️' },
+  { key: 'Entertainment', shortLabel: 'Entertainment', emoji: '🎬' },
+  { key: 'Workplace & Career', shortLabel: 'Workplace', emoji: '🏢' },
   { key: 'Family & Home', shortLabel: 'Family', emoji: '👨‍👩‍👧' },
   { key: 'Community & Neighborhood', shortLabel: 'Community', emoji: '🏡' },
   { key: 'Religious & Faith', shortLabel: 'Faith', emoji: '🕊️' },
-  { key: 'Clubs & Groups', shortLabel: 'Clubs', emoji: '👥' },
   { key: 'Politics & Policy', shortLabel: 'Policy', emoji: '🏛️' },
   { key: 'Environment & Climate', shortLabel: 'Climate', emoji: '🌱' },
   { key: 'Economy & Finance', shortLabel: 'Economy', emoji: '📈' },
@@ -144,14 +146,14 @@ export const Navbar: React.FC<Props> = ({
               onClick={onToggleColorTone}
               className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
                 colorTone === 'toned'
-                  ? 'bg-slate-200 dark:bg-ink-800 text-slate-700 dark:text-slate-200'
+                  ? 'bg-black text-white border border-zinc-700 dark:bg-white dark:text-black'
                   : 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30'
               }`}
-              title={colorTone === 'vibrant' ? 'Switch to Toned-Down Palette' : 'Switch to Full-Coloured Palette'}
+              title={colorTone === 'vibrant' ? 'Switch to X-Style Black & White Palette' : 'Switch to Vibrant Color Palette'}
               aria-label="Toggle color palette tone"
             >
               <Palette className="w-4 h-4 shrink-0" />
-              <span className="hidden xl:inline">{colorTone === 'vibrant' ? 'Vibrant' : 'Toned'}</span>
+              <span className="hidden xl:inline">{colorTone === 'vibrant' ? 'Vibrant' : 'Monochrome'}</span>
             </button>
 
             {/* Install PWA Button */}

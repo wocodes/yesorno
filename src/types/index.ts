@@ -1,12 +1,15 @@
 export type VoteChoice = 'YES' | 'NO';
+export type DisplayPreference = 'username' | 'firstname' | 'name';
 
 export interface UserProfile {
   id: string;
   name: string;
+  username?: string;
   email: string;
   role: string;
   bio?: string;
   avatar?: string;
+  displayPreference?: DisplayPreference;
   groups: string[];
   region?: IssueRegion;
   interests?: IssueCategory[];
@@ -31,6 +34,7 @@ export interface CommentReply {
   id: string;
   submissionId: string;
   authorName: string;
+  authorUsername?: string;
   authorEmail?: string;
   authorAlias?: string;
   authorRole?: string;
@@ -49,6 +53,7 @@ export interface VoteSubmission {
   choice: VoteChoice;
   isAnonymous: boolean;
   authorName: string;
+  authorUsername?: string;
   authorEmail?: string;
   authorAlias?: string; // e.g. "Neighbor #319"
   authorRole?: string; // e.g. "Resident (5 yrs)", "Small Business Owner"
@@ -68,12 +73,15 @@ export type IssueCategory =
   | 'Workplace & Career'
   | 'Community & Neighborhood'
   | 'Religious & Faith'
-  | 'Clubs & Groups'
+  | 'Business'
+  | 'Gender'
+  | 'Entertainment'
   | 'Politics & Policy'
   | 'Environment & Climate'
   | 'Economy & Finance'
   | 'Education & Campus'
-  | 'Private & Internal';
+  | 'Private & Internal'
+  | 'Clubs & Groups'; // legacy backwards-compatible alias
 
 export type IssueVisibility = 'public' | 'private';
 
@@ -103,6 +111,8 @@ export interface Issue {
   author: string;
   creatorId?: string;
   creatorEmail?: string;
+  creatorAvatar?: string;
+  creatorUsername?: string;
   isAnonymousAuthor?: boolean;
   createdAt: string;
   closingDate: string; // ISO string representing exact deadline set by user
@@ -114,6 +124,8 @@ export interface Issue {
   noCount: number;
   likesCount?: number;
   favoritesCount?: number;
+  flagReportsCount?: number;
+  isFlagged?: boolean;
   responses: VoteSubmission[];
   images?: string[]; // Attached images/photos by creator
   creatorVoiceNote?: VoiceAttachment; // Voice note briefing attached by the creator
@@ -123,6 +135,22 @@ export interface Issue {
   deletedAt?: string;
 }
 
+export type IssueFlagReason = 
+  | 'not_a_question'
+  | 'inappropriate_language'
+  | 'harassment_hate'
+  | 'spam_promotion'
+  | 'privacy_leak';
+
+export interface IssueFlagReport {
+  id: string;
+  issueId: string;
+  reporterEmail?: string;
+  reason: IssueFlagReason;
+  details?: string;
+  createdAt: string;
+}
+
 export interface ModerationResult {
   isAppropriate: boolean;
   flags: string[];
@@ -130,4 +158,4 @@ export interface ModerationResult {
   severity: 'clean' | 'warning' | 'rejected';
 }
 
-export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics';
+export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue';

@@ -3,7 +3,7 @@ import {
   X, User, Settings, Globe2, Sparkles, UserPlus, Check, 
   ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users, Bookmark, Heart
 } from 'lucide-react';
-import { UserProfile, Issue, IssueCategory, IssueRegion, VoiceFilterType } from '../types';
+import { UserProfile, Issue, IssueCategory, IssueRegion, VoiceFilterType, DisplayPreference } from '../types';
 import { TOP_CREATORS_AND_VOTERS, TopCreatorProfile } from '../utils/auth';
 import { ThemeMode } from '../utils/theme';
 
@@ -27,11 +27,13 @@ interface Props {
 }
 
 const ALL_INTERESTS: { category: IssueCategory; label: string; emoji: string }[] = [
-  { category: 'Workplace & Career', label: 'Workplace', emoji: '💼' },
+  { category: 'Business', label: 'Business', emoji: '💼' },
+  { category: 'Gender', label: 'Gender', emoji: '⚧️' },
+  { category: 'Entertainment', label: 'Entertainment', emoji: '🎬' },
+  { category: 'Workplace & Career', label: 'Workplace', emoji: '🏢' },
   { category: 'Family & Home', label: 'Family', emoji: '👨‍👩‍👧' },
   { category: 'Community & Neighborhood', label: 'Community', emoji: '🏡' },
   { category: 'Religious & Faith', label: 'Faith', emoji: '🕊️' },
-  { category: 'Clubs & Groups', label: 'Clubs', emoji: '👥' },
   { category: 'Politics & Policy', label: 'Policy', emoji: '🏛️' },
   { category: 'Environment & Climate', label: 'Climate', emoji: '🌱' },
   { category: 'Economy & Finance', label: 'Economy', emoji: '📈' },
@@ -67,6 +69,9 @@ export const ProfileSettingsModal: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'following' | 'settings'>('preferences');
   
   const [name, setName] = useState(user.name);
+  const [username, setUsername] = useState(user.username || '');
+  const [avatar, setAvatar] = useState(user.avatar || '');
+  const [displayPreference, setDisplayPreference] = useState<DisplayPreference>(user.displayPreference || 'username');
   const [role, setRole] = useState(user.role);
   const [bio, setBio] = useState(user.bio || '');
   const [groupInput, setGroupInput] = useState('');
@@ -108,6 +113,9 @@ export const ProfileSettingsModal: React.FC<Props> = ({
   useEffect(() => {
     if (isOpen) {
       setName(user.name);
+      setUsername(user.username || '');
+      setAvatar(user.avatar || '');
+      setDisplayPreference(user.displayPreference || 'username');
       setRole(user.role);
       setBio(user.bio || '');
       setGroups(user.groups || []);
@@ -130,9 +138,13 @@ export const ProfileSettingsModal: React.FC<Props> = ({
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    const rawUsername = username.trim().replace(/^@/, '');
     const updated: UserProfile = {
       ...user,
       name: name.trim() || user.name,
+      username: rawUsername || (user.email ? user.email.split('@')[0] : 'member'),
+      avatar: avatar.trim() || user.avatar,
+      displayPreference,
       role: role.trim() || user.role,
       bio: bio.trim(),
       groups,
@@ -513,10 +525,99 @@ export const ProfileSettingsModal: React.FC<Props> = ({
           {activeTab === 'profile' && (
             <div className="space-y-4">
               <div className="card p-4 sm:p-5 space-y-3">
-                <h3 className="text-sm font-bold text-ink-950 dark:text-white">Edit Public Profile</h3>
+                <h3 className="text-sm font-bold text-ink-950 dark:text-white">Edit Public Profile &amp; Identity</h3>
+                
+                {/* Profile Picture & Username row */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={avatar || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(username || user.name)}`}
+                      alt="Avatar Preview"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-brand-500/40 bg-white dark:bg-ink-900 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Avatar Image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={avatar}
+                        onChange={(e) => setAvatar(e.target.value)}
+                        placeholder="https://... (or leave empty for auto-generated)"
+                        className="w-full text-xs p-2 bg-white dark:bg-ink-900 border border-slate-200 dark:border-white/10 rounded-xl dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Username (@handle)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-xs font-bold text-slate-400 select-none">@</span>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
+                        placeholder="username"
+                        className="w-full text-xs pl-7 pr-3 py-2 bg-white dark:bg-ink-900 border border-slate-200 dark:border-white/10 rounded-xl dark:text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Display Preference Selector */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-ink-950 dark:text-white">Public Display Preference</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                        Choose how your identity appears when you create issues or post comments:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                    {[
+                      {
+                        key: 'username' as DisplayPreference,
+                        label: username ? `@${username.replace(/^@/, '')}` : '@username',
+                        sub: 'Username (Default)',
+                      },
+                      {
+                        key: 'firstname' as DisplayPreference,
+                        label: name ? name.trim().split(' ')[0] : 'First Name',
+                        sub: 'First Name Only',
+                      },
+                      {
+                        key: 'name' as DisplayPreference,
+                        label: name || 'Full Name',
+                        sub: 'Full Real Name',
+                      },
+                    ].map((opt) => {
+                      const isSelected = displayPreference === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => setDisplayPreference(opt.key)}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-brand-600 bg-brand-50/70 dark:bg-brand-500/20 text-brand-900 dark:text-brand-300 ring-1 ring-brand-500'
+                              : 'border-slate-200 dark:border-white/10 bg-white dark:bg-ink-900 text-slate-700 dark:text-zinc-300 hover:border-brand-400'
+                          }`}
+                        >
+                          <div className="text-xs font-bold truncate">{opt.label}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5">{opt.sub}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Display Name</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
                     <input
                       type="text"
                       value={name}

@@ -22,23 +22,91 @@
     --shadow-glow-rose: 0 0 0 1px rgba(244, 63, 94, 0.3), 0 12px 32px -6px rgba(244, 63, 94, 0.35);
   }
 
-  /* Toned-Down (Muted / Understated Editorial) Palette */
+  /* X-Style Pure Black & White Monochrome Palette */
   html.tone-muted {
-    --brand-50: 244 245 247;
-    --brand-100: 232 234 239;
-    --brand-200: 209 213 222;
-    --brand-300: 168 175 190;
-    --brand-400: 129 138 158;
-    --brand-500: 95 105 128;
-    --brand-600: 75 85 105;
-    --brand-700: 60 68 86;
-    --brand-800: 47 54 69;
-    --brand-900: 37 42 54;
-    --brand-950: 22 25 34;
+    --brand-50: 255 255 255;
+    --brand-100: 245 245 245;
+    --brand-200: 229 229 229;
+    --brand-300: 212 212 212;
+    --brand-400: 163 163 163;
+    --brand-500: 115 115 115;
+    --brand-600: 38 38 38;
+    --brand-700: 23 23 23;
+    --brand-800: 15 15 15;
+    --brand-900: 10 10 10;
+    --brand-950: 0 0 0;
 
-    --shadow-glow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 6px 16px -4px rgba(15, 23, 42, 0.18);
-    --shadow-glow-emerald: 0 1px 3px rgba(16, 185, 129, 0.15), 0 6px 16px -4px rgba(16, 185, 129, 0.16);
-    --shadow-glow-rose: 0 1px 3px rgba(244, 63, 94, 0.15), 0 6px 16px -4px rgba(244, 63, 94, 0.16);
+    --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+    --shadow-glow-emerald: 0 0 0 1px rgba(16, 185, 129, 0.2);
+    --shadow-glow-rose: 0 0 0 1px rgba(244, 63, 94, 0.2);
+  }
+
+  /* X / Lights-Out Pure Black & White Contrast in Dark Mode */
+  html.tone-muted.dark,
+  html.tone-muted.dark body {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  html.tone-muted.dark .card,
+  html.tone-muted.dark article.card,
+  html.tone-muted.dark .card-glass-dark {
+    background-color: #000000 !important;
+    border: 1px solid #2f3336 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  html.tone-muted.dark .bg-ink-950,
+  html.tone-muted.dark .bg-ink-900,
+  html.tone-muted.dark .bg-aurora-dark {
+    background-color: #000000 !important;
+    border-color: #2f3336 !important;
+  }
+
+  html.tone-muted.dark .btn-brand,
+  html.tone-muted.dark .btn-primary {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    box-shadow: 0 1px 3px rgba(255, 255, 255, 0.15) !important;
+    font-weight: 700 !important;
+  }
+
+  html.tone-muted.dark .btn-ghost {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #2f3336 !important;
+  }
+
+  html.tone-muted.dark .text-gradient,
+  html.tone-muted.dark .text-gradient-brand {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    color: #ffffff !important;
+  }
+
+  /* X-Style Monochrome in Light Mode */
+  html.tone-muted:not(.dark),
+  html.tone-muted:not(.dark) body {
+    background-color: #ffffff !important;
+    color: #0f1419 !important;
+  }
+
+  html.tone-muted:not(.dark) .card,
+  html.tone-muted:not(.dark) article.card {
+    background-color: #ffffff !important;
+    border: 1px solid #eff3f4 !important;
+    color: #0f1419 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  html.tone-muted:not(.dark) .btn-brand,
+  html.tone-muted:not(.dark) .btn-primary {
+    background: #0f1419 !important;
+    color: #ffffff !important;
+    border: 1px solid #0f1419 !important;
   }
 
   html {
@@ -107,10 +175,8 @@
 }
 
 html.tone-muted .bg-aurora-dark {
-  background-color: #111318;
-  background-image:
-    radial-gradient(at 20% 20%, rgba(148, 163, 184, 0.09) 0px, transparent 55%),
-    radial-gradient(at 80% 80%, rgba(100, 116, 139, 0.07) 0px, transparent 55%);
+  background-color: #000000;
+  background-image: none;
 }
 
 .mask-fade {
@@ -125,10 +191,10 @@ html.tone-muted .bg-aurora-dark {
 }
 
 html.tone-muted .text-gradient {
-  background: linear-gradient(125deg, #94a3b8 0%, #cbd5e1 50%, #9ca3af 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #ffffff;
 }
 
 .text-gradient-brand {
@@ -139,20 +205,20 @@ html.tone-muted .text-gradient {
 }
 
 html.tone-muted .text-gradient-brand {
-  background: linear-gradient(125deg, #475569 0%, #64748b 50%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #ffffff;
 }
 
-/* Soften multi-stop gradients & high-chroma accents across the app when Toned-Down mode is active */
+/* Multi-stop gradients in monochrome mode */
 html.tone-muted .from-brand-500.via-purple-500.to-emerald-400 {
-  background-image: linear-gradient(to right, rgba(100, 116, 139, 0.35), rgba(148, 163, 184, 0.25)) !important;
+  background-image: linear-gradient(to right, #27272a, #52525b) !important;
 }
 
 html.tone-muted .from-brand-600.to-purple-600,
 html.tone-muted .from-brand-600.via-brand-500.to-purple-500 {
-  background-image: linear-gradient(to top right, #334155, #475569) !important;
+  background-image: linear-gradient(to top right, #18181b, #27272a) !important;
 }
 
 html.tone-muted .from-emerald-500.to-teal-400 {
