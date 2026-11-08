@@ -272,11 +272,16 @@ export function App() {
     return () => document.removeEventListener('click', onDocumentClick, true);
   }, []);
 
+  // Derive live issue for detail view to ensure instant reactivity with issues state
+  const liveDetailIssue = useMemo(() => {
+    if (!activeDetailIssue) return null;
+    return issues.find(i => i.id === activeDetailIssue.id) || activeDetailIssue;
+  }, [activeDetailIssue, issues]);
+
   // Lock background page scroll whenever any modal is open
   useEffect(() => {
     const isAnyModalOpen = Boolean(
       activeVoteIssue ||
-      activeDetailIssue ||
       activeShareIssue ||
       isGuidelinesOpen ||
       legalModalTab !== null ||
@@ -297,7 +302,6 @@ export function App() {
     }
   }, [
     activeVoteIssue,
-    activeDetailIssue,
     activeShareIssue,
     isGuidelinesOpen,
     legalModalTab,
@@ -308,7 +312,7 @@ export function App() {
 
   // Sync OpenGraph / document meta tags and clean slug URL when an issue is opened or shared
   useEffect(() => {
-    const targetIssue = activeDetailIssue || activeShareIssue || null;
+    const targetIssue = liveDetailIssue || activeShareIssue || null;
     updateDocumentMetaForIssue(targetIssue);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       if (targetIssue) {
@@ -320,7 +324,7 @@ export function App() {
         window.history.replaceState(null, '', `/${window.location.hash || '#app'}`);
       }
     }
-  }, [activeDetailIssue, activeShareIssue]);
+  }, [liveDetailIssue, activeShareIssue]);
 
   // If URL has /{slug-of-the-issue-question}-{id} or ?issue=<id> and user is authenticated, auto-open that issue
   useEffect(() => {
@@ -542,7 +546,7 @@ export function App() {
     const hasContent = Boolean(submission.note || submission.voiceNote);
 
     setIssues(prevIssues => {
-      return prevIssues.map(issue => {
+      const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
           let nextYes = issue.yesCount;
@@ -566,10 +570,15 @@ export function App() {
         }
         return issue;
       });
+      saveIssues(nextIssues);
+      return nextIssues;
     });
 
     recordUserVote(submission.issueId, submission.choice, submission.id);
-    setUserVotes(getUserVotesMap());
+    setUserVotes(prev => ({
+      ...prev,
+      [submission.issueId]: { choice: submission.choice, responseId: submission.id }
+    }));
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
@@ -1479,17 +1488,17 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'issue' && activeDetailIssue ? (
+        {currentView === 'issue' && liveDetailIssue ? (
           <IssueDetailPage
-            issue={activeDetailIssue}
+            issue={liveDetailIssue}
             currentUser={currentUser}
             onClose={() => {
               setActiveDetailIssue(null);
               handleNavigate('app');
             }}
             onOpenVoteModal={(choice) => {
-              if (activeDetailIssue) {
-                handleOpenQuickVote(activeDetailIssue, choice);
+              if (liveDetailIssue) {
+                handleOpenQuickVote(liveDetailIssue, choice);
               }
             }}
             onInlineSubmitVote={handleVoteSubmit}
@@ -1498,10 +1507,10 @@ export function App() {
             onToggleLikeIssue={handleToggleLikeIssue}
             onToggleFavoriteIssue={handleToggleFavoriteIssue}
             onShareIssue={(iss) => setActiveShareIssue(iss)}
-            hasUserVoted={activeDetailIssue ? !!userVotes[activeDetailIssue.id] : false}
-            userVoteChoice={activeDetailIssue ? userVotes[activeDetailIssue.id]?.choice : undefined}
-            isLiked={activeDetailIssue ? !!userLikes[activeDetailIssue.id] : false}
-            isFavorited={activeDetailIssue ? !!userFavorites[activeDetailIssue.id] : false}
+            hasUserVoted={liveDetailIssue ? !!userVotes[liveDetailIssue.id] : false}
+            userVoteChoice={liveDetailIssue ? userVotes[liveDetailIssue.id]?.choice : undefined}
+            isLiked={liveDetailIssue ? !!userLikes[liveDetailIssue.id] : false}
+            isFavorited={liveDetailIssue ? !!userFavorites[liveDetailIssue.id] : false}
             onAddCommentReply={handleAddCommentReply}
             onToggleCommentReaction={handleToggleCommentReaction}
             onLikeResponse={handleLikeResponse}

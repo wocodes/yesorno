@@ -79,6 +79,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   const [replyAnon, setReplyAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
   const [alias] = useState(() => generateCivicAlias());
 
+  // Keep replyChoice synced when userVoteChoice prop updates
+  useEffect(() => {
+    if (userVoteChoice) {
+      setReplyChoice(userVoteChoice);
+    }
+  }, [userVoteChoice]);
+
   // Inline Quick Voice Recording
   const [isRec, setIsRec] = useState(false);
   const [recSec, setRecSec] = useState(0);
@@ -143,7 +150,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       return;
     }
 
-    if (!hasUserVoted) {
+    if (!hasUserVoted || userVoteChoice !== choice) {
       playHapticChime(choice === 'YES' ? 'yes' : 'no');
       triggerVoteConfetti(choice === 'YES');
       const submission: VoteSubmission = {

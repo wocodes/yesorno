@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ThumbsUp, ThumbsDown, MessageSquare, Mic, CheckCircle2, 
   Lock, Clock, Image as ImageIcon, ArrowUpRight, Share2,
@@ -98,6 +98,13 @@ export const IssueCard: React.FC<Props> = ({
   const [inlineAnon, setInlineAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
   const [alias] = useState(() => generateCivicAlias());
 
+  // Keep inlineChoice synced when userVoteChoice prop updates
+  useEffect(() => {
+    if (userVoteChoice) {
+      setInlineChoice(userVoteChoice);
+    }
+  }, [userVoteChoice]);
+
   // Inline Quick Voice Recording State
   const [isRecordingInline, setIsRecordingInline] = useState(false);
   const [recSeconds, setRecSeconds] = useState(0);
@@ -113,9 +120,8 @@ export const IssueCard: React.FC<Props> = ({
       return;
     }
 
-    // If user hasn't voted yet, cast their vote immediately in 1 tap (like X/Instagram like + reply)
-    // and open the inline reply composer so they can optionally type a quick reply or attach audio!
-    if (!hasUserVoted) {
+    // If user hasn't voted yet OR is switching their stance, cast their vote immediately in 1 tap
+    if (!hasUserVoted || userVoteChoice !== choice) {
       playHapticChime(choice === 'YES' ? 'yes' : 'no');
       triggerVoteConfetti(choice === 'YES');
       const submission: VoteSubmission = {
@@ -136,6 +142,29 @@ export const IssueCard: React.FC<Props> = ({
 
     setInlineChoice(choice);
     setShowInlineComposer(true);
+  };
+
+  const handleInlineChoiceChange = (choice: VoteChoice) => {
+    setInlineChoice(choice);
+    if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) return;
+    if (!hasUserVoted || userVoteChoice !== choice) {
+      playHapticChime(choice === 'YES' ? 'yes' : 'no');
+      triggerVoteConfetti(choice === 'YES');
+      const submission: VoteSubmission = {
+        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        issueId: issue.id,
+        choice,
+        isAnonymous: inlineAnon,
+        authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+        authorUsername: !inlineAnon ? currentUser.username : undefined,
+        authorEmail: !inlineAnon ? currentUser.email : undefined,
+        authorAlias: inlineAnon ? alias : undefined,
+        authorRole: !inlineAnon ? currentUser.role : undefined,
+        createdAt: new Date().toISOString(),
+        likesCount: 0,
+      };
+      onInlineSubmitVote(submission);
+    }
   };
 
   const startInlineMic = async () => {
@@ -611,7 +640,7 @@ export const IssueCard: React.FC<Props> = ({
               <span className="font-bold text-slate-500 dark:text-zinc-400">Your Stance:</span>
               <button
                 type="button"
-                onClick={() => setInlineChoice('YES')}
+                onClick={() => handleInlineChoiceChange('YES')}
                 className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer ${
                   inlineChoice === 'YES'
                     ? 'bg-emerald-600 text-white'
@@ -622,7 +651,7 @@ export const IssueCard: React.FC<Props> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setInlineChoice('NO')}
+                onClick={() => handleInlineChoiceChange('NO')}
                 className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer ${
                   inlineChoice === 'NO'
                     ? 'bg-rose-600 text-white'
