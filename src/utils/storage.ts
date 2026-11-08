@@ -1,6 +1,5 @@
 import { Issue, VoteSubmission, CommentReply } from '../types';
 import { INITIAL_ISSUES } from '../data/initialIssues';
-import { isLocalEnvironment } from './auth';
 
 const STORAGE_KEY_ISSUES = 'yesorno_issues_v1';
 const STORAGE_KEY_DELETED_ISSUE_IDS = 'yesorno_deleted_issue_ids_v1';
@@ -38,16 +37,11 @@ export function recordDeletedIssueId(issueId: string): void {
 }
 
 /**
- * Returns default seed issues ONLY in local development (`import.meta.env.DEV`).
- * In production builds, `import.meta.env.DEV` is statically `false` so Rollup/Vite
- * completely tree-shakes `INITIAL_ISSUES` (~28KB of demo data) out of the production bundle.
+ * Returns default system platform issues with deleted issues filtered out
  */
 export function getDefaultIssues(): Issue[] {
-  if (import.meta.env.DEV && isLocalEnvironment()) {
-    const deletedIds = getDeletedIssueIds();
-    return INITIAL_ISSUES.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
-  }
-  return [];
+  const deletedIds = getDeletedIssueIds();
+  return INITIAL_ISSUES.filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
 }
 
 export function loadIssues(): Issue[] {
@@ -68,6 +62,15 @@ export function loadIssues(): Issue[] {
     const valid = parsed
       .filter(i => i && typeof i === 'object' && typeof i.id === 'string' && Array.isArray(i.responses))
       .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor);
+
+    // Merge in defaults if any system issues are missing from storage
+    const validIds = new Set(valid.map(i => i.id));
+    const missingDefaults = defaults.filter(d => !validIds.has(d.id));
+    if (missingDefaults.length > 0) {
+      const combined = [...valid, ...missingDefaults];
+      saveIssues(combined);
+      return combined;
+    }
 
     return valid;
   } catch (err) {

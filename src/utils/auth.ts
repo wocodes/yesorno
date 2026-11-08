@@ -23,7 +23,7 @@ export const DEMO_USERS: UserProfile[] = import.meta.env.DEV
       {
         id: 'user-elena',
         name: 'Elena Rostova',
-        email: 'elena@civic.board',
+        email: 'elena@yesorno.chillon.top',
         role: 'District 4 Council Rep',
         avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
         groups: ['District 4 Council', 'Downtown Taskforce', 'Planning Commission']

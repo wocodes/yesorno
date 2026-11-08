@@ -228,7 +228,7 @@ export function App() {
     if (isOnboardingOpen) recordPageView('modal:onboarding');
   }, [isOnboardingOpen]);
 
-  // Multi-Device Profile Sync: ensure latest interests/region from another device update seamlessly
+  // Multi-Device Profile Sync: ensure latest interests/region/votes from another device update seamlessly
   useEffect(() => {
     if (currentUser?.email) {
       fetchServerProfileByEmail(currentUser.email).then(serverProf => {
@@ -238,12 +238,37 @@ export function App() {
             const updated = {
               ...prev,
               ...serverProf,
+              username: serverProf.username || prev.username,
               interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
               region: serverProf.region || prev.region,
               onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
             };
             return updated;
           });
+
+          if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
+            setUserVotes(prev => {
+              const m = { ...serverProf.votedIssues, ...prev };
+              try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+              return m;
+            });
+          }
+          if (serverProf.likedIssueIds && serverProf.likedIssueIds.length > 0) {
+            setUserLikes(prev => {
+              const m = { ...prev };
+              serverProf.likedIssueIds?.forEach(id => { m[id] = true; });
+              saveUserLikesMap(m);
+              return m;
+            });
+          }
+          if (serverProf.favoriteIssueIds && serverProf.favoriteIssueIds.length > 0) {
+            setUserFavorites(prev => {
+              const m = { ...prev };
+              serverProf.favoriteIssueIds?.forEach(id => { m[id] = true; });
+              saveUserFavoritesMap(m);
+              return m;
+            });
+          }
         }
       }).catch(() => {});
     }
@@ -554,6 +579,33 @@ export function App() {
       window.location.hash = 'app';
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
+      // Hydrate user votes, likes, favorites across devices
+      if (user.votedIssues && Object.keys(user.votedIssues).length > 0) {
+        setUserVotes(prev => {
+          const merged = { ...user.votedIssues, ...prev };
+          try {
+            localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+      if (user.likedIssueIds && user.likedIssueIds.length > 0) {
+        setUserLikes(prev => {
+          const merged = { ...prev };
+          user.likedIssueIds?.forEach(id => { merged[id] = true; });
+          saveUserLikesMap(merged);
+          return merged;
+        });
+      }
+      if (user.favoriteIssueIds && user.favoriteIssueIds.length > 0) {
+        setUserFavorites(prev => {
+          const merged = { ...prev };
+          user.favoriteIssueIds?.forEach(id => { merged[id] = true; });
+          saveUserFavoritesMap(merged);
+          return merged;
+        });
+      }
+
       // Notify admin email on registration vs login
       const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
       if (isNewUser) {
@@ -565,11 +617,34 @@ export function App() {
         // Double-check server in case onboarding was already completed on another device
         fetchServerProfileByEmail(user.email).then(serverProf => {
           if (serverProf && (serverProf.onboardingCompleted || (serverProf.interests && serverProf.interests.length > 0))) {
-            const merged = { ...user, ...serverProf, onboardingCompleted: true };
+            const merged: UserProfile = { ...user, ...serverProf, onboardingCompleted: true };
             setCurrentUser(merged);
             saveStoredUser(merged);
             setIsOnboardingOpen(false);
             addToast('success', `Welcome back, ${merged.name}`);
+            if (serverProf.votedIssues) {
+              setUserVotes(prev => {
+                const m = { ...serverProf.votedIssues, ...prev };
+                try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+                return m;
+              });
+            }
+            if (serverProf.likedIssueIds) {
+              setUserLikes(prev => {
+                const m = { ...prev };
+                serverProf.likedIssueIds?.forEach(id => { m[id] = true; });
+                saveUserLikesMap(m);
+                return m;
+              });
+            }
+            if (serverProf.favoriteIssueIds) {
+              setUserFavorites(prev => {
+                const m = { ...prev };
+                serverProf.favoriteIssueIds?.forEach(id => { m[id] = true; });
+                saveUserFavoritesMap(m);
+                return m;
+              });
+            }
           } else {
             setIsOnboardingOpen(true);
           }
@@ -693,10 +768,18 @@ export function App() {
 
     const savedResponseId = hasContent ? submission.id : existingVote?.responseId;
     recordUserVote(submission.issueId, submission.choice, savedResponseId);
-    setUserVotes(prev => ({
-      ...prev,
-      [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
-    }));
+    setUserVotes(prev => {
+      const nextVotes = {
+        ...prev,
+        [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
+      };
+      if (currentUser) {
+        const updatedUser: UserProfile = { ...currentUser, votedIssues: nextVotes };
+        setCurrentUser(updatedUser);
+        saveStoredUser(updatedUser);
+      }
+      return nextVotes;
+    });
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
@@ -1203,6 +1286,12 @@ export function App() {
     }
     setUserLikes(nextLikes);
     saveUserLikesMap(nextLikes);
+    if (currentUser) {
+      const likedArr = Object.keys(nextLikes).filter(k => nextLikes[k]);
+      const updatedUser: UserProfile = { ...currentUser, likedIssueIds: likedArr };
+      setCurrentUser(updatedUser);
+      saveStoredUser(updatedUser);
+    }
 
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {
@@ -1243,6 +1332,12 @@ export function App() {
     }
     setUserFavorites(nextFavs);
     saveUserFavoritesMap(nextFavs);
+    if (currentUser) {
+      const favArr = Object.keys(nextFavs).filter(k => nextFavs[k]);
+      const updatedUser: UserProfile = { ...currentUser, favoriteIssueIds: favArr };
+      setCurrentUser(updatedUser);
+      saveStoredUser(updatedUser);
+    }
 
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {

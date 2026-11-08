@@ -14,6 +14,9 @@ export interface UserProfile {
   region?: IssueRegion;
   interests?: IssueCategory[];
   followingCreators?: string[];
+  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
+  likedIssueIds?: string[];
+  favoriteIssueIds?: string[];
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
   soundEnabled?: boolean;

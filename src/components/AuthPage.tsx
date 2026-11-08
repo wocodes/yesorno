@@ -110,6 +110,9 @@ export const AuthPage: React.FC<Props> = ({
         avatar: saved.avatar || baseUser.avatar,
         interests: (saved.interests && saved.interests.length > 0) ? saved.interests : baseUser.interests,
         region: saved.region || baseUser.region,
+        votedIssues: saved.votedIssues || baseUser.votedIssues,
+        likedIssueIds: saved.likedIssueIds || baseUser.likedIssueIds,
+        favoriteIssueIds: saved.favoriteIssueIds || baseUser.favoriteIssueIds,
         onboardingCompleted: saved.onboardingCompleted ?? Boolean(saved.interests && saved.interests.length > 0),
       };
       saveStoredUser(mergedUser);
