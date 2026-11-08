@@ -764,15 +764,80 @@ function drawCalloutBox(
 }
 
 /**
- * Common callout inner contents (Large reply text + quote mark + author & stance footer)
+ * Layout measurement for comment card callout
+ */
+interface CommentCalloutLayout {
+  rFontSize: number;
+  rLineHeight: number;
+  rLines: string[];
+  rTextH: number;
+  calloutTopPad: number;
+  gapToDivider: number;
+  gapToAuthor: number;
+  authorRowH: number;
+  calloutBottomPad: number;
+  calloutH: number;
+  fontFamily: string;
+}
+
+function measureCommentCalloutLayout(
+  ctx: CanvasRenderingContext2D,
+  comment: CommentCardData,
+  maxTextW: number,
+  isEditorial: boolean
+): CommentCalloutLayout {
+  const replyText = comment.text.trim();
+  const len = replyText.length;
+
+  let rFontSize = len <= 70 ? 46 : len <= 140 ? 40 : len <= 220 ? 34 : 28;
+  let rLineHeight = Math.round(rFontSize * 1.34);
+  const fontFamily = isEditorial
+    ? '"Instrument Serif", Georgia, serif'
+    : '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
+
+  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${rFontSize}px ${fontFamily}`;
+  let rLines = wrapText(ctx, `"${replyText}"`, maxTextW, 7);
+
+  while (rLines.length > 7 && rFontSize > 22) {
+    rFontSize -= 2;
+    rLineHeight = Math.round(rFontSize * 1.34);
+    ctx.font = `${isEditorial ? 'italic 600' : '700'} ${rFontSize}px ${fontFamily}`;
+    rLines = wrapText(ctx, `"${replyText}"`, maxTextW, 7);
+  }
+
+  const rTextH = rLines.length * rLineHeight;
+  const calloutTopPad = 40;
+  const gapToDivider = 26;
+  const gapToAuthor = 20;
+  const authorRowH = 44;
+  const calloutBottomPad = 26;
+  const calloutH = calloutTopPad + rTextH + gapToDivider + 1.5 + gapToAuthor + authorRowH + calloutBottomPad;
+
+  return {
+    rFontSize,
+    rLineHeight,
+    rLines,
+    rTextH,
+    calloutTopPad,
+    gapToDivider,
+    gapToAuthor,
+    authorRowH,
+    calloutBottomPad,
+    calloutH,
+    fontFamily,
+  };
+}
+
+/**
+ * Renders the tight inner content of the callout (Zero dead space below comment)
  */
 function renderCalloutContent(
   ctx: CanvasRenderingContext2D,
   comment: CommentCardData,
+  layout: CommentCalloutLayout,
   calloutX: number,
   calloutY: number,
   calloutW: number,
-  calloutH: number,
   isEditorial: boolean
 ) {
   const isYes = comment.choice === 'YES';
@@ -791,64 +856,40 @@ function renderCalloutContent(
   ctx.fillText('“', calloutX + 38, calloutY + 62);
   ctx.restore();
 
-  // 2. Large Comment Reply Text (Dynamic Sizing)
+  // 2. Large Comment Reply Text
   const textPadX = 42;
-  const maxTextW = calloutW - textPadX * 2;
-  const replyText = comment.text.trim();
-  const len = replyText.length;
-
-  let fontSize = len <= 65 ? 46 : len <= 130 ? 38 : len <= 220 ? 32 : 27;
-  let lineHeight = Math.round(fontSize * 1.34);
-  const fontFamily = isEditorial
-    ? '"Instrument Serif", Georgia, serif'
-    : '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
-
-  const footerSpace = 96;
-  const maxAvailableTextH = calloutH - 120 - footerSpace;
-
-  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
-  let lines = wrapText(ctx, `"${replyText}"`, maxTextW, 8);
-
-  while (lines.length * lineHeight > maxAvailableTextH && fontSize > 20) {
-    fontSize -= 2;
-    lineHeight = Math.round(fontSize * 1.34);
-    ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
-    lines = wrapText(ctx, `"${replyText}"`, maxTextW, 8);
-  }
-
-  // Draw comment lines
   ctx.save();
-  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
+  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${layout.rFontSize}px ${layout.fontFamily}`;
   ctx.fillStyle = isEditorial ? '#fffdf7' : '#ffffff';
-  let cursorY = calloutY + 86 + lineHeight * 0.75;
-  for (const line of lines) {
+  let cursorY = calloutY + layout.calloutTopPad + layout.rLineHeight * 0.72;
+  for (const line of layout.rLines) {
     ctx.fillText(line, calloutX + textPadX, cursorY);
-    cursorY += lineHeight;
+    cursorY += layout.rLineHeight;
   }
   ctx.restore();
 
-  // 3. Callout Divider Line before Author Row
-  const footerDividerY = calloutY + calloutH - 84;
+  // 3. Callout Divider Line directly below text
+  const dividerY = calloutY + layout.calloutTopPad + layout.rTextH + layout.gapToDivider;
   ctx.save();
   ctx.strokeStyle = isEditorial ? 'rgba(245, 158, 11, 0.22)' : 'rgba(255, 255, 255, 0.12)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(calloutX + 32, footerDividerY);
-  ctx.lineTo(calloutX + calloutW - 32, footerDividerY);
+  ctx.moveTo(calloutX + 32, dividerY);
+  ctx.lineTo(calloutX + calloutW - 32, dividerY);
   ctx.stroke();
   ctx.restore();
 
   // 4. Author Avatar Initials Circle
+  const authorCenterY = dividerY + layout.gapToAuthor + layout.authorRowH / 2;
   const avatarCenterX = calloutX + 58;
-  const avatarCenterY = calloutY + calloutH - 42;
   const avatarRadius = 22;
 
   ctx.save();
   ctx.beginPath();
-  ctx.arc(avatarCenterX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+  ctx.arc(avatarCenterX, authorCenterY, avatarRadius, 0, Math.PI * 2);
   const avatarGrad = ctx.createLinearGradient(
-    avatarCenterX - avatarRadius, avatarCenterY - avatarRadius,
-    avatarCenterX + avatarRadius, avatarCenterY + avatarRadius
+    avatarCenterX - avatarRadius, authorCenterY - avatarRadius,
+    avatarCenterX + avatarRadius, authorCenterY + avatarRadius
   );
   if (isYes) {
     avatarGrad.addColorStop(0, '#10b981');
@@ -875,22 +916,23 @@ function renderCalloutContent(
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initials, avatarCenterX, avatarCenterY);
+  ctx.fillText(initials, avatarCenterX, authorCenterY);
   ctx.restore();
 
   // 5. Author Name and Handle
   ctx.save();
   ctx.font = '800 20px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(comment.author || 'Civic Participant', calloutX + 90, calloutY + calloutH - 46);
+  ctx.fillText(comment.author || 'Civic Participant', calloutX + 90, authorCenterY - 4);
 
   const handle = comment.authorAlias 
     ? `@${comment.authorAlias.replace(/^@/, '')}` 
     : `@${(comment.author || 'anonymous').toLowerCase().replace(/\s+/g, '')}`;
   ctx.font = '500 13px ui-monospace, SFMono-Regular, monospace';
   ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-  ctx.fillText(handle, calloutX + 90, calloutY + calloutH - 26);
+  ctx.fillText(handle, calloutX + 90, authorCenterY + 16);
   ctx.restore();
 
   // 6. Stance Pill (VOTED YES / VOTED NO / PERSPECTIVE)
@@ -898,7 +940,7 @@ function renderCalloutContent(
   const badgeW = isYes || isNo ? 154 : 146;
   const badgeH = 38;
   const badgeX = calloutX + calloutW - badgeW - 32;
-  const badgeY = calloutY + calloutH - 61;
+  const badgeY = authorCenterY - badgeH / 2;
 
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 19);
   if (isYes) {
@@ -939,33 +981,30 @@ function renderCalloutContent(
 }
 
 /**
- * Top Question Section common across comment cards
+ * Top Header: Centralized Brand Badge (No Category Pill)
  */
-function renderCommentCardTopQuestion(
+function renderCommentCardHeader(
   ctx: CanvasRenderingContext2D,
-  issue: Issue,
-  width: number,
-  isEditorial: boolean
+  width: number
 ): number {
-  const padX = 72;
-  const headerY = 56;
-  const headerH = 48;
+  const headerY = 58;
+  const headerH = 54;
+  const brandPillW = 240;
+  const brandX = (width - brandPillW) / 2;
 
-  // 1. Top Left Brand Pill
   ctx.save();
-  const brandPillW = 186;
-  drawRoundedRect(ctx, padX, headerY, brandPillW, headerH, 16);
+  drawRoundedRect(ctx, brandX, headerY, brandPillW, headerH, 18);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.20)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
   // Brand Icon Box
-  const iconSize = 30;
+  const iconSize = 34;
   const iconOffset = (headerH - iconSize) / 2;
-  drawRoundedRect(ctx, padX + iconOffset, headerY + iconOffset, iconSize, iconSize, 8);
-  const iconGrad = ctx.createLinearGradient(padX, headerY, padX + iconSize, headerY + iconSize);
+  drawRoundedRect(ctx, brandX + iconOffset, headerY + iconOffset, iconSize, iconSize, 10);
+  const iconGrad = ctx.createLinearGradient(brandX, headerY, brandX + iconSize, headerY + iconSize);
   iconGrad.addColorStop(0, '#10b981');
   iconGrad.addColorStop(1, '#6366f1');
   ctx.fillStyle = iconGrad;
@@ -976,7 +1015,7 @@ function renderCommentCardTopQuestion(
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  const icX = padX + iconOffset;
+  const icX = brandX + iconOffset;
   const icY = headerY + iconOffset;
   ctx.moveTo(icX + iconSize * 0.26, icY + iconSize * 0.50);
   ctx.lineTo(icX + iconSize * 0.44, icY + iconSize * 0.70);
@@ -984,60 +1023,82 @@ function renderCommentCardTopQuestion(
   ctx.stroke();
 
   // Brand Text
-  ctx.font = '800 22px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.font = '800 24px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('YesOrNo', padX + iconOffset + iconSize + 12, headerY + headerH * 0.68);
+  ctx.fillText('YesOrNo', brandX + iconOffset + iconSize + 14, headerY + headerH * 0.68);
   ctx.restore();
 
-  // 2. Top Right Category Badge
-  ctx.save();
-  const catText = (issue.category || 'COMMUNITY').toUpperCase();
-  ctx.font = '800 13px "Plus Jakarta Sans", system-ui, sans-serif';
-  const catTextW = ctx.measureText(catText).width;
-  const catPillW = catTextW + 30;
-  const catPillX = width - padX - catPillW;
+  return headerY + headerH;
+}
 
-  drawRoundedRect(ctx, catPillX, headerY, catPillW, headerH, 16);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+/**
+ * Layout measurement for the Question at the top
+ */
+interface QuestionLayout {
+  question: string;
+  qFontSize: number;
+  qLineHeight: number;
+  qLines: string[];
+  eyebrowH: number;
+  eyebrowGap: number;
+  totalQuestionH: number;
+  qFontFamily: string;
+}
 
-  ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
-  ctx.textAlign = 'center';
-  ctx.fillText(catText, catPillX + catPillW / 2, headerY + headerH * 0.65);
-  ctx.restore();
+function measureQuestionLayout(
+  ctx: CanvasRenderingContext2D,
+  issue: Issue,
+  maxQWidth: number,
+  isEditorial: boolean
+): QuestionLayout {
+  const question = formatQuestion(issue.title);
+  const qFontFamily = isEditorial ? '"Instrument Serif", Georgia, serif' : '"Plus Jakarta Sans", system-ui, sans-serif';
+  const qFontSize = isEditorial ? 36 : 34;
+  const qLineHeight = Math.round(qFontSize * 1.25);
 
-  // 3. Eyebrow: QUESTION & TOPIC
-  const questionStartY = headerY + headerH + 28;
+  ctx.font = `${isEditorial ? '700' : '800'} ${qFontSize}px ${qFontFamily}`;
+  const qLines = wrapText(ctx, question, maxQWidth, 3);
+  const eyebrowH = 16;
+  const eyebrowGap = 12;
+  const qTextH = qLines.length * qLineHeight;
+  const totalQuestionH = eyebrowH + eyebrowGap + qTextH;
+
+  return {
+    question,
+    qFontSize,
+    qLineHeight,
+    qLines,
+    eyebrowH,
+    eyebrowGap,
+    totalQuestionH,
+    qFontFamily,
+  };
+}
+
+function renderQuestionContent(
+  ctx: CanvasRenderingContext2D,
+  qLayout: QuestionLayout,
+  padX: number,
+  startY: number,
+  isEditorial: boolean
+) {
+  // Eyebrow
   ctx.save();
   ctx.font = '800 12px ui-monospace, SFMono-Regular, monospace';
   ctx.fillStyle = isEditorial ? 'rgba(245, 158, 11, 0.90)' : 'rgba(148, 163, 184, 0.85)';
-  ctx.fillText('QUESTION & TOPIC', padX, questionStartY);
-  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.fillText('QUESTION & TOPIC', padX, startY + qLayout.eyebrowH);
 
-  // 4. The Question (The reply is based on at the top)
-  const question = formatQuestion(issue.title);
-  const maxQWidth = width - padX * 2;
-  const qFontFamily = isEditorial ? '"Instrument Serif", Georgia, serif' : '"Plus Jakarta Sans", system-ui, sans-serif';
-  const qFontSize = isEditorial ? 36 : 32;
-  const qLineHeight = Math.round(qFontSize * 1.25);
-
-  ctx.save();
-  ctx.font = `${isEditorial ? '700' : '800'} ${qFontSize}px ${qFontFamily}`;
+  // Question Lines
+  ctx.font = `${isEditorial ? '700' : '800'} ${qLayout.qFontSize}px ${qLayout.qFontFamily}`;
   ctx.fillStyle = '#ffffff';
-  const qLines = wrapText(ctx, question, maxQWidth, 3);
-
-  let qCursorY = questionStartY + 28;
-  for (const line of qLines) {
+  let qCursorY = startY + qLayout.eyebrowH + qLayout.eyebrowGap + qLayout.qFontSize * 0.82;
+  for (const line of qLayout.qLines) {
     ctx.fillText(line, padX, qCursorY);
-    qCursorY += qLineHeight;
+    qCursorY += qLayout.qLineHeight;
   }
   ctx.restore();
-
-  return qCursorY;
 }
 
 /**
@@ -1070,7 +1131,7 @@ function renderBoldCommentCard(
   const isNo = comment.choice === 'NO';
 
   const glow1 = ctx.createRadialGradient(width * 0.85, height * 0.15, 10, width * 0.85, height * 0.15, 380);
-  glow1.addColorStop(0, isToned ? 'rgba(71, 85, 105, 0.40)' : 'rgba(99, 102, 241, 0.22)');
+  glow1.addColorStop(0, isToned ? 'rgba(71, 85, 105, 0.40)' : 'rgba(99, 102, 241, 0.24)');
   glow1.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow1;
   ctx.fillRect(0, 0, width, height);
@@ -1089,17 +1150,37 @@ function renderBoldCommentCard(
   ctx.stroke();
   ctx.restore();
 
-  // Top Question
-  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, false);
+  // Top Header (Centralized, No Category Pill)
+  const headerBottomY = renderCommentCardHeader(ctx, width);
 
-  // Callout Box Geometry
-  const calloutX = 64;
-  const calloutW = width - calloutX * 2;
-  const footerCardY = height - 56;
-  const calloutY = Math.max(questionBottomY + 24, 280);
-  const calloutH = footerCardY - calloutY - 24;
+  // Footer Y
+  const footerCardY = height - 58;
 
-  // Draw Callout Box with speech notch
+  // Measurement & Dynamic Spacing
+  const padX = 64;
+  const contentWidth = width - padX * 2;
+  const maxTextW = contentWidth - 42 * 2;
+
+  const qLayout = measureQuestionLayout(ctx, issue, contentWidth, false);
+  const cLayout = measureCommentCalloutLayout(ctx, comment, maxTextW, false);
+
+  const gapQuestionToCallout = 28;
+  const totalBlockH = qLayout.totalQuestionH + gapQuestionToCallout + cLayout.calloutH;
+  const topBound = headerBottomY + 32;
+  const bottomBound = footerCardY - 32;
+  const availableH = bottomBound - topBound;
+
+  const startY = topBound + Math.max(0, Math.round((availableH - totalBlockH) / 2));
+
+  // 1. Draw Question
+  renderQuestionContent(ctx, qLayout, padX, startY, false);
+
+  // 2. Draw Callout Box
+  const calloutX = padX;
+  const calloutW = contentWidth;
+  const calloutY = startY + qLayout.totalQuestionH + gapQuestionToCallout;
+  const calloutH = cLayout.calloutH;
+
   ctx.save();
   drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 28, calloutX + 76, 26, 14);
   if (isYes) {
@@ -1119,10 +1200,10 @@ function renderBoldCommentCard(
   ctx.stroke();
   ctx.restore();
 
-  // Callout Inner Content
-  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, false);
+  // 3. Draw Callout Content
+  renderCalloutContent(ctx, comment, cLayout, calloutX, calloutY, calloutW, false);
 
-  // Card Bottom Footer
+  // 4. Card Bottom Footer
   ctx.save();
   ctx.font = '600 15px ui-monospace, SFMono-Regular, monospace';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.70)';
@@ -1161,33 +1242,53 @@ function renderEditorialCommentCard(
 
   // Subtle warm amber ambient glow
   const amberGlow = ctx.createRadialGradient(width * 0.5, height * 0.45, 20, width * 0.5, height * 0.45, 500);
-  amberGlow.addColorStop(0, 'rgba(245, 158, 11, 0.08)');
+  amberGlow.addColorStop(0, 'rgba(245, 158, 11, 0.10)');
   amberGlow.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = amberGlow;
   ctx.fillRect(0, 0, width, height);
 
   // Outer border with warm tint
   ctx.save();
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.24)';
   ctx.lineWidth = 2;
   drawRoundedRect(ctx, 36, 36, width - 72, height - 72, 28);
   ctx.stroke();
   ctx.restore();
 
-  // Top Question
-  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, true);
+  // Top Header (Centralized, No Category Pill)
+  const headerBottomY = renderCommentCardHeader(ctx, width);
 
-  // Callout Box Geometry
-  const calloutX = 64;
-  const calloutW = width - calloutX * 2;
-  const footerCardY = height - 56;
-  const calloutY = Math.max(questionBottomY + 24, 280);
-  const calloutH = footerCardY - calloutY - 24;
+  // Footer Y
+  const footerCardY = height - 58;
+
+  // Measurement & Dynamic Spacing
+  const padX = 64;
+  const contentWidth = width - padX * 2;
+  const maxTextW = contentWidth - 42 * 2;
+
+  const qLayout = measureQuestionLayout(ctx, issue, contentWidth, true);
+  const cLayout = measureCommentCalloutLayout(ctx, comment, maxTextW, true);
+
+  const gapQuestionToCallout = 28;
+  const totalBlockH = qLayout.totalQuestionH + gapQuestionToCallout + cLayout.calloutH;
+  const topBound = headerBottomY + 32;
+  const bottomBound = footerCardY - 32;
+  const availableH = bottomBound - topBound;
+
+  const startY = topBound + Math.max(0, Math.round((availableH - totalBlockH) / 2));
+
+  // 1. Draw Question
+  renderQuestionContent(ctx, qLayout, padX, startY, true);
+
+  // 2. Draw Callout Box
+  const calloutX = padX;
+  const calloutW = contentWidth;
+  const calloutY = startY + qLayout.totalQuestionH + gapQuestionToCallout;
+  const calloutH = cLayout.calloutH;
 
   const isYes = comment.choice === 'YES';
   const isNo = comment.choice === 'NO';
 
-  // Draw Callout Box
   ctx.save();
   drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 24, calloutX + 76, 26, 14);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
@@ -1196,15 +1297,15 @@ function renderEditorialCommentCard(
     ? 'rgba(16, 185, 129, 0.45)' 
     : isNo 
       ? 'rgba(244, 63, 94, 0.45)' 
-      : 'rgba(245, 158, 11, 0.35)';
+      : 'rgba(245, 158, 11, 0.38)';
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.restore();
 
-  // Callout Inner Content with serif typography
-  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, true);
+  // 3. Draw Callout Content
+  renderCalloutContent(ctx, comment, cLayout, calloutX, calloutY, calloutW, true);
 
-  // Card Bottom Footer
+  // 4. Card Bottom Footer
   ctx.save();
   ctx.font = '600 15px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
@@ -1239,7 +1340,7 @@ function renderNeonCommentCard(
   ctx.fillRect(0, 0, width, height);
 
   const glowPurple = ctx.createRadialGradient(width * 0.1, height * 0.9, 10, width * 0.1, height * 0.9, 480);
-  glowPurple.addColorStop(0, isYes ? 'rgba(16, 185, 129, 0.28)' : isNo ? 'rgba(244, 63, 94, 0.28)' : 'rgba(168, 85, 247, 0.28)');
+  glowPurple.addColorStop(0, isYes ? 'rgba(16, 185, 129, 0.28)' : isNo ? 'rgba(244, 63, 94, 0.28)' : 'rgba(244, 63, 94, 0.28)');
   glowPurple.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glowPurple;
   ctx.fillRect(0, 0, width, height);
@@ -1252,20 +1353,40 @@ function renderNeonCommentCard(
   ctx.stroke();
   ctx.restore();
 
-  // Top Question
-  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, false);
+  // Top Header (Centralized, No Category Pill)
+  const headerBottomY = renderCommentCardHeader(ctx, width);
 
-  // Callout Box Geometry
-  const calloutX = 64;
-  const calloutW = width - calloutX * 2;
-  const footerCardY = height - 56;
-  const calloutY = Math.max(questionBottomY + 24, 280);
-  const calloutH = footerCardY - calloutY - 24;
+  // Footer Y
+  const footerCardY = height - 58;
 
-  // Draw Callout Box with neon glow
+  // Measurement & Dynamic Spacing
+  const padX = 64;
+  const contentWidth = width - padX * 2;
+  const maxTextW = contentWidth - 42 * 2;
+
+  const qLayout = measureQuestionLayout(ctx, issue, contentWidth, false);
+  const cLayout = measureCommentCalloutLayout(ctx, comment, maxTextW, false);
+
+  const gapQuestionToCallout = 28;
+  const totalBlockH = qLayout.totalQuestionH + gapQuestionToCallout + cLayout.calloutH;
+  const topBound = headerBottomY + 32;
+  const bottomBound = footerCardY - 32;
+  const availableH = bottomBound - topBound;
+
+  const startY = topBound + Math.max(0, Math.round((availableH - totalBlockH) / 2));
+
+  // 1. Draw Question
+  renderQuestionContent(ctx, qLayout, padX, startY, false);
+
+  // 2. Draw Callout Box
+  const calloutX = padX;
+  const calloutW = contentWidth;
+  const calloutY = startY + qLayout.totalQuestionH + gapQuestionToCallout;
+  const calloutH = cLayout.calloutH;
+
   ctx.save();
   drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 28, calloutX + 76, 26, 14);
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
   ctx.fill();
 
   ctx.shadowColor = isYes ? 'rgba(16, 185, 129, 0.60)' : isNo ? 'rgba(244, 63, 94, 0.60)' : 'rgba(99, 102, 241, 0.55)';
@@ -1275,10 +1396,10 @@ function renderNeonCommentCard(
   ctx.stroke();
   ctx.restore();
 
-  // Callout Inner Content
-  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, false);
+  // 3. Draw Callout Content
+  renderCalloutContent(ctx, comment, cLayout, calloutX, calloutY, calloutW, false);
 
-  // Card Bottom Footer
+  // 4. Card Bottom Footer
   ctx.save();
   ctx.font = '700 15px ui-monospace, SFMono-Regular, monospace';
   ctx.fillStyle = '#06b6d4';
