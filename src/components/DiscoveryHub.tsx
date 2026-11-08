@@ -116,7 +116,11 @@ export const DiscoveryHub: React.FC<Props> = ({
       list.sort((a, b) => b.trendingScore - a.trendingScore);
     } else if (mode === 'closing') {
       list = list.filter(item => !item.metrics.isClosed);
-      list.sort((a, b) => new Date(a.issue.closingDate).getTime() - new Date(b.issue.closingDate).getTime());
+      list.sort((a, b) => {
+        const timeA = a.issue.closingDate ? new Date(a.issue.closingDate).getTime() : Infinity;
+        const timeB = b.issue.closingDate ? new Date(b.issue.closingDate).getTime() : Infinity;
+        return timeA - timeB;
+      });
     } else if (mode === 'debated') {
       list.sort((a, b) => b.debatedScore - a.debatedScore);
     }

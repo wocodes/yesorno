@@ -229,6 +229,22 @@ export const UserProfilePage: React.FC<Props> = ({
             <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 max-w-3xl leading-relaxed">
               {profile.bio || 'Active civic contributor shaping public policy and neighborhood consensus.'}
             </p>
+
+            {/* Social Follow Network */}
+            <div className="flex items-center gap-4 pt-1 text-xs text-slate-600 dark:text-zinc-400">
+              <span className="flex items-center gap-1.5">
+                <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                  {isOwnProfile ? (currentUser?.followingCreators?.length || 0) : (profile.followingCreators?.length || 0)}
+                </strong>
+                <span>Following</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                  {profile.followersCount || 0}
+                </strong>
+                <span>Followers</span>
+              </span>
+            </div>
           </div>
 
           {/* Statistics Strip */}

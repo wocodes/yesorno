@@ -1,6 +1,19 @@
 export type VoteChoice = 'YES' | 'NO';
 export type DisplayPreference = 'username' | 'firstname' | 'name';
 
+export interface IssueDraft {
+  title: string;
+  description: string;
+  category: IssueCategory;
+  tagsInput?: string;
+  durationLabel?: string;
+  durationHours?: number;
+  visibility?: IssueVisibility;
+  isAnonymous?: boolean;
+  images?: string[];
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -17,10 +30,14 @@ export interface UserProfile {
   votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
   likedIssueIds?: string[];
   favoriteIssueIds?: string[];
+  issueDraft?: IssueDraft | null;
+  followersCount?: number;
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
   soundEnabled?: boolean;
   animationsEnabled?: boolean;
+  theme?: 'dark' | 'light';
+  colorTone?: 'vibrant' | 'toned';
   onboardingCompleted?: boolean;
 }
 
@@ -121,7 +138,7 @@ export interface Issue {
   creatorUsername?: string;
   isAnonymousAuthor?: boolean;
   createdAt: string;
-  closingDate: string; // ISO string representing exact deadline set by user
+  closingDate?: string | null; // ISO string or null/undefined if indefinite (no expiry)
   durationLabel: string; // e.g. "24 Hours", "3 Days", "7 Days", "Custom"
   visibility: IssueVisibility;
   invitedEmails: string[]; // Allowed emails if private
@@ -177,5 +194,7 @@ export interface PublicUserProfile {
   region?: IssueRegion;
   groups?: string[];
   interests?: IssueCategory[];
+  followingCreators?: string[];
+  followersCount?: number;
   isVerified?: boolean;
 }

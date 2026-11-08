@@ -3,7 +3,7 @@ import {
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Heart, User, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
-  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil,
+  Smile, ChevronLeft, ChevronRight, Flag, Pencil,
   CheckCircle2
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
@@ -15,6 +15,7 @@ import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl } from '../utils/audio';
 import { ReportIssueModal } from './ReportIssueModal';
+import { ShareCommentModal } from './ShareCommentModal';
 
 export const AVAILABLE_REACTIONS = [
   { emoji: '👍', label: 'Agree' },
@@ -109,10 +110,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   const [sharingComment, setSharingComment] = useState<{
     id: string;
     author: string;
+    authorAlias?: string;
     text: string;
-    choice: VoteChoice;
+    choice?: VoteChoice;
   } | null>(null);
-  const [copiedCommentLink, setCopiedCommentLink] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
   const metrics = computeIssueMetrics(issue);
@@ -1084,6 +1085,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                               setSharingComment({
                                 id: resp.id,
                                 author: resp.isAnonymous ? resp.authorAlias || 'Anonymous' : resp.authorName,
+                                authorAlias: resp.isAnonymous ? resp.authorAlias : resp.authorUsername,
                                 text: resp.note || (resp.voiceNote ? 'Spoken Voice Briefing' : `Voted ${resp.choice}`),
                                 choice: resp.choice,
                               });
@@ -1123,9 +1125,26 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                       {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
                                     </button>
                                   )}
-                                  <span className="text-[10px] text-slate-400">
-                                    {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-400">
+                                      {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSharingComment({
+                                          id: reply.id,
+                                          author: reply.isAnonymous ? (reply.authorAlias || 'Anonymous') : reply.authorName,
+                                          authorAlias: reply.authorUsername || reply.authorAlias,
+                                          text: reply.content,
+                                        });
+                                      }}
+                                      className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 p-0.5 rounded transition-colors cursor-pointer"
+                                      title="Share reply image card"
+                                    >
+                                      <Share2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
                                 </div>
                                 <p className="text-slate-700 dark:text-zinc-300 leading-relaxed">
                                   {reply.content}
@@ -1184,69 +1203,14 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
         )}
       </article>
 
-      {/* Social Perspective Share Dialog */}
-      {sharingComment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-white dark:bg-ink-900 rounded-3xl p-6 shadow-lift border border-slate-200 dark:border-white/10 space-y-4 animate-slide-up">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-ink-950 dark:text-white flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-brand-500" />
-                <span>Share Perspective</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSharingComment(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/5 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-ink-950 dark:text-white">{sharingComment.author}</span>
-                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                  sharingComment.choice === 'YES' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                }`}>
-                  Voted {sharingComment.choice}
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-300 italic">
-                &ldquo;{sharingComment.text}&rdquo;
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  const shareUrl = `${window.location.origin}${window.location.pathname}?c=${sharingComment.id}#issue/${issue.id}`;
-                  await navigator.clipboard.writeText(shareUrl);
-                  setCopiedCommentLink(true);
-                  setTimeout(() => setCopiedCommentLink(false), 2000);
-                }}
-                className="btn-ghost py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                {copiedCommentLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedCommentLink ? 'Copied Link!' : 'Copy Direct Link'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const shareUrl = `${window.location.origin}${window.location.pathname}?c=${sharingComment.id}#issue/${issue.id}`;
-                  const tweetText = `"${sharingComment.text}" — ${sharingComment.author} on YesOrNo: ${issue.title}`;
-                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-                }}
-                className="btn-brand py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 shadow-glow cursor-pointer"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Share to X</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Social Perspective Image Share Modal */}
+      <ShareCommentModal
+        isOpen={Boolean(sharingComment)}
+        onClose={() => setSharingComment(null)}
+        issue={issue}
+        comment={sharingComment}
+        currentUser={currentUser}
+      />
       {/* Report / Flag Issue Modal */}
       {showReportModal && (
         <ReportIssueModal

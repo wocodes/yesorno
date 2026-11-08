@@ -29,7 +29,7 @@ import {
   notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply } from './types';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
 import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -122,6 +122,8 @@ export function App() {
   // Automated Gemini Daily Polarizing Questions: 3 times a day (morning, afternoon, evening)
   const issuesRef = useRef(issues);
   issuesRef.current = issues;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
 
   useEffect(() => {
     checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
@@ -170,6 +172,11 @@ export function App() {
     setTheme(prev => {
       const next = prev === 'dark' ? 'light' : 'dark';
       recordThemeModeSwitch(next);
+      if (currentUser) {
+        const updated: UserProfile = { ...currentUser, theme: next };
+        setCurrentUser(updated);
+        saveStoredUser(updated);
+      }
       return next;
     });
   };
@@ -178,6 +185,11 @@ export function App() {
     setColorTone(prev => {
       const next = prev === 'vibrant' ? 'toned' : 'vibrant';
       recordColorToneSwitch(next);
+      if (currentUser) {
+        const updated: UserProfile = { ...currentUser, colorTone: next };
+        setCurrentUser(updated);
+        saveStoredUser(updated);
+      }
       return next;
     });
   };
@@ -242,10 +254,25 @@ export function App() {
               username: serverProf.username || prev.username,
               interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
               region: serverProf.region || prev.region,
+              followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
+              issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
+              defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+              defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
+              soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
+              animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
+              theme: serverProf.theme || prev.theme,
+              colorTone: serverProf.colorTone || prev.colorTone,
               onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
             };
             return updated;
           });
+
+          if (serverProf.theme) {
+            setTheme(serverProf.theme);
+          }
+          if (serverProf.colorTone) {
+            setColorTone(serverProf.colorTone);
+          }
 
           if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
             setUserVotes(prev => {
@@ -542,10 +569,19 @@ export function App() {
             serverIssues
               .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => map.set(i.id, i));
+
+            // Only preserve locally created issues that were created within the last 60s (in-flight network sync)
+            // Any older issue not present on the server was deleted or moderated and must NOT be resurrected
+            const now = Date.now();
             prev
               .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => {
-                if (!map.has(i.id)) map.set(i.id, i);
+                if (!map.has(i.id)) {
+                  const createdTime = new Date(i.createdAt).getTime();
+                  if (!isNaN(createdTime) && now - createdTime < 60000) {
+                    map.set(i.id, i);
+                  }
+                }
               });
             const merged = Array.from(map.values());
             saveIssues(merged);
@@ -555,6 +591,65 @@ export function App() {
       }).catch(() => {
         setIsInitialLoadingIssues(false);
       });
+
+      // Also sync user profile, votes, likes, and settings across devices in real-time
+      const activeEmail = currentUserRef.current?.email;
+      if (activeEmail) {
+        fetchServerProfileByEmail(activeEmail).then((serverProf) => {
+          if (serverProf) {
+            setCurrentUser((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                ...serverProf,
+                username: serverProf.username || prev.username,
+                interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
+                region: serverProf.region || prev.region,
+                followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
+                issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
+                defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+                defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
+                soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
+                animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
+                theme: serverProf.theme || prev.theme,
+                colorTone: serverProf.colorTone || prev.colorTone,
+                onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
+              };
+            });
+
+            if (serverProf.theme) {
+              setTheme(serverProf.theme);
+            }
+            if (serverProf.colorTone) {
+              setColorTone(serverProf.colorTone);
+            }
+
+            if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
+              setUserVotes((prev) => {
+                const m = { ...serverProf.votedIssues, ...prev };
+                try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+                return m;
+              });
+            }
+            if (serverProf.likedIssueIds && serverProf.likedIssueIds.length > 0) {
+              setUserLikes((prev) => {
+                const m = { ...prev };
+                serverProf.likedIssueIds?.forEach((id) => { m[id] = true; });
+                saveUserLikesMap(m);
+                return m;
+              });
+            }
+            if (serverProf.favoriteIssueIds && serverProf.favoriteIssueIds.length > 0) {
+              setUserFavorites((prev) => {
+                const m = { ...prev };
+                serverProf.favoriteIssueIds?.forEach((id) => { m[id] = true; });
+                saveUserFavoritesMap(m);
+                return m;
+              });
+            }
+          }
+        }).catch(() => {});
+      }
     };
 
     syncFromCloud();
@@ -693,6 +788,17 @@ export function App() {
     setCurrentUser(updated);
     saveStoredUser(updated);
     addToast('success', 'Preferences Saved', 'Your feed priority & profile settings are updated.');
+  };
+
+  // Autosave issue draft to user profile & cloud server for cross-device resume
+  const handleSaveIssueDraft = (draft: IssueDraft | null) => {
+    if (!currentUser) return;
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      issueDraft: draft,
+    };
+    setCurrentUser(updatedUser);
+    saveStoredUser(updatedUser);
   };
 
   // Automatically build user's interest profile as they interact with issues
@@ -2132,6 +2238,7 @@ export function App() {
         editingIssue={editingIssue}
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         currentUser={currentUser}
+        onSaveDraft={handleSaveIssueDraft}
       />
 
       <CommunityGuidelinesModal
