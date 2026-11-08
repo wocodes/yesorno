@@ -122,26 +122,13 @@ export function notifyAdminUserRegistered(
 }
 
 /**
- * Triggered whenever a user logs in
+ * Triggered whenever a user logs in (Silenced per admin preference)
  */
 export function notifyAdminUserLoggedIn(
-  user: UserProfile,
-  method = 'Standard Sign-In'
+  _user: UserProfile,
+  _method = 'Standard Sign-In'
 ): void {
-  const throttleKey = `login:${user.email || user.id}`;
-  if (shouldThrottle(throttleKey, 15000)) return;
-
-  sendAdminNotification({
-    event: 'login',
-    user: {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    data: {
-      method,
-    },
-  });
+  // Silenced: login email alerts disabled to prevent admin inbox clutter
 }
 
 /**
@@ -175,66 +162,26 @@ export function notifyAdminIssueCreated(
 }
 
 /**
- * Triggered whenever a user comments or attaches a perspective/voice note to an issue
+ * Triggered whenever a user comments or attaches a perspective/voice note to an issue (Silenced per admin preference)
  */
 export function notifyAdminCommentAdded(
-  submission: VoteSubmission,
-  issueTitle: string,
-  user?: UserProfile | null
+  _submission: VoteSubmission,
+  _issueTitle: string,
+  _user?: UserProfile | null
 ): void {
-  const origin = typeof window !== 'undefined' && window.location.origin 
-    ? window.location.origin 
-    : 'https://yesorno.chillon.top';
-  const issueUrl = `${origin}/?issue=${submission.issueId}`;
-
-  sendAdminNotification({
-    event: 'comment',
-    user: {
-      name: user?.name || submission.authorName,
-      email: user?.email || submission.authorEmail,
-      role: user?.role || submission.authorRole,
-    },
-    data: {
-      issueTitle,
-      choice: submission.choice,
-      note: submission.note || '',
-      hasVoice: Boolean(submission.voiceNote),
-      isAnonymous: submission.isAnonymous,
-      url: issueUrl,
-    },
-  });
+  // Silenced: issue comment alerts disabled per admin preference
 }
 
 /**
- * Triggered whenever a user posts a direct reply to another user's comment
+ * Triggered whenever a user posts a direct reply to another user's comment (Silenced per admin preference)
  */
 export function notifyAdminReplyAdded(
-  reply: CommentReply,
-  parentSubmission: VoteSubmission,
-  issueTitle: string,
-  user?: UserProfile | null
+  _reply: CommentReply,
+  _parentSubmission: VoteSubmission,
+  _issueTitle: string,
+  _user?: UserProfile | null
 ): void {
-  const origin = typeof window !== 'undefined' && window.location.origin 
-    ? window.location.origin 
-    : 'https://yesorno.chillon.top';
-  const issueUrl = `${origin}/?issue=${parentSubmission.issueId}`;
-
-  sendAdminNotification({
-    event: 'comment',
-    user: {
-      name: user?.name || reply.authorName,
-      email: user?.email || reply.authorEmail,
-      role: user?.role || reply.authorRole,
-    },
-    data: {
-      issueTitle,
-      choice: `REPLY 💬 (to @${reply.replyToName || parentSubmission.authorName})`,
-      note: reply.content,
-      hasVoice: false,
-      isAnonymous: reply.isAnonymous,
-      url: issueUrl,
-    },
-  });
+  // Silenced: reply alerts disabled per admin preference
 }
 
 /**

@@ -23,10 +23,7 @@ import {
 } from './utils/analytics';
 import {
   notifyAdminUserRegistered,
-  notifyAdminUserLoggedIn,
   notifyAdminIssueCreated,
-  notifyAdminCommentAdded,
-  notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
@@ -705,12 +702,11 @@ export function App() {
         });
       }
 
-      // Notify admin email on registration vs login
+      // Notify admin email on registration (login notifications suppressed per admin preference)
       const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
       if (isNewUser) {
         notifyAdminUserRegistered(user, 'Account Registration');
       }
-      notifyAdminUserLoggedIn(user, 'Account Sign-In');
 
       if (!user.onboardingCompleted) {
         // Double-check server in case onboarding was already completed on another device
@@ -898,13 +894,9 @@ export function App() {
     }
     if (submission.note) {
       recordEngagementAction('inline_reply', targetIssue?.title);
-      notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
     }
     if (submission.voiceNote) {
       recordEngagementAction('voice_note', targetIssue?.title);
-      if (!submission.note) {
-        notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
-      }
     }
 
     // Update activeDetailIssue if open
@@ -1075,7 +1067,6 @@ export function App() {
 
   // Handle adding a direct threaded reply to a comment
   const handleAddCommentReply = (issueId: string, submissionId: string, reply: CommentReply) => {
-    let parentSubmission: VoteSubmission | undefined;
     const targetIssue = issues.find(i => i.id === issueId);
 
     setIssues(prev => {
@@ -1083,7 +1074,6 @@ export function App() {
         if (issue.id !== issueId) return issue;
         const updatedResponses = issue.responses.map(resp => {
           if (resp.id !== submissionId) return resp;
-          parentSubmission = resp;
           return {
             ...resp,
             replies: [...(resp.replies || []), reply]
@@ -1115,11 +1105,6 @@ export function App() {
     recordEngagementAction('inline_reply', targetIssue?.title || 'Issue comment reply');
     apiRecordReply(issueId, submissionId, reply);
 
-    // Notify admin
-    const foundSubmission = parentSubmission || targetIssue?.responses.find(r => r.id === submissionId);
-    if (targetIssue && foundSubmission) {
-      notifyAdminReplyAdded(reply, foundSubmission, targetIssue.title, currentUser);
-    }
   };
 
   // Handle like on a comment reply
