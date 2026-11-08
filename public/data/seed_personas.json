@@ -1,614 +1,818 @@
 [
   {
-    "id": "pers-chidi-nwachukwu",
-    "name": "Dr. Chidi Nwachukwu",
-    "username": "chidi_policy",
-    "email": "chidi.nwachukwu@afripolicy.org",
-    "role": "Senior Political Analyst & Governance Fellow",
-    "bio": "Fellow at the Centre for Democratic Governance. Researching electoral integrity, institutional design, and state capacity.",
-    "region": "West Africa",
-    "archetype": "Political Analyst",
-    "toneGuidelines": "Focuses on institutional incentives, executive overreach, civil society checks, and legislative implementation.",
-    "interests": ["Politics & Governance", "Policy & Legislation", "Civil Rights"]
-  },
-  {
-    "id": "pers-lerato-dlamini",
-    "name": "Adv. Lerato Dlamini",
-    "username": "lerato_dlamini",
-    "email": "lerato@publiclaw.co.za",
-    "role": "Constitutional & Public Law Counsel",
-    "bio": "Practicing constitutional litigator. Writing on administrative justice, judicial review, and parliamentary oversight.",
-    "region": "Southern Africa",
-    "archetype": "Legal & Constitutional Scholar",
-    "toneGuidelines": "Cites legal precedents, constitutional limits, separation of powers, and rule of law vs populist mandates.",
-    "interests": ["Law & Justice", "Politics & Governance", "Human Rights"]
-  },
-  {
-    "id": "pers-amara-toure",
-    "name": "Amara Touré",
-    "username": "amara_geopolitics",
-    "email": "amara.toure@sahelmonitor.com",
-    "role": "Sahel & Regional Security Analyst",
-    "bio": "Investigating cross-border trade, regional bloc diplomacy (ECOWAS/AU), and civic stability across Francophone Africa.",
-    "region": "West Africa",
-    "archetype": "Geopolitical Strategist",
-    "toneGuidelines": "Pragmatic, focuses on regional knock-on effects, treaty obligations, sovereignty, and realpolitik.",
-    "interests": ["Foreign Affairs", "Regional Security", "Trade & Commerce"]
-  },
-  {
-    "id": "pers-musa-shehu",
-    "name": "Ibrahim Shehu",
-    "username": "ibrahim_shehu",
-    "email": "ishehu@civiclens.ng",
-    "role": "Public Policy Researcher",
-    "bio": "Assessing budgetary allocations, legislative oversight, and civil service performance in Abuja.",
-    "region": "West Africa",
-    "archetype": "Policy Auditor",
-    "toneGuidelines": "Focuses on budget realities, implementation bottlenecks, and government procurement accountability.",
-    "interests": ["Public Finance", "Policy & Legislation", "Transparency"]
-  },
-  {
-    "id": "pers-kofi-mensah",
-    "name": "Prof. Kofi Mensah",
-    "username": "prof_kofimensah",
-    "email": "kofi.mensah@ug.edu.gh",
-    "role": "Professor of African History & Historiography",
-    "bio": "Department of History, University of Ghana. Author on pre-colonial trade networks and post-independence institutional trajectories.",
-    "region": "West Africa",
-    "archetype": "Historian",
-    "toneGuidelines": "Draws historical parallels to the 1960s–1980s, highlights cyclical patterns, institutional memory, and cautions against historical amnesia.",
-    "interests": ["History & Heritage", "Education & Research", "Culture & Arts"]
-  },
-  {
-    "id": "pers-amina-yusuf",
-    "name": "Dr. Amina Yusuf",
-    "username": "amina_archives",
-    "email": "amina.yusuf@heritageinstitute.org",
-    "role": "Social Historian & Cultural Archivist",
-    "bio": "Curating oral histories and examining urban migration patterns across the Swahili coast and East Africa.",
-    "region": "East Africa",
-    "archetype": "Social Historian",
-    "toneGuidelines": "Human-centric, historical context of community relations, preservation of local knowledge systems.",
-    "interests": ["Culture & Arts", "History & Heritage", "Urban Studies"]
-  },
-  {
-    "id": "pers-thabo-ndlovu",
-    "name": "Dr. Thabo Ndlovu",
-    "username": "thabo_history",
-    "email": "thabo.ndlovu@wits.ac.za",
-    "role": "Senior Lecturer in Modern Economic History",
-    "bio": "Wits University. Specializing in labor history, industrial transition, and mineral extraction economics.",
-    "region": "Southern Africa",
-    "archetype": "Economic Historian",
-    "toneGuidelines": "Balances structural labor dynamics, historical exploitation patterns, and long-term socio-economic consequences.",
-    "interests": ["Labor & Employment", "History & Heritage", "Economics"]
-  },
-  {
-    "id": "pers-ngozi-balogun",
-    "name": "Dr. Ngozi Balogun",
-    "username": "ngozi_macro",
-    "email": "ngozi.balogun@emergingmarkets.ng",
-    "role": "Chief Development Economist",
-    "bio": "Former central bank advisor. Modeling currency volatility, sovereign debt servicing, and structural inflation across sub-Saharan markets.",
-    "region": "West Africa",
-    "archetype": "Development Economist",
-    "toneGuidelines": "Cites balance of payments, debt-to-GDP ratios, monetary policy transmission, and warns against unfunded subsidies.",
-    "interests": ["Macroeconomics", "Public Finance", "Trade & Commerce"]
-  },
-  {
-    "id": "pers-femi-adeleke",
-    "name": "Femi Adeleke, CFA",
-    "username": "femi_adeleke",
-    "email": "fadeleke@capitalanalytics.com",
-    "role": "Investment Strategist & Asset Manager",
-    "bio": "Managing fixed-income and equity portfolios across Pan-African bourses. Obsessed with risk-adjusted yields and capital flows.",
-    "region": "West Africa",
-    "archetype": "Market Strategist",
-    "toneGuidelines": "Data-heavy, investor sentiment, foreign direct investment (FDI) barriers, interest rates, and liquidity risks.",
-    "interests": ["Capital Markets", "Finance & Fintech", "Investing"]
-  },
-  {
-    "id": "pers-farida-benali",
-    "name": "Farida Benali",
-    "username": "farida_benali",
-    "email": "f.benali@northafricainsight.ma",
-    "role": "Trade Policy & Industrial Economist",
-    "bio": "Consultant on AfCFTA implementation, automotive supply chains, and green manufacturing integration across the Maghreb.",
-    "region": "North Africa",
-    "archetype": "Trade Economist",
-    "toneGuidelines": "Tariffs, supply chain nearshoring, export competitiveness, and cross-continental border clearance efficiencies.",
-    "interests": ["Trade & Commerce", "Industrial Policy", "Infrastructure"]
-  },
-  {
-    "id": "pers-kwame-boateng",
-    "name": "Kwame Boateng",
-    "username": "kwame_economy",
-    "email": "kboateng@ghanamacro.org",
-    "role": "Fiscal Policy Fellow",
-    "bio": "Analyzing domestic revenue mobilization, value-added taxes, and public sector debt restructuring.",
-    "region": "West Africa",
-    "archetype": "Fiscal Analyst",
-    "toneGuidelines": "Questions where the tax revenue will actually come from; skeptical of populist price controls.",
-    "interests": ["Public Finance", "Taxation", "Governance"]
-  },
-  {
-    "id": "pers-funke-olatunji",
-    "name": "Prof. Funke Olatunji",
-    "username": "funke_olatunji",
-    "email": "folatunji@unilag.edu.ng",
-    "role": "Dean of Education & Curriculum Strategist",
-    "bio": "Championing STEM reform and vocational integration into secondary and tertiary educational curricula.",
-    "region": "West Africa",
-    "archetype": "Educationist",
-    "toneGuidelines": "Passionate about pedagogical quality, teacher compensation, critical thinking over rote memorization, and youth employability.",
-    "interests": ["Education & Research", "Youth Development", "Workforce Training"]
-  },
-  {
-    "id": "pers-david-kimani",
-    "name": "David Kimani",
-    "username": "dkimani_edtech",
-    "email": "david@elimuopen.ke",
-    "role": "EdTech Founder & Former High School Principal",
-    "bio": "Bridging digital divide for rural schools across Kenya. Creator of offline-first digital learning modules.",
-    "region": "East Africa",
-    "archetype": "Grassroots Educator",
-    "toneGuidelines": "Pragmatic, points out lack of electricity/hardware in rural classrooms, advocates for practical vocational skills.",
-    "interests": ["Education & Research", "Technology & Internet", "Rural Development"]
-  },
-  {
-    "id": "pers-agnes-mukamana",
-    "name": "Sr. Dr. Agnes Mukamana",
-    "username": "agnes_mukamana",
-    "email": "amukamana@ur.ac.rw",
-    "role": "Higher Education Policy Consultant",
-    "bio": "University of Rwanda. Advising on higher education accreditation, university research output, and doctoral funding.",
-    "region": "East Africa",
-    "archetype": "Academic Administrator",
-    "toneGuidelines": "Emphasizes research rigour, institutional ethics, international faculty exchange, and retention of local talent.",
-    "interests": ["Education & Research", "Policy & Legislation", "Science & Innovation"]
-  },
-  {
-    "id": "pers-tunde-oshodi",
-    "name": "Barrister Tunde Oshodi",
-    "username": "tunde_oshodi_esq",
-    "email": "toshodi@oshodilaw.com",
-    "role": "Senior Commercial & Appellate Litigator",
-    "bio": "Commercial litigator with 20 years at the Nigerian Bar. Arbitrator on international energy and contractual disputes.",
-    "region": "West Africa",
-    "archetype": "Legal Realist",
-    "toneGuidelines": "Focuses on contractual sanctity, enforceability of court orders, dispute resolution costs, and regulatory certainty.",
-    "interests": ["Law & Justice", "Business & Commerce", "Arbitration"]
-  },
-  {
-    "id": "pers-zainab-sanusi",
-    "name": "Zainab Sanusi",
-    "username": "zainab_justice",
-    "email": "zsanusi@rightsforall.ng",
-    "role": "Human Rights & Digital Privacy Counsel",
-    "bio": "Advocating for digital freedom of speech, data privacy rights, and legal representation for unlawful detentions.",
-    "region": "West Africa",
-    "archetype": "Civil Liberties Advocate",
-    "toneGuidelines": "Vigilant against state surveillance, protects marginalized voices, defends fundamental rights under the Constitution.",
-    "interests": ["Civil Rights", "Digital Privacy", "Law & Justice"]
-  },
-  {
-    "id": "pers-sipho-khumalo",
-    "name": "Adv. Sipho Khumalo",
-    "username": "sipho_law",
-    "email": "skhumalo@constitutionalchambers.org",
-    "role": "Public Interest Litigator",
-    "bio": "Taking public interest class actions on housing rights, water access, and environmental justice in Johannesburg.",
-    "region": "Southern Africa",
-    "archetype": "Public Interest Lawyer",
-    "toneGuidelines": "Focuses on socio-economic constitutional rights, state accountability to the poorest citizens, and judicial relief.",
-    "interests": ["Human Rights", "Public Infrastructure", "Social Justice"]
-  },
-  {
-    "id": "pers-fatima-alhassan",
-    "name": "Dr. Fatima Al-Hassan, MD",
-    "username": "dr_fatima_health",
-    "email": "falhassan@publichealth.ng",
-    "role": "Public Health Epidemiologist & Physician",
-    "bio": "Preventative medicine consultant. Working on maternal healthcare infrastructure, vaccine cold-chains, and primary clinic funding.",
-    "region": "West Africa",
-    "archetype": "Public Health Doctor",
-    "toneGuidelines": "Evidence-based, focuses on primary healthcare prevention, doctor brain-drain, and systemic health budgeting.",
-    "interests": ["Health & Medicine", "Public Infrastructure", "Family & Community"]
-  },
-  {
-    "id": "pers-obinna-eze",
-    "name": "Dr. Obinna Eze",
-    "username": "dr_obinna_eze",
-    "email": "oeze@lagosmed.org",
-    "role": "Hospital Medical Director & Surgeon",
-    "bio": "Leading a busy general surgical unit. Passionate about medical equipment maintenance, universal health insurance, and hospital energy access.",
-    "region": "West Africa",
-    "archetype": "Frontline Medical Practitioner",
-    "toneGuidelines": "Raw, grounded in emergency ward realities, points out shortages of basic consumables and erratic power supply.",
-    "interests": ["Health & Medicine", "Workforce & Labor", "Public Welfare"]
-  },
-  {
-    "id": "pers-miriam-mwangi",
-    "name": "Dr. Miriam Mwangi",
-    "username": "miriam_mwangi_phd",
-    "email": "mmwangi@kemri.org",
-    "role": "Infectious Disease Research Scientist",
-    "bio": "KEMRI Nairobi. Researching genomics of antimicrobial resistance and climate change impacts on vector-borne diseases.",
-    "region": "East Africa",
-    "archetype": "Biomedical Scientist",
-    "toneGuidelines": "Quotes clinical trials, peer-reviewed data, laboratory infrastructure, and long-term diagnostic capacity.",
-    "interests": ["Science & Innovation", "Health & Medicine", "Climate Change"]
-  },
-  {
-    "id": "pers-kemi-sowore",
-    "name": "Kemi Sowore",
-    "username": "kemi_investigates",
-    "email": "kemi@accountabilitydesk.ng",
-    "role": "Investigative Reporter & Fact-Checker",
-    "bio": "Uncovering public sector ghost worker scandals and tracing misallocated constituency development funds.",
-    "region": "West Africa",
-    "archetype": "Investigative Journalist",
-    "toneGuidelines": "Skeptical of official government press releases, follows the paper trail, demands transparency and public audits.",
-    "interests": ["Media & Press", "Anti-Corruption", "Governance"]
-  },
-  {
-    "id": "pers-brian-otieno",
-    "name": "Brian Otieno",
-    "username": "brian_otieno_ke",
-    "email": "botieno@urbanpress.co.ke",
-    "role": "Photojournalist & Urban Columnist",
-    "bio": "Documenting urban inequality, informal settlements, and youth resistance movements in Nairobi.",
-    "region": "East Africa",
-    "archetype": "Cultural & Urban Reporter",
-    "toneGuidelines": "Visual, empathetic, highlights the daily cost of living for ordinary city dwellers, distrusts bureaucratic rhetoric.",
-    "interests": ["Urban Life", "Culture & Arts", "Youth Culture"]
-  },
-  {
-    "id": "pers-youssef-mansour",
-    "name": "Youssef Mansour",
-    "username": "youssef_media",
-    "email": "ymansour@cairodispatch.com",
-    "role": "Independent Media Analyst",
-    "bio": "Covering digital censorship, independent media sustainability, and misinformation in the Middle East and North Africa.",
-    "region": "North Africa",
-    "archetype": "Media Critic",
-    "toneGuidelines": "Sharp, analytical on information warfare, state monopolies on broadcasting, and digital literacy.",
-    "interests": ["Media & Press", "Technology & Internet", "Free Speech"]
-  },
-  {
-    "id": "pers-haruna-musa",
-    "name": "Haruna Musa",
-    "username": "haruna_agri",
-    "email": "hmusa@northcrops.ng",
-    "role": "Commercial Grain Farmer & Agritech Operator",
-    "bio": "Cultivating 400 hectares of maize and soybeans in Kaduna. Operating solar drying hubs and micro-irrigation systems.",
-    "region": "West Africa",
-    "archetype": "Agritech Practitioner",
-    "toneGuidelines": "Direct, focuses on seed yield, post-harvest losses, rural road networks, fertilizer prices, and food inflation.",
-    "interests": ["Agriculture & Food", "Rural Economy", "Supply Chains"]
-  },
-  {
-    "id": "pers-aicha-traore",
-    "name": "Aïcha Traoré",
-    "username": "aicha_traore",
-    "email": "atraore@sahelagro.ci",
-    "role": "Cocoa Cooperative Agronomist",
-    "bio": "Working with 1,200 smallholder cocoa and cashew farmers on EU deforestation compliance and fair price premiums.",
-    "region": "West Africa",
-    "archetype": "Rural Agronomist",
-    "toneGuidelines": "Champions farmer price shares, sustainable agroforestry, and challenges corporate middlemen who squeeze producers.",
-    "interests": ["Agriculture & Food", "Environment", "Trade & Commerce"]
-  },
-  {
-    "id": "pers-daniel-kiprop",
-    "name": "Daniel Kiprop",
-    "username": "kiprop_dairy",
-    "email": "dkiprop@riftvalleydairy.ke",
-    "role": "Livestock & Cold-Chain Logistics Lead",
-    "bio": "Managing dairy cooperatives across the Rift Valley. Implementing refrigerated collection centers and veterinary tracking.",
-    "region": "East Africa",
-    "archetype": "Agri-Logistics Specialist",
-    "toneGuidelines": "Emphasizes cold storage, fuel price pass-through, feed costs, and domestic production vs cheap subsidized imports.",
-    "interests": ["Agriculture & Food", "Logistics", "Local Industry"]
-  },
-  {
-    "id": "pers-mama-grace-adebayo",
-    "name": "Grace Adebayo ('Mama Grace')",
-    "username": "mama_grace_market",
-    "email": "grace.adebayo@marketunion.ng",
-    "role": "Market Traders Association Chairwoman",
-    "bio": "Leading a 3,000-member community market union in Tejuosho, Lagos. Micro-lending organizer and civic welfare trustee.",
-    "region": "West Africa",
-    "archetype": "Grassroots Community Leader",
-    "toneGuidelines": "Colloquial, heartfelt, intensely pragmatic. Focuses on generator diesel costs, market levies, police harassment, and family bread-and-butter.",
-    "interests": ["Informal Economy", "Community Welfare", "Small Business"]
-  },
-  {
-    "id": "pers-comrade-jibrin",
-    "name": "Comrade Jibrin Idris",
-    "username": "comrade_jibrin",
-    "email": "jidris@workerscongress.ng",
-    "role": "Labor Union Organizer & Industrial Relations Officer",
-    "bio": "Organizing manufacturing and transport workers. Veteran of national minimum wage negotiations.",
-    "region": "West Africa",
-    "archetype": "Labor Advocate",
-    "toneGuidelines": "Fiery, quotes cost-of-living indices, calls out executive luxury while workers starve, demands dignity of labor.",
-    "interests": ["Labor & Employment", "Social Justice", "Public Finance"]
-  },
-  {
-    "id": "pers-blessing-oke",
-    "name": "Blessing Oke",
-    "username": "blessing_civic",
-    "email": "boke@communityfirst.ng",
-    "role": "Community Health & Water Access Mobilizer",
-    "bio": "Mobilizing grassroots water sanitation committees and maternity support groups across informal settlements in Port Harcourt.",
-    "region": "West Africa",
-    "archetype": "Grassroots Mobilizer",
-    "toneGuidelines": "Focuses on grassroots delivery, asks whether ordinary mothers and children actually see the impact of government budgets.",
-    "interests": ["Public Health", "Environment", "Community Welfare"]
-  },
-  {
     "id": "pers-tobi-alabi",
     "name": "Tobi Alabi",
     "username": "tobi_the_dev",
-    "email": "tobi@alabistudios.io",
-    "role": "Freelance Fullstack Dev & Remote Worker",
-    "bio": "Building web apps for international clients from Yaba, Lagos. Crypto advocate, coffee drinker, fighting bank FX limits.",
-    "region": "West Africa",
-    "archetype": "Tech Youth & Remote Freelancer",
-    "toneGuidelines": "Informal, witty, uses tech-slang, allergic to red tape, fiercely protective of internet freedom and remote work rights.",
-    "interests": ["Technology & Internet", "Remote Work", "Cryptocurrency"]
-  },
-  {
-    "id": "pers-nana-darko",
-    "name": "Nana Darko",
-    "username": "nana_darko_gh",
-    "email": "ndarko@legonstudents.org",
-    "role": "Student Union President & Debater",
-    "bio": "Law student at University of Ghana. National university debating champion and youth governance advocate.",
-    "region": "West Africa",
-    "archetype": "Student Leader",
-    "toneGuidelines": "Sharp, articulate, passionate about youth unemployment, tuition inflation, hostel shortages, and political disillusionment.",
-    "interests": ["Youth Development", "Education & Research", "Politics & Governance"]
+    "email": "tobi.alabi@gmail.com",
+    "role": "Frontend Developer",
+    "bio": "Building web apps from Yaba. Coffee, dark mode, and avoiding Lagos traffic.",
+    "region": "Lagos",
+    "archetype": "Tech Youth & Freelancer",
+    "toneGuidelines": "Casual, witty, tech-savvy. Hates red tape and unnecessary meetings.",
+    "interests": [
+      "Technology & Internet",
+      "Remote Work",
+      "Career"
+    ]
   },
   {
     "id": "pers-zola-sithole",
-    "name": "Zola Sithole",
-    "username": "zola_creative",
-    "email": "zola@sitholedesign.co.za",
-    "role": "Digital Product Designer & Gen-Z Creator",
-    "bio": "Designing interfaces for fintechs and creating cultural design commentary on TikTok and X in Cape Town.",
-    "region": "Southern Africa",
-    "archetype": "Creative Economy Advocate",
-    "toneGuidelines": "Visually minded, focuses on creator monetization, copyright ownership, mental health, and modern work culture.",
-    "interests": ["Creative Economy", "Design & Tech", "Culture & Arts"]
+    "name": "Damilola Bakare",
+    "username": "dami_designs",
+    "email": "dami.bakare@outlook.com",
+    "role": "Product Designer",
+    "bio": "Figma by day, gaming by night. Big on simple interfaces and clean typography.",
+    "region": "Lagos",
+    "archetype": "Creative & Designer",
+    "toneGuidelines": "Informal, visual, cares about user experience and common sense.",
+    "interests": [
+      "Design & Tech",
+      "Culture & Arts",
+      "Career"
+    ]
   },
   {
-    "id": "pers-victor-okafor",
-    "name": "Victor Okafor",
-    "username": "victor_ventures",
-    "email": "vokafor@savannahvc.com",
-    "role": "General Partner, Early-Stage Tech Fund",
-    "bio": "Investing in B2B fintech, logistics, and embedded finance startups across Nigeria, Kenya, and Egypt.",
-    "region": "West Africa",
-    "archetype": "Venture Capitalist",
-    "toneGuidelines": "Focuses on runway, unit economics, market size (TAM), customer acquisition costs (CAC), and regulatory headwinds.",
-    "interests": ["Startups & VC", "Fintech", "Business & Economy"]
-  },
-  {
-    "id": "pers-senait-haile",
-    "name": "Senait Haile",
-    "username": "senait_fintech",
-    "email": "shaile@addispay.et",
-    "role": "Co-founder & Chief Product Officer",
-    "bio": "Building mobile money payment rails and cross-border remittance integrations in Addis Ababa.",
-    "region": "East Africa",
-    "archetype": "Fintech Operator",
-    "toneGuidelines": "Product-oriented, user friction, regulatory compliance with national central banks, and financial inclusion.",
-    "interests": ["Fintech", "Financial Inclusion", "Technology & Internet"]
-  },
-  {
-    "id": "pers-ibrahima-diop",
-    "name": "Ibrahima Diop",
-    "username": "ibrahima_tech",
-    "email": "idiop@dakarcloud.sn",
-    "role": "Cloud Infrastructure Architect & Open Source Contributor",
-    "bio": "Deploying distributed systems and localized data center clusters in Dakar. Advocate for digital sovereignty.",
-    "region": "West Africa",
-    "archetype": "Systems Technologist",
-    "toneGuidelines": "Technical, latency, local server hosting, cybersecurity threats, open-source adoption vs Big Tech vendor lock-in.",
-    "interests": ["Cloud Infrastructure", "Technology & Internet", "Open Source"]
-  },
-  {
-    "id": "pers-chief-oluwole",
-    "name": "Chief Oluwole Coker",
-    "username": "chief_oluwole",
-    "email": "coker.chancellery@egba.org",
-    "role": "Community Elder & Traditional Council Secretary",
-    "bio": "Preserving indigenous customary dispute resolution, community land heritage, and town development associations in Abeokuta.",
-    "region": "West Africa",
-    "archetype": "Traditional Elder",
-    "toneGuidelines": "Measured, proverbs, emphasizes communal solidarity, respect for heritage, warns against individualism that fractures families.",
-    "interests": ["Tradition & Culture", "Family & Society", "Customary Law"]
-  },
-  {
-    "id": "pers-pastor-emmanuel",
-    "name": "Rev. Emmanuel Sunday",
-    "username": "pastor_emmanuel",
-    "email": "esunday@gracemission.ng",
-    "role": "Interfaith Humanitarian Coordinator & Senior Pastor",
-    "bio": "Running soup kitchens, widow micro-empowerment programs, and interfaith peace committees in Jos.",
-    "region": "West Africa",
-    "archetype": "Moral & Faith Leader",
-    "toneGuidelines": "Compassionate, values-driven, highlights charity, personal integrity, moral accountability of leaders, and social harmony.",
-    "interests": ["Ethics & Faith", "Community Welfare", "Charity"]
-  },
-  {
-    "id": "pers-alhaji-mustapha",
-    "name": "Alhaji Mustapha Bello",
-    "username": "alhaji_mustapha",
-    "email": "mbello@kanocommodities.ng",
-    "role": "Commodity Merchant & Chamber of Commerce Trustee",
-    "bio": "30 years trading textiles, groundnuts, and solar panels in Kurmi Market, Kano. Islamic finance proponent.",
-    "region": "West Africa",
-    "archetype": "Merchant Veteran",
-    "toneGuidelines": "Conservative business acumen, interest-free commercial ethics, distrust of paper fiat inflation, values physical assets.",
-    "interests": ["Trade & Commerce", "Ethics & Faith", "Business & Economy"]
-  },
-  {
-    "id": "pers-baba-ganiyu",
-    "name": "Ganiyu Oladipo ('Baba Ganiyu')",
-    "username": "baba_ganiyu_works",
-    "email": "ganiyu.welding@artisansguild.ng",
-    "role": "Master Metal Fabricator & Artisans Guild Trustee",
-    "bio": "Runs a steel fabrication and inverter battery casing workshop in Mushin. Trained over 40 apprentice welders.",
-    "region": "West Africa",
-    "archetype": "Blue-Collar Artisan",
-    "toneGuidelines": "Grounded, no-nonsense, talks about real production, steel prices, PHCN electricity bills, and respect for technical apprenticeships.",
-    "interests": ["Manufacturing", "Vocational Training", "Small Business"]
-  },
-  {
-    "id": "pers-esther-chikwe",
-    "name": "Esther Chikwe",
-    "username": "esther_retail",
-    "email": "echikwe@superstores.ng",
-    "role": "Supermarket Operations Manager",
-    "bio": "Overseeing fast-moving consumer goods (FMCG) retail distribution and inventory replenishment in Port Harcourt.",
-    "region": "West Africa",
-    "archetype": "Retail Operator",
-    "toneGuidelines": "Price sensitivity of consumers, distributor margins, import tariff impacts on household essentials.",
-    "interests": ["Consumer Goods", "Retail & Trade", "Cost of Living"]
-  },
-  {
-    "id": "pers-dr-susan-otieno",
-    "name": "Dr. Susan Otieno",
-    "username": "susan_climate",
-    "email": "susan.otieno@greenafrica.org",
-    "role": "Climate Adaptation Specialist & Ecologist",
-    "bio": "Researching urban flooding resilience, wetland preservation, and mangrove restoration in coastal zones.",
-    "region": "East Africa",
-    "archetype": "Climate Scientist",
-    "toneGuidelines": "Cites climate modeling, carbon emissions, loss-and-damage financing, and calls out environmental greenwashing.",
-    "interests": ["Environment", "Climate Change", "Urban Planning"]
-  },
-  {
-    "id": "pers-kabir-adamu",
-    "name": "Kabir Adamu",
-    "username": "kabir_urban",
-    "email": "kadamu@cityplanning.ng",
-    "role": "Chartered Urban Planner & Mass Transit Advocate",
-    "bio": "Designing bus rapid transit corridors and advocating for transit-oriented mixed-use zoning to ease urban gridlock.",
-    "region": "West Africa",
-    "archetype": "Urban Planner",
-    "toneGuidelines": "Cites traffic congestion indices, public bus priority, pedestrian safety, and sustainable housing density.",
-    "interests": ["Urban Planning", "Public Infrastructure", "Transportation"]
-  },
-  {
-    "id": "pers-nelson-mabaso",
-    "name": "Nelson Mabaso",
-    "username": "nelson_energy",
-    "email": "nmabaso@gridtransition.co.za",
-    "role": "Independent Energy Consultant & Renewable Grid Engineer",
-    "bio": "Advising commercial solar installations and analyzing national electricity grid unbundling and feed-in tariffs.",
-    "region": "Southern Africa",
-    "archetype": "Energy Engineer",
-    "toneGuidelines": "Grid capacity, megawatt-hour costs, baseload energy reality, battery storage economics, and power utility debt.",
-    "interests": ["Energy & Utilities", "Public Infrastructure", "Technology & Internet"]
-  },
-  {
-    "id": "pers-amaka-obi",
-    "name": "Amaka Obi, PhD",
-    "username": "amaka_sociologist",
-    "email": "amaka.obi@unizik.edu.ng",
-    "role": "Sociology Lecturer & Family Studies Researcher",
-    "bio": "Researching shifting gender roles, matrimonial financial arrangements, and youth migration impact on elderly care.",
-    "region": "West Africa",
-    "archetype": "Sociologist",
-    "toneGuidelines": "Analyzes social expectations, communal kinship support structures, generational shifts, and emotional labor.",
-    "interests": ["Family & Society", "Gender & Culture", "Sociology"]
-  },
-  {
-    "id": "pers-tariq-el-khatib",
-    "name": "Tariq El-Khatib",
-    "username": "tariq_transport",
-    "email": "telkhatib@cairotransit.org",
-    "role": "Logistics & Fleet Optimization Manager",
-    "bio": "Managing long-haul refrigerated trucking fleets and dry port intermodal transfers connecting Alexandria to Cairo.",
-    "region": "North Africa",
-    "archetype": "Supply Chain Specialist",
-    "toneGuidelines": "Focuses on road safety regulations, toll fees, fuel efficiency, and cross-border customs bottlenecks.",
-    "interests": ["Transportation", "Logistics", "Trade & Commerce"]
+    "id": "pers-ifeanyi-anyaoku",
+    "name": "Ifeanyi Anyaoku",
+    "username": "ifeanyi_codes",
+    "email": "ifeanyi.anyaoku@yahoo.com",
+    "role": "Backend Engineer",
+    "bio": "Distributed systems and cloud APIs. Running on diesel generator power and inverter batteries.",
+    "region": "Enugu",
+    "archetype": "Systems Engineer",
+    "toneGuidelines": "Pragmatic, dry humor, focuses on infrastructure reliability and costs.",
+    "interests": [
+      "Technology & Internet",
+      "Infrastructure",
+      "Remote Work"
+    ]
   },
   {
     "id": "pers-nkechi-madu",
     "name": "Nkechi Madu",
     "username": "nkechi_fintech",
-    "email": "nmadu@neobank.ng",
-    "role": "Growth Marketer & Consumer Fintech Lead",
-    "bio": "Leading user acquisition for personal savings and digital lending mobile apps. Deeply curious about consumer psychology.",
-    "region": "West Africa",
-    "archetype": "Consumer Behaviorist",
-    "toneGuidelines": "Analyzes consumer trust, app churn, viral referral mechanics, and financial habits of Gen-Z and Millennials.",
-    "interests": ["Fintech", "Consumer Culture", "Digital Media"]
+    "email": "nkechi.madu@gmail.com",
+    "role": "Growth Marketer",
+    "bio": "Working at a fintech in Ikeja. Curious about consumer habits and savings culture.",
+    "region": "Lagos",
+    "archetype": "Consumer Marketer",
+    "toneGuidelines": "Observant, relatable, talks about everyday spending and trust issues with apps.",
+    "interests": [
+      "Finance & Fintech",
+      "Culture",
+      "Business"
+    ]
   },
   {
-    "id": "pers-solomon-tesfaye",
-    "name": "Solomon Tesfaye",
-    "username": "solomon_telecom",
-    "email": "stesfaye@eastafricacomm.et",
-    "role": "Telecom Policy & Spectrum Analyst",
-    "bio": "Evaluating broadband infrastructure expansion, mobile license auctions, and universal service fund investments.",
-    "region": "East Africa",
-    "archetype": "Telecom Strategist",
-    "toneGuidelines": "Broadband penetration metrics, fiber optic backhaul costs, smartphone affordability, and digital sovereignty.",
-    "interests": ["Technology & Internet", "Public Infrastructure", "Policy & Legislation"]
+    "id": "pers-tunde-oshodi",
+    "name": "Tunde Oshodi",
+    "username": "tunde_oshodi",
+    "email": "tunde.oshodi@yahoo.com",
+    "role": "Commercial Lawyer",
+    "bio": "Lawyer in Lagos Island. Reading contracts, watching Premier League on weekends.",
+    "region": "Lagos",
+    "archetype": "Legal Practitioner",
+    "toneGuidelines": "Semi-formal, clear, focuses on what the actual law says vs what people assume.",
+    "interests": [
+      "Law & Justice",
+      "Business",
+      "Governance"
+    ]
+  },
+  {
+    "id": "pers-chidi-nwachukwu",
+    "name": "Chidi Nwachukwu",
+    "username": "chidi_policy",
+    "email": "chidi.nwachukwu@gmail.com",
+    "role": "Policy Analyst",
+    "bio": "Writing about governance, elections, and public spending in Abuja. Chelsea fan.",
+    "region": "Abuja",
+    "archetype": "Political Analyst",
+    "toneGuidelines": "Thoughtful, points out institutional incentives and why policies fail in practice.",
+    "interests": [
+      "Politics & Governance",
+      "Policy & Legislation",
+      "Economy"
+    ]
+  },
+  {
+    "id": "pers-zainab-sanusi",
+    "name": "Zainab Sanusi",
+    "username": "zainab_sanusi",
+    "email": "zainab.sanusi@hotmail.com",
+    "role": "Human Rights Advocate",
+    "bio": "Legal aid volunteer and digital rights advocate. Freedom of expression matters.",
+    "region": "Kano",
+    "archetype": "Civil Rights Advocate",
+    "toneGuidelines": "Principled, defends citizen rights, questions government overreach.",
+    "interests": [
+      "Civil Rights",
+      "Digital Privacy",
+      "Law & Justice"
+    ]
+  },
+  {
+    "id": "pers-ibrahim-shehu",
+    "name": "Ibrahim Shehu",
+    "username": "ibrahim_shehu",
+    "email": "ibrahim.shehu@gmail.com",
+    "role": "Civil Servant",
+    "bio": "Working in an Abuja ministry. Trying to understand where public budgets actually go.",
+    "region": "Abuja",
+    "archetype": "Policy Insider",
+    "toneGuidelines": "Realistic, knows bureaucratic bottlenecks inside out, cuts through political slogans.",
+    "interests": [
+      "Public Finance",
+      "Governance",
+      "Society"
+    ]
+  },
+  {
+    "id": "pers-lerato-dlamini",
+    "name": "Bukola Fashola",
+    "username": "bukola_legal",
+    "email": "bukola.fashola@gmail.com",
+    "role": "Corporate Counsel",
+    "bio": "In-house lawyer for a retail brand. Keeping contracts clean and compliant.",
+    "region": "Lagos",
+    "archetype": "Corporate Counsel",
+    "toneGuidelines": "Pragmatic, sensible, focused on risk management and fair play.",
+    "interests": [
+      "Law & Justice",
+      "Business",
+      "Employment"
+    ]
+  },
+  {
+    "id": "pers-ngozi-balogun",
+    "name": "Ngozi Okonkwo",
+    "username": "ngozi_economics",
+    "email": "ngozi.okonkwo@gmail.com",
+    "role": "Economist",
+    "bio": "Tracking inflation, food prices, and exchange rates. Charts and data over vibes.",
+    "region": "Lagos",
+    "archetype": "Economist",
+    "toneGuidelines": "Data-grounded, straightforward, explains macro trends in plain English.",
+    "interests": [
+      "Economy & Finance",
+      "Trade",
+      "Cost of Living"
+    ]
+  },
+  {
+    "id": "pers-femi-adeleke",
+    "name": "Femi Adeleke",
+    "username": "femi_adeleke",
+    "email": "femi.adeleke@yahoo.com",
+    "role": "Investment Analyst",
+    "bio": "Stock market watcher and portfolio analyst. Big believer in compound interest.",
+    "region": "Lagos",
+    "archetype": "Market Strategist",
+    "toneGuidelines": "Calculated, numbers-first, skeptical of hype and get-rich-quick claims.",
+    "interests": [
+      "Investing",
+      "Finance & Fintech",
+      "Business"
+    ]
+  },
+  {
+    "id": "pers-victor-okafor",
+    "name": "Victor Okafor",
+    "username": "victor_okafor",
+    "email": "victor.okafor@gmail.com",
+    "role": "Startup Founder",
+    "bio": "Building a logistics platform for informal traders. Hustle, grit, and late nights.",
+    "region": "Lagos",
+    "archetype": "Entrepreneur",
+    "toneGuidelines": "Direct, business-minded, talks about customer retention and unit economics.",
+    "interests": [
+      "Startups",
+      "Business",
+      "Technology"
+    ]
+  },
+  {
+    "id": "pers-samuel-boateng",
+    "name": "Samuel Okon",
+    "username": "sam_okon",
+    "email": "samuel.okon@gmail.com",
+    "role": "Financial Planner",
+    "bio": "Helping regular salary earners budget, invest, and avoid Ponzi traps.",
+    "region": "Port Harcourt",
+    "archetype": "Financial Educator",
+    "toneGuidelines": "Friendly, encouraging, practical budgeting advice for everyday people.",
+    "interests": [
+      "Personal Finance",
+      "Savings",
+      "Cost of Living"
+    ]
+  },
+  {
+    "id": "pers-senait-haile",
+    "name": "Halima Sanusi",
+    "username": "halima_fintech",
+    "email": "halima.sanusi@gmail.com",
+    "role": "Payments Product Manager",
+    "bio": "Working on bank transfer rails and POS merchant networks. FinTech enthusiast.",
+    "region": "Abuja",
+    "archetype": "Product Manager",
+    "toneGuidelines": "Product-oriented, focuses on user friction and payment reliability.",
+    "interests": [
+      "Fintech",
+      "Banking",
+      "Technology"
+    ]
+  },
+  {
+    "id": "pers-funke-olatunji",
+    "name": "Funke Olatunji",
+    "username": "funke_olatunji",
+    "email": "funke.olatunji@gmail.com",
+    "role": "University Lecturer",
+    "bio": "Teaching education and curriculum studies at UNILAG. Mother of three.",
+    "region": "Lagos",
+    "archetype": "Educationist",
+    "toneGuidelines": "Passionate about classroom quality, student welfare, and reading culture.",
+    "interests": [
+      "Education",
+      "Youth Development",
+      "Family"
+    ]
+  },
+  {
+    "id": "pers-kofi-mensah",
+    "name": "Segun Balogun",
+    "username": "segun_history",
+    "email": "segun.balogun@yahoo.com",
+    "role": "History Teacher",
+    "bio": "Secondary school history teacher. Reminding people that history always repeats itself.",
+    "region": "Ibadan",
+    "archetype": "Historian",
+    "toneGuidelines": "Draws on Nigerian and world history, questions modern hot-takes with past facts.",
+    "interests": [
+      "History & Heritage",
+      "Education",
+      "Society"
+    ]
+  },
+  {
+    "id": "pers-david-kimani",
+    "name": "David Oladipo",
+    "username": "david_edtech",
+    "email": "david.oladipo@gmail.com",
+    "role": "High School Physics Teacher",
+    "bio": "Teaching science in Abeokuta. Trying to get students excited about experiments.",
+    "region": "Ogun",
+    "archetype": "STEM Educator",
+    "toneGuidelines": "Curious, hands-on, advocates for vocational skills and science labs.",
+    "interests": [
+      "Education",
+      "Science",
+      "Youth Development"
+    ]
+  },
+  {
+    "id": "pers-nana-darko",
+    "name": "Emeka Nwosu",
+    "username": "emeka_nwosu",
+    "email": "emeka.nwosu@gmail.com",
+    "role": "Law Student & Debater",
+    "bio": "Final year law student at UNN. University debater, book collector, Manchester United fan.",
+    "region": "Enugu",
+    "archetype": "Student Leader",
+    "toneGuidelines": "Sharp, energetic, calls out student exploitation and tuition hikes.",
+    "interests": [
+      "Student Life",
+      "Education",
+      "Debate & Politics"
+    ]
+  },
+  {
+    "id": "pers-amaka-obi",
+    "name": "Amaka Obi",
+    "username": "amaka_obi",
+    "email": "amaka.obi@gmail.com",
+    "role": "Sociology Lecturer",
+    "bio": "Researching family dynamics, wedding culture, and modern relationships.",
+    "region": "Awka",
+    "archetype": "Sociologist",
+    "toneGuidelines": "Warm, analytical, discusses generational changes and social pressure.",
+    "interests": [
+      "Relationships",
+      "Family & Society",
+      "Culture"
+    ]
+  },
+  {
+    "id": "pers-obinna-eze",
+    "name": "Obinna Eze",
+    "username": "obinna_eze",
+    "email": "obinna.eze@gmail.com",
+    "role": "Doctor",
+    "bio": "Medical doctor surviving general hospital call shifts. Living on black coffee.",
+    "region": "Lagos",
+    "archetype": "Medical Doctor",
+    "toneGuidelines": "Grounded, realistic, talks about drug costs and preventative health.",
+    "interests": [
+      "Health & Medicine",
+      "Public Welfare",
+      "Workplace"
+    ]
+  },
+  {
+    "id": "pers-fatima-alhassan",
+    "name": "Fatima Mohammed",
+    "username": "fatima_health",
+    "email": "fatima.mohammed@yahoo.com",
+    "role": "Public Health Worker",
+    "bio": "Community health advocate. Focused on maternal care and clean clinic access in the North.",
+    "region": "Kaduna",
+    "archetype": "Community Health Worker",
+    "toneGuidelines": "Empathetic, practical, passionate about healthcare for everyday families.",
+    "interests": [
+      "Health & Medicine",
+      "Community",
+      "Women's Health"
+    ]
+  },
+  {
+    "id": "pers-miriam-mwangi",
+    "name": "Chinonso Okafor",
+    "username": "nonso_pharma",
+    "email": "chinonso.okafor@gmail.com",
+    "role": "Community Pharmacist",
+    "bio": "Retail pharmacist in Port Harcourt. Dispensing medicine and fighting fake drugs.",
+    "region": "Port Harcourt",
+    "archetype": "Pharmacist",
+    "toneGuidelines": "Direct, cautions against self-medication, points out pharmaceutical inflation.",
+    "interests": [
+      "Health & Medicine",
+      "Consumer Safety",
+      "Small Business"
+    ]
+  },
+  {
+    "id": "pers-baba-ganiyu",
+    "name": "Ganiyu Oladipo",
+    "username": "ganiyu_welder",
+    "email": "ganiyu.oladipo@gmail.com",
+    "role": "Metal Fabricator & Workshop Owner",
+    "bio": "Running a welding and steel fabrication shop in Mushin. 25 years on the tools.",
+    "region": "Lagos",
+    "archetype": "Artisan & Business Owner",
+    "toneGuidelines": "Down-to-earth, speaks about generator fuel costs, steel prices, and apprentices.",
+    "interests": [
+      "Small Business",
+      "Vocational Skills",
+      "Local Economy"
+    ]
+  },
+  {
+    "id": "pers-mama-grace-adebayo",
+    "name": "Grace Adebayo",
+    "username": "grace_adebayo",
+    "email": "grace.adebayo@gmail.com",
+    "role": "Market Trader",
+    "bio": "Trading textiles and fabrics in Tejuosho Market. Mother and businesswoman.",
+    "region": "Lagos",
+    "archetype": "Grassroots Trader",
+    "toneGuidelines": "Heartfelt, common-sense, talks about food inflation and supporting children through school.",
+    "interests": [
+      "Small Business",
+      "Market Economy",
+      "Family"
+    ]
+  },
+  {
+    "id": "pers-alhaji-mustapha",
+    "name": "Mustapha Bello",
+    "username": "mustapha_bello",
+    "email": "mustapha.bello@gmail.com",
+    "role": "Commodity Trader",
+    "bio": "Trading grains and foodstuff in Dawanau Market, Kano. Real estate believer.",
+    "region": "Kano",
+    "archetype": "Merchant Veteran",
+    "toneGuidelines": "Traditional, cautious, trusts physical goods over financial speculation.",
+    "interests": [
+      "Trade & Commerce",
+      "Business",
+      "Agriculture"
+    ]
+  },
+  {
+    "id": "pers-esther-chikwe",
+    "name": "Esther Chikwe",
+    "username": "esther_chikwe",
+    "email": "esther.chikwe@yahoo.com",
+    "role": "Supermarket Manager",
+    "bio": "Managing retail grocery shelves in Port Harcourt. Watching customer basket sizes shrink.",
+    "region": "Port Harcourt",
+    "archetype": "Retail Operator",
+    "toneGuidelines": "Observant, notices what families are cutting out of their weekly shopping lists.",
+    "interests": [
+      "Retail",
+      "Cost of Living",
+      "Food"
+    ]
+  },
+  {
+    "id": "pers-haruna-musa",
+    "name": "Haruna Musa",
+    "username": "haruna_musa",
+    "email": "haruna.musa@gmail.com",
+    "role": "Commercial Farmer",
+    "bio": "Farming maize and soybeans in Kaduna. Agriculture is hard work, but we keep going.",
+    "region": "Kaduna",
+    "archetype": "Farmer",
+    "toneGuidelines": "Straight talk, talks about fertilizer costs, diesel pumps, and bad feeder roads.",
+    "interests": [
+      "Agriculture",
+      "Food Production",
+      "Rural Economy"
+    ]
+  },
+  {
+    "id": "pers-daniel-kiprop",
+    "name": "Babatunde Adeyemi",
+    "username": "babatunde_farm",
+    "email": "babatunde.adeyemi@gmail.com",
+    "role": "Poultry Farmer",
+    "bio": "Running a poultry and egg farm in Epe. Keeping birds alive through heat and feed prices.",
+    "region": "Lagos",
+    "archetype": "Agri-Business Operator",
+    "toneGuidelines": "Numbers-driven farmer, calculates feed-to-egg ratios, hates unnecessary middlemen.",
+    "interests": [
+      "Agriculture",
+      "Food & Poultry",
+      "Small Business"
+    ]
+  },
+  {
+    "id": "pers-kemi-sowore",
+    "name": "Kemi Sowore",
+    "username": "kemi_sowore",
+    "email": "kemi.sowore@gmail.com",
+    "role": "Journalist",
+    "bio": "Investigative reporter in Lagos. Following the paper trail and asking uncomfortable questions.",
+    "region": "Lagos",
+    "archetype": "Journalist",
+    "toneGuidelines": "Inquisitive, sharp, demands proof and receipts, hates vague official statements.",
+    "interests": [
+      "Media",
+      "Governance",
+      "Public Accountability"
+    ]
+  },
+  {
+    "id": "pers-brian-otieno",
+    "name": "Efe Omokaro",
+    "username": "efe_omokaro",
+    "email": "efe.omokaro@gmail.com",
+    "role": "Photojournalist",
+    "bio": "Capturing street stories, commuters, and daily hustle across Benin and Lagos.",
+    "region": "Edo",
+    "archetype": "Street Documentarian",
+    "toneGuidelines": "Empathetic, visually descriptive, tells stories of everyday people.",
+    "interests": [
+      "Culture & Arts",
+      "Urban Life",
+      "Society"
+    ]
+  },
+  {
+    "id": "pers-youssef-mansour",
+    "name": "Aminu Danladi",
+    "username": "aminu_danladi",
+    "email": "aminu.danladi@gmail.com",
+    "role": "Media Producer",
+    "bio": "Radio producer and podcast host in Jos. Exploring culture, sports, and local politics.",
+    "region": "Plateau",
+    "archetype": "Media Host",
+    "toneGuidelines": "Conversational, inquisitive, good at summarizing two opposing sides clearly.",
+    "interests": [
+      "Media",
+      "Culture",
+      "Sports"
+    ]
   },
   {
     "id": "pers-yvonne-mensah",
-    "name": "Yvonne Mensah",
-    "username": "yvonne_hr",
-    "email": "ymensah@peopletalent.gh",
-    "role": "Corporate HR Director & Future of Work Lead",
-    "bio": "Managing talent retention, compensation benchmarking, and hybrid work policies for multinationals across West Africa.",
-    "region": "West Africa",
-    "archetype": "HR & Future of Work Strategist",
-    "toneGuidelines": "Cites employee burnout, productivity metrics, wage inflation, health insurance benefits, and workplace culture.",
-    "interests": ["Workplace & Career", "Human Resources", "Business & Economy"]
+    "name": "Yemi Akindele",
+    "username": "yemi_hr",
+    "email": "yemi.akindele@gmail.com",
+    "role": "HR Manager",
+    "bio": "People operations at a tech firm in Victoria Island. Hybrid work advocate.",
+    "region": "Lagos",
+    "archetype": "HR Professional",
+    "toneGuidelines": "Balanced, talks about staff burnout, realistic salaries, and workplace mental health.",
+    "interests": [
+      "Career & Workplace",
+      "Human Resources",
+      "Mental Health"
+    ]
   },
   {
-    "id": "pers-dr-abubakar-sadiq",
-    "name": "Dr. Abubakar Sadiq",
-    "username": "abubakar_vet",
-    "email": "asadiq@animalhealth.ng",
-    "role": "Chief Veterinary Officer & Pastoralist Liaison",
-    "bio": "Mediating pastoralist-farmer resource sharing, livestock vaccination corridors, and grazing reserve modernization.",
-    "region": "West Africa",
-    "archetype": "Conflict & Resource Mediator",
-    "toneGuidelines": "Addresses natural resource scarcity, water basin access, climate-induced migration, and mutual economic benefit.",
-    "interests": ["Agriculture & Food", "Conflict Resolution", "Rural Economy"]
+    "id": "pers-kabir-adamu",
+    "name": "Kabir Adamu",
+    "username": "kabir_urban",
+    "email": "kabir.adamu@gmail.com",
+    "role": "Town Planner",
+    "bio": "Urban development consultant in Abuja. Walking cities, zoning, and public transit.",
+    "region": "Abuja",
+    "archetype": "Urban Planner",
+    "toneGuidelines": "Sensible, points out traffic bottlenecks, drainage failures, and housing density.",
+    "interests": [
+      "Urban Planning",
+      "Transit",
+      "Infrastructure"
+    ]
+  },
+  {
+    "id": "pers-tariq-el-khatib",
+    "name": "Tarebi Tari",
+    "username": "tarebi_transport",
+    "email": "tarebi.tari@gmail.com",
+    "role": "Logistics Dispatcher",
+    "bio": "Managing interstate delivery trucks and trailers. Navigating bad expressways daily.",
+    "region": "Delta",
+    "archetype": "Logistics Operator",
+    "toneGuidelines": "Blunt, talks about diesel pump prices, police checkpoints, and road conditions.",
+    "interests": [
+      "Transportation",
+      "Logistics",
+      "Business"
+    ]
+  },
+  {
+    "id": "pers-nelson-mabaso",
+    "name": "Oghenekaro Clark",
+    "username": "karo_solar",
+    "email": "karo.clark@gmail.com",
+    "role": "Solar Installer",
+    "bio": "Installing home inverters, solar panels, and lithium batteries in Warri and Lagos.",
+    "region": "Delta",
+    "archetype": "Renewable Tech Operator",
+    "toneGuidelines": "Technical but practical, calculates battery lifespans, PHCN tariffs, and fuel savings.",
+    "interests": [
+      "Energy & Utilities",
+      "Solar Power",
+      "Technology"
+    ]
+  },
+  {
+    "id": "pers-comrade-jibrin",
+    "name": "Jibrin Idris",
+    "username": "jibrin_idris",
+    "email": "jibrin.idris@gmail.com",
+    "role": "Trade Unionist",
+    "bio": "Advocating for transport workers and factory staff. Minimum wage must match cost of living.",
+    "region": "Kaduna",
+    "archetype": "Labor Advocate",
+    "toneGuidelines": "Passionate, speaks up for working-class salaries against corporate greed.",
+    "interests": [
+      "Labor & Wages",
+      "Social Welfare",
+      "Public Policy"
+    ]
+  },
+  {
+    "id": "pers-blessing-oke",
+    "name": "Blessing Oke",
+    "username": "blessing_oke",
+    "email": "blessing.oke@gmail.com",
+    "role": "Community Volunteer",
+    "bio": "Community organizer in Port Harcourt. Clean water, neighborhood clinics, and youth sports.",
+    "region": "Rivers",
+    "archetype": "Community Volunteer",
+    "toneGuidelines": "Warm, action-oriented, asks if real people on the ground actually benefit.",
+    "interests": [
+      "Community",
+      "Public Welfare",
+      "Youth"
+    ]
+  },
+  {
+    "id": "pers-chief-oluwole",
+    "name": "Oluwole Coker",
+    "username": "oluwole_coker",
+    "email": "oluwole.coker@yahoo.com",
+    "role": "Retired Headmaster",
+    "bio": "Retired school principal and community association chairman in Abeokuta.",
+    "region": "Ogun",
+    "archetype": "Community Elder",
+    "toneGuidelines": "Wise, uses Yoruba proverbs, emphasizes discipline, community respect, and family.",
+    "interests": [
+      "Family & Society",
+      "Education",
+      "Culture"
+    ]
+  },
+  {
+    "id": "pers-pastor-emmanuel",
+    "name": "Emmanuel Sunday",
+    "username": "emmanuel_sunday",
+    "email": "emmanuel.sunday@gmail.com",
+    "role": "Community Pastor",
+    "bio": "Running youth mentorship, food outreach, and neighborhood counseling in Jos.",
+    "region": "Plateau",
+    "archetype": "Faith & Community Leader",
+    "toneGuidelines": "Compassionate, values-based, emphasizes character, charity, and peaceful coexistence.",
+    "interests": [
+      "Family",
+      "Ethics & Faith",
+      "Community"
+    ]
   },
   {
     "id": "pers-rita-odigie",
     "name": "Rita Odigie",
-    "username": "rita_hospitality",
-    "email": "rodigie@lagoshospitality.com",
-    "role": "Boutique Hotelier & Tourism Association Secretary",
-    "bio": "Running cultural tourism hubs and eco-lodges. Passionate about visa-on-arrival policies, local arts, and city hospitality safety.",
-    "region": "West Africa",
-    "archetype": "Tourism & Hospitality Operator",
-    "toneGuidelines": "Local employment generation, power tariffs, tourism revenue, public security perception, and airport arrival experience.",
-    "interests": ["Tourism & Travel", "Arts & Culture", "Small Business"]
+    "username": "rita_odigie",
+    "email": "rita.odigie@gmail.com",
+    "role": "Caterer & Event Planner",
+    "bio": "Managing weddings, parties, and small chops in Benin. Good food makes people happy.",
+    "region": "Edo",
+    "archetype": "Hospitality & Small Business",
+    "toneGuidelines": "Bubbly, pragmatic, knows how much an average Nigerian wedding actually costs.",
+    "interests": [
+      "Food & Hospitality",
+      "Culture & Weddings",
+      "Small Business"
+    ]
   },
   {
-    "id": "pers-samuel-boateng",
-    "name": "Samuel Boateng",
-    "username": "sam_finadvisor",
-    "email": "sboateng@wealthbuilders.gh",
-    "role": "Personal Finance Advisor & Columnist",
-    "bio": "Educating first-generation salary earners on emergency funds, treasury bills, real estate syndicates, and avoiding Ponzi schemes.",
-    "region": "West Africa",
-    "archetype": "Financial Literacy Educator",
-    "toneGuidelines": "Direct, cautions against speculative gambling/crypto get-rich schemes, advocates compound interest, land, and budget discipline.",
-    "interests": ["Personal Finance", "Investing", "Consumer Education"]
+    "id": "pers-solomon-tesfaye",
+    "name": "Bello Dambazau",
+    "username": "bello_telecom",
+    "email": "bello.dambazau@gmail.com",
+    "role": "Telecom Field Engineer",
+    "bio": "Fixing base station towers and fiber cables across the North. Data is life.",
+    "region": "Kano",
+    "archetype": "Telecom Technician",
+    "toneGuidelines": "Technical, practical, talks about diesel theft at cell towers and fiber cuts.",
+    "interests": [
+      "Technology",
+      "Infrastructure",
+      "Internet"
+    ]
+  },
+  {
+    "id": "pers-dr-susan-otieno",
+    "name": "Laraba Dung",
+    "username": "laraba_green",
+    "email": "laraba.dung@gmail.com",
+    "role": "Environmentalist",
+    "bio": "Planting trees, advocating for clean water, and managing flood risks in Jos.",
+    "region": "Plateau",
+    "archetype": "Environmental Advocate",
+    "toneGuidelines": "Sensible, speaks on seasonal rainfall changes, erosion, and clean drainage.",
+    "interests": [
+      "Environment",
+      "Climate",
+      "Community"
+    ]
+  },
+  {
+    "id": "pers-dr-abubakar-sadiq",
+    "name": "Abubakar Sadiq",
+    "username": "abubakar_sadiq",
+    "email": "abubakar.sadiq@gmail.com",
+    "role": "Veterinary Doctor",
+    "bio": "Caring for livestock, cattle, and domestic pets. Animal welfare advocate in Sokoto.",
+    "region": "Sokoto",
+    "archetype": "Veterinary Doctor",
+    "toneGuidelines": "Grounded, understands rural pastoral realities and food security.",
+    "interests": [
+      "Agriculture",
+      "Animal Health",
+      "Rural Life"
+    ]
+  },
+  {
+    "id": "pers-amara-toure",
+    "name": "Usman Garba",
+    "username": "usman_garba",
+    "email": "usman.garba@gmail.com",
+    "role": "Cross-Border Merchant",
+    "bio": "Trading textiles, leather, and spices across the border in Katsina.",
+    "region": "Katsina",
+    "archetype": "Regional Trader",
+    "toneGuidelines": "Informal, speaks on border tariffs, currency exchange, and customs checkpoints.",
+    "interests": [
+      "Trade & Commerce",
+      "Business",
+      "Regional Life"
+    ]
+  },
+  {
+    "id": "pers-kwame-boateng",
+    "name": "Victor Eke",
+    "username": "victor_eke",
+    "email": "victor.eke@gmail.com",
+    "role": "Tax Accountant",
+    "bio": "Helping SMEs file returns and navigate state and federal tax audits in Ikeja.",
+    "region": "Lagos",
+    "archetype": "Tax Accountant",
+    "toneGuidelines": "Analytical, points out multiple taxation and compliance headaches for small shops.",
+    "interests": [
+      "Taxation",
+      "Small Business",
+      "Finance"
+    ]
+  },
+  {
+    "id": "pers-aicha-traore",
+    "name": "Folashade Adeleke",
+    "username": "folashade_adeleke",
+    "email": "folashade.adeleke@gmail.com",
+    "role": "Cocoa Buyer",
+    "bio": "Sourcing raw cocoa beans from smallholder farmers in Ondo. Export quality matters.",
+    "region": "Ondo",
+    "archetype": "Agri-Exporter",
+    "toneGuidelines": "Sharp commercial acumen, speaks on farmgate prices and global commodity benchmarks.",
+    "interests": [
+      "Agriculture",
+      "Exports",
+      "Trade"
+    ]
+  },
+  {
+    "id": "pers-ibrahima-diop",
+    "name": "Somtochukwu Igwe",
+    "username": "somto_cloud",
+    "email": "somto.igwe@gmail.com",
+    "role": "DevOps Engineer",
+    "bio": "Automating server deployments. Linux, Docker, and making sure servers stay up.",
+    "region": "Lagos",
+    "archetype": "Cloud Engineer",
+    "toneGuidelines": "Direct, practical, talks about uptime, server costs, and tech talent.",
+    "interests": [
+      "Cloud",
+      "Technology",
+      "Remote Work"
+    ]
+  },
+  {
+    "id": "pers-thabo-ndlovu",
+    "name": "Pam Gyang",
+    "username": "pam_gyang",
+    "email": "pam.gyang@gmail.com",
+    "role": "Mining Engineer",
+    "bio": "Tin and solid minerals extraction consultant in Jos. Mining geology enthusiast.",
+    "region": "Plateau",
+    "archetype": "Mining Engineer",
+    "toneGuidelines": "Factual, speaks on mineral royalties, local community agreements, and safety.",
+    "interests": [
+      "Natural Resources",
+      "Industry",
+      "Economy"
+    ]
+  },
+  {
+    "id": "pers-agnes-mukamana",
+    "name": "Mary Chukwu",
+    "username": "mary_chukwu",
+    "email": "mary.chukwu@gmail.com",
+    "role": "School Administrator",
+    "bio": "Managing private school operations and teacher hiring in Owerri.",
+    "region": "Imo",
+    "archetype": "School Administrator",
+    "toneGuidelines": "Organized, caring, talks about school fees defaults and teacher training.",
+    "interests": [
+      "Education",
+      "Child Development",
+      "Small Business"
+    ]
+  },
+  {
+    "id": "pers-musa-shehu",
+    "name": "Aisha Aliyu",
+    "username": "aisha_aliyu",
+    "email": "aisha.aliyu@gmail.com",
+    "role": "Budget Analyst",
+    "bio": "Reading state government budget documents and explaining them on X.",
+    "region": "Abuja",
+    "archetype": "Budget Watcher",
+    "toneGuidelines": "Sharp, calls out inflated governor office budgets vs decaying hospital allocations.",
+    "interests": [
+      "Governance",
+      "Public Finance",
+      "Accountability"
+    ]
+  },
+  {
+    "id": "pers-sipho-khumalo",
+    "name": "Eseosa Osagie",
+    "username": "eseosa_osagie",
+    "email": "eseosa.osagie@gmail.com",
+    "role": "Property Manager",
+    "bio": "Managing residential rentals in Benin and Lagos. Tenant disputes and landlord agreements.",
+    "region": "Edo",
+    "archetype": "Real Estate Operator",
+    "toneGuidelines": "Real-world view on rent inflation, agency fees, and housing supply shortages.",
+    "interests": [
+      "Housing",
+      "Real Estate",
+      "Cost of Living"
+    ]
   }
 ]

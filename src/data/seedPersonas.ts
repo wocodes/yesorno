@@ -23,3 +23,4 @@ export function getRandomPersonas(count: number): SeedPersona[] {
   const shuffled = [...SEED_PERSONAS].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 }
+

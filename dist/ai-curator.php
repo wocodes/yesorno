@@ -241,150 +241,150 @@ function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash') {
     return is_array($json) ? $json : null;
 }
 
-// Curated Fallback Debate Templates (Used when no Gemini key or during offline testing)
+// Curated Fallback Debate Templates (Natural Nigerian Context, Semi-Formal/Informal Tone)
 function get_curated_fallback_debates() {
     return [
         [
-            'title' => 'Should African central banks peg domestic currencies to a regional commodity basket rather than the US Dollar?',
-            'description' => 'With recurrent foreign exchange crises, currency devaluations, and soaring import inflation across emerging markets, monetary reformers argue that anchoring domestic currency reserves to export commodities (gold, lithium, oil, cocoa) would restore sovereign monetary stability. Opponents argue this would trigger severe capital flight and liquidity rationing.',
+            'title' => 'Should remote workers earning in foreign currency (USD/GBP) pay higher domestic income taxes?',
+            'description' => 'With the rise of international remote tech workers and freelancers earning in strong currencies amidst local currency volatility, some argue for a specialized progressive tax bracket. Tech professionals argue they already provide their own power, internet, and security.',
             'category' => 'Economy & Finance',
             'region' => 'West Africa',
-            'tags' => ['Monetary Policy', 'Currency', 'Central Banking', 'AfCFTA', 'Inflation'],
+            'tags' => ['Remote Work', 'Taxation', 'Tech', 'Economy', 'Cost of Living'],
             'perspectives' => [
                 [
-                    'archetype' => 'Development Economist',
+                    'archetype' => 'Tax Accountant',
                     'choice' => 'YES',
-                    'note' => 'Dollar hegemony exposes our domestic economies to US Federal Reserve rate shocks we have zero control over. When the Fed hikes rates, capital flees Lagos, Accra, and Nairobi overnight. Backing reserves with tangible export commodities provides an intrinsic floor that speculators cannot short into oblivion.'
+                    'note' => 'If someone is living in the country, using local infrastructure, buying goods in local markets, and benefiting from domestic security, they have to pay their fair share. Civil servants earning modest salaries have PAYE deducted at source every month. Tax equity has to apply across the board.'
                 ],
                 [
-                    'archetype' => 'Market Strategist',
+                    'archetype' => 'Tech Youth & Freelancer',
                     'choice' => 'NO',
-                    'note' => 'Commodity prices are notoriously volatile and pro-cyclical. If global oil or cocoa prices crash by 40%, your currency supply contracts automatically, triggering immediate domestic banking insolvency. You cannot settle pharmaceutical or jet fuel imports in raw lithium ore; global trade runs on liquid dollars.'
+                    'note' => 'We buy our own solar inverters, fuel our own generators, pay for private Starlink internet, and use private healthcare because public services are non-existent. The foreign exchange we bring in directly helps the local economy when we spend it. Taxing us extra for working hard remotely makes zero sense.'
                 ],
                 [
-                    'archetype' => 'Political Analyst',
+                    'archetype' => 'Economist',
+                    'choice' => 'NO',
+                    'note' => 'Targeting remote knowledge workers is counter-productive. In a country struggling with dollar liquidity and brain drain, you want to incentivize skilled talent to stay inside the country and spend their foreign currency locally, not push them to relocate to Rwanda or the UK.'
+                ],
+                [
+                    'archetype' => 'Policy Insider',
                     'choice' => 'YES',
-                    'note' => 'This is fundamentally a question of sovereign leverage. The current architecture leaves African treasuries perpetually begging for IMF bridge loans with conditionalities that crush local public services. A multi-sovereign commodity reserve pact forces foreign trading partners to transact on our terms.'
-                ],
-                [
-                    'archetype' => 'Merchant Veteran',
-                    'choice' => 'NO',
-                    'note' => 'As traders who import goods every month, theory sounds sweet in air-conditioned conference halls, but market reality is brutal. If our banks cannot issue international letters of credit accepted in Shanghai and Dubai, port containers will sit stranded for months while demurrage charges bankrupt small businesses.'
+                    'note' => 'Nobody is saying tax people to death, but having a massive informal dollar economy that files zero returns while roads and hospitals decay is unsustainable. There has to be a simple, flat presumptive tax that brings remote earners into the tax net properly.'
                 ]
             ],
             'rebuttals' => [
                 [
-                    'replyToArchetype' => 'Development Economist',
-                    'archetype' => 'Fiscal Analyst',
-                    'content' => 'You are assuming fiscal discipline that history does not support. If politicians control a physical commodity board, within 18 months you will see forward-sale corruption and off-balance-sheet debt pledging the gold before it even leaves the ground.'
+                    'replyToArchetype' => 'Tech Youth & Freelancer',
+                    'archetype' => 'Labor Advocate',
+                    'content' => 'Everyone buys generator fuel and pays for private clinics, including junior factory workers. The solution to poor public services is demanding accountability from politicians, not having higher earners opt out of taxes completely.'
                 ]
             ]
         ],
         [
-            'title' => 'Should universities permanently ban generative AI tools in undergraduate coursework and examinations?',
-            'description' => 'Academic boards are divided on whether AI code assistants and LLM essay generators undermine critical cognitive formation or represent essential workplace tools that students must master. Several faculties propose reverting to strictly handwritten examinations in proctored halls.',
-            'category' => 'Education',
-            'region' => 'Global',
-            'tags' => ['Artificial Intelligence', 'Higher Education', 'EdTech', 'Examinations', 'Youth'],
+            'title' => 'Is spending over ₦3 Million on traditional and white weddings a financial mistake for young couples in 2026?',
+            'description' => 'With high inflation, soaring house rents, and rising living costs, more young people are debating whether elaborate wedding ceremonies are worth the financial strain, or if families should embrace intimate court weddings.',
+            'category' => 'Family & Home',
+            'region' => 'West Africa',
+            'tags' => ['Weddings', 'Family', 'Personal Finance', 'Culture', 'Relationships'],
             'perspectives' => [
                 [
-                    'archetype' => 'Educationist',
+                    'archetype' => 'Financial Educator',
                     'choice' => 'YES',
-                    'note' => 'When undergraduate students rely on automated synthesizers from year one, they bypass the painful but essential cognitive struggle of formulating a thesis, reconciling contradictory primary sources, and debugging logic. You cannot build intellectual muscle by having a machine lift the weights for you.'
+                    'note' => 'Starting married life with an empty bank account or wedding debts just to feed 400 people party jollof rice is pure financial self-sabotage. That same ₦3M could pay for two years of house rent or serve as an emergency fund when the first baby arrives.'
                 ],
                 [
-                    'archetype' => 'Tech Youth & Remote Freelancer',
+                    'archetype' => 'Hospitality & Small Business',
                     'choice' => 'NO',
-                    'note' => 'Banning AI in universities is like telling accounting majors in 1995 that using Microsoft Excel is cheating. In the global remote market, employers do not pay for typing speed; they pay for architectural clarity and rapid delivery. Teach students to audit AI outputs, not handicap them.'
+                    'note' => 'Weddings are cultural milestones that bring extended families together and create lifelong memories. You only do it once. Money spent wisely on celebrating with parents, elders, and friends has emotional and social value that spreadsheets cannot capture.'
                 ],
                 [
-                    'archetype' => 'Historian',
-                    'choice' => 'YES',
-                    'note' => 'We saw this exact debate with the arrival of pocket calculators and search engines, but generative language models represent a fundamentally different rupture: the outsourcing of reasoning itself. If students cannot construct a 10-page historical argument unassisted, civil society loses its analytical cadre.'
+                    'archetype' => 'Sociologist',
+                    'choice' => 'NO',
+                    'note' => 'In our culture, a wedding is not an individual affair; it is a community celebration that connects two families and builds social safety nets. The problem is not the ceremony itself, but peer pressure and ostentatious competition on social media.'
                 ],
                 [
                     'archetype' => 'Student Leader',
-                    'choice' => 'NO',
-                    'note' => 'Handwritten 3-hour memorization marathons test stamina and penmanship, not actual mastery. If a student can prompt an AI to produce an A-grade essay, the problem is with the archaic assignment prompt, not the student leveraging 21st-century tools.'
+                    'choice' => 'YES',
+                    'note' => 'Let us be honest with ourselves: half the people at big weddings are there for free food and souvenirs. Those same guests will not send you ₦10,000 when rent is due next year. Keep it small, sign court papers, and protect your peace.'
                 ]
             ],
             'rebuttals' => [
                 [
-                    'replyToArchetype' => 'Educationist',
-                    'archetype' => 'Systems Technologist',
-                    'content' => 'Proctored handwritten exams do not stop students from using AI; they merely ensure students learn nothing about verifying hallucinations or security vulnerabilities before graduating into the workforce.'
+                    'replyToArchetype' => 'Hospitality & Small Business',
+                    'archetype' => 'Artisan & Business Owner',
+                    'content' => 'Celebration is good, but when young couples start marriage taking high-interest loans for hall rentals and aso-ebi, the stress breaks marriages before the first anniversary. Wisdom comes before party.'
                 ]
             ]
         ],
         [
-            'title' => 'Should national governments mandate verified biometric ID registration for all social media accounts to eliminate bots and disinformation?',
-            'description' => 'In response to coordinated state-backed propaganda networks, hate speech, and automated bot swarms influencing elections, legislators are debating mandatory biometric verification for social media accounts. Digital rights advocates warn this will criminalize whistleblowers and silence political dissent.',
-            'category' => 'Politics & Governance',
-            'region' => 'West Africa',
-            'tags' => ['Digital Privacy', 'Free Speech', 'Cybersecurity', 'Civil Rights', 'Elections'],
-            'perspectives' => [
-                [
-                    'archetype' => 'Civil Liberties Advocate',
-                    'choice' => 'NO',
-                    'note' => 'Anonymity is not a crime; it is the single greatest shield protecting investigative whistleblowers, dissidents under authoritarian regimes, and marginalized citizens speaking truth to power. Handing state security agencies a master registry linking every tweet to a citizen\'s home address is an authoritarian blueprint.'
-                ],
-                [
-                    'archetype' => 'Policy Auditor',
-                    'choice' => 'YES',
-                    'note' => 'The digital public square has been completely weaponized by paid bot factories and anonymous smear merchants who terrorize citizens and incite ethnic violence with total impunity. Rights without accountability lead directly to civic breakdown.'
-                ],
-                [
-                    'archetype' => 'Investigative Journalist',
-                    'choice' => 'NO',
-                    'note' => 'Every single leak that exposed grand corruption in our ministries originated from anonymous digital tips. If our sources know their biometric ID is logged by telecom operators compliant with the executive branch, investigative journalism effectively dies overnight.'
-                ],
-                [
-                    'archetype' => 'Legal & Constitutional Scholar',
-                    'choice' => 'YES',
-                    'note' => 'Freedom of speech has never included a constitutional right to algorithmic fraud or impersonation. If offline print publishers and broadcasters are legally liable for defamation and incitement, digital platform users cannot demand total blanket immunity while destroying reputations.'
-                ]
-            ],
-            'rebuttals' => [
-                [
-                    'replyToArchetype' => 'Policy Auditor',
-                    'archetype' => 'Telecom Strategist',
-                    'content' => 'Centralized biometric databases in emerging markets suffer constant security breaches. Within six months, that verified database will be sold on dark web forums for $10 in crypto.'
-                ]
-            ]
-        ],
-        [
-            'title' => 'Should African cities ban commercial motorcycle and tricycle transit (Okada/Keke) from major arterial highways?',
-            'description' => 'Megacity transport authorities argue that two-wheel and three-wheel commercial transit contributes disproportionately to fatal highway accidents, lane anarchy, and criminal escape corridors. Commuter unions counter that the formal mass transit network cannot handle even 30% of daily commuter demand.',
+            'title' => 'Should commercial motorcycles and tricycles (Okada & Keke) be banned from major highway expressways?',
+            'description' => 'Megacity transport regulators argue that bikes and tricycles cause catastrophic highway accidents and traffic anarchy on high-speed corridors. Commuters and transport unions argue formal buses cannot handle daily demand.',
             'category' => 'Infrastructure',
             'region' => 'West Africa',
-            'tags' => ['Urban Planning', 'Transportation', 'Labor', 'Megacities', 'Public Safety'],
+            'tags' => ['Transportation', 'Urban Planning', 'Public Safety', 'Labor', 'Commuting'],
             'perspectives' => [
                 [
-                    'archetype' => 'Urban Planner',
+                    'archetype' => 'Medical Doctor',
                     'choice' => 'YES',
-                    'note' => 'High-speed multi-lane expressways and 100cc two-wheelers are physically incompatible. The trauma ward data from general hospitals is horrifying. Modern cities require structured Bus Rapid Transit (BRT) and light rail corridors, not informal highway free-for-alls.'
+                    'note' => 'Every single weekend, emergency wards admit young people with shattered limbs and severe head injuries from highway collisions with trucks. 100cc motorbikes and heavy articulated trailers physically do not belong on the same high-speed lanes.'
                 ],
                 [
                     'archetype' => 'Labor Advocate',
                     'choice' => 'NO',
-                    'note' => 'Before you ban the poor man\'s bread, where is the alternative transport? Millions of working-class families rely on these operators to navigate unpaved interior roads and beat 4-hour highway standstills. A ban without functional public trains is economic sabotage of informal workers.'
+                    'note' => 'Before government bans Okada on expressways, where are the alternative buses? Millions of commuters wake up before dawn every day. If you ban them without functional trains or cheap public buses, you are just punishing ordinary working-class citizens.'
                 ],
                 [
-                    'archetype' => 'Frontline Medical Practitioner',
+                    'archetype' => 'Urban Planner',
                     'choice' => 'YES',
-                    'note' => 'Every weekend our surgical trauma unit admits young breadwinners with shattered femurs and catastrophic cranial trauma from highway collisions with articulated trucks. These are completely preventable tragedies that cost our healthcare system billions in unrecoverable emergency care.'
+                    'note' => 'Expressways are designed for rapid multi-lane throughput. When motorbikes weave between lanes and drive against traffic, the entire corridor slows down and accident rates spike. We need dedicated bus rapid transit lanes, not informal highway chaos.'
                 ],
                 [
-                    'archetype' => 'Grassroots Community Leader',
+                    'archetype' => 'Grassroots Trader',
                     'choice' => 'NO',
-                    'note' => 'When civil servants make policies from air-conditioned offices, they forget that market women carrying heavy sacks of peppers have to wake up by 4:00 AM. Banning tricycles without adding hundreds of cheap government buses just forces our mothers to walk miles in the dark.'
+                    'note' => 'Market women carrying heavy loads of goods depend on Keke to get to markets early. When bans happen, police start seizing vehicles and taking bribes, while transport fares double for everyday passengers. It hurts the poor the most.'
                 ]
             ],
             'rebuttals' => [
                 [
                     'replyToArchetype' => 'Urban Planner',
-                    'archetype' => 'Supply Chain Specialist',
-                    'content' => 'BRT systems take 5 to 8 years to finance and construct. What happens to the 400,000 daily commuters tomorrow morning when the highway police start seizing bikes?'
+                    'archetype' => 'Logistics Operator',
+                    'content' => 'High-capacity buses sound nice on paper, but who will finance the 2,000 new buses needed by tomorrow morning? Banning transport options before building alternatives always fails.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Should universities permanently ban students from using generative AI tools for essays and assignments?',
+            'description' => 'With the explosion of AI writing tools, university departments are divided. Some want strict bans and return to handwritten exams, while others argue AI is a workplace reality that students must master.',
+            'category' => 'Education',
+            'region' => 'West Africa',
+            'tags' => ['Artificial Intelligence', 'Education', 'Students', 'Technology', 'Career'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Educationist',
+                    'choice' => 'YES',
+                    'note' => 'If students use AI to draft their essays from year one, they skip the cognitive struggle of researching, reading primary books, and organizing their own original thoughts. You cannot build intellectual muscle if a computer does all the heavy lifting.'
+                ],
+                [
+                    'archetype' => 'Tech Youth & Freelancer',
+                    'choice' => 'NO',
+                    'note' => 'Banning AI in 2026 is like telling accounting students they cannot use Excel. Employers want people who know how to prompt AI, catch hallucinations, and deliver real work faster. Teach students how to audit AI, don’t handicap them.'
+                ],
+                [
+                    'archetype' => 'Historian',
+                    'choice' => 'YES',
+                    'note' => 'People compared AI to calculators, but language is the core foundation of reasoning and debate. If a university graduate cannot write a coherent 5-page argument without machine assistance, our educational standard has truly collapsed.'
+                ],
+                [
+                    'archetype' => 'Student Leader',
+                    'choice' => 'NO',
+                    'note' => 'Archived 3-hour handwritten exams test memorization and fast handwriting, not actual understanding. If an AI can answer an assignment perfectly, the problem is with lazy assignment prompts, not students using modern tools.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Educationist',
+                    'archetype' => 'Cloud Engineer',
+                    'content' => 'Students will use AI on their phones regardless of university bans. Instead of pretending it does not exist, teach students to build original projects that AI cannot simply copy-paste.'
                 ]
             ]
         ]
@@ -408,11 +408,15 @@ function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash'
         $personaPromptText = implode("\n", $personaContext);
 
         $prompt = "
-You are an expert civic debate curator and political/economic editor for YesOrNo, a high-caliber public deliberation platform.
-Create ONE provocative, time-bound civic/economic/tech/cultural binary debate issue (strictly YES or NO).
+You are an expert community debate curator for YesOrNo, a fast-paced public voting and deliberation app.
+Create ONE provocative, time-bound binary question (strictly YES or NO) grounded in real-world everyday life, tech, economy, career, or society.
 
-The question MUST have strong, defensible arguments on both sides. AVOID generic corporate AI phrasing, platitudes, or unopinionated middle-ground summaries.
-Make the takes sharp, realistic, and written with genuine human conviction.
+CRITICAL TONE & STYLE RULES:
+- Use an authentic, natural, semi-formal to informal conversational tone. Think like sharp, intelligent Nigerians discussing real life on X / Twitter, WhatsApp groups, or at a cafe in Lagos or Abuja.
+- NEVER use formal titles (No 'Dr.', 'Prof.', 'Chief', etc.). Use strictly first and last names.
+- Avoid robotic corporate AI phrasing (no 'In conclusion', 'It is important to remember', 'On the other hand').
+- The takes should be punchy, relatable, and opinionated (2 to 4 sentences).
+- Ground arguments in tangible everyday realities: inflation, house rent, fuel costs, remote work, school fees, power, traffic, relationships, or business.
 
 Select 4 distinct personas from the list below to write the primary perspectives (2 for YES, 2 for NO), and 1 persona to post a direct threaded rebuttal to one of the comments.
 
@@ -421,10 +425,10 @@ Personas available:
 
 Output strict JSON with this exact schema:
 {
-  \"title\": \"Clear, high-stakes binary question (e.g. 'Should African governments mandate...?')\",
+  \"title\": \"Clear, high-stakes binary question (e.g. 'Should remote workers earning in USD pay higher local taxes?')\",
   \"description\": \"2-3 sentences of sharp context explaining why this debate is burning right now.\",
-  \"category\": \"Economy & Finance | Politics & Governance | Technology & Internet | Education | Infrastructure | Health & Medicine\",
-  \"region\": \"West Africa | East Africa | Southern Africa | Pan-African | Global\",
+  \"category\": \"Economy & Finance | Politics & Governance | Technology & Internet | Education | Infrastructure | Health & Medicine | Family & Home\",
+  \"region\": \"West Africa\",
   \"tags\": [\"Tag1\", \"Tag2\", \"Tag3\", \"Tag4\"],
   \"perspectives\": [
     {
