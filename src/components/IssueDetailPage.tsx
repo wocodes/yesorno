@@ -49,6 +49,7 @@ interface Props {
   onShareComment?: (issue: Issue, author: string, text: string, commentId: string) => void;
   onAddInvite?: (issueId: string, email: string) => void;
   onAddGroupInvite?: (issueId: string, group: string) => void;
+  onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
 }
 
 export const IssueDetailPage: React.FC<Props> = (props) => {
@@ -69,6 +70,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     isFavorited = false,
     onAddCommentReply,
     onToggleCommentReaction,
+    onOpenProfile,
   } = props;
   const [activeTab, setActiveTab] = useState<'perspectives' | 'digest' | 'brief'>('perspectives');
   const [filter, setFilter] = useState<'ALL' | 'YES' | 'NO' | 'VOICE'>('ALL');
@@ -349,27 +351,81 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
         {/* Creator Info Strip */}
         <div className="p-5 sm:p-6 pb-4 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
           <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={authorInfo.avatarUrl}
-              alt={authorInfo.fullName}
-              className="w-10 h-10 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
-              }}
-            />
+            {issue.isAnonymousAuthor || !onOpenProfile ? (
+              <img
+                src={authorInfo.avatarUrl}
+                alt={authorInfo.fullName}
+                className="w-10 h-10 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenProfile({
+                  username: authorInfo.username,
+                  name: authorInfo.fullName || authorInfo.displayName,
+                  avatar: authorInfo.avatarUrl,
+                  email: issue.creatorEmail,
+                })}
+                className="rounded-full shrink-0 hover:ring-2 hover:ring-brand-500/50 transition-all cursor-pointer"
+                title={`View ${authorInfo.displayName}'s profile`}
+              >
+                <img
+                  src={authorInfo.avatarUrl}
+                  alt={authorInfo.fullName}
+                  className="w-10 h-10 rounded-full object-cover border border-black/10 dark:border-white/10"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                  }}
+                />
+              </button>
+            )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white truncate">
-                  {authorInfo.displayName}
-                </span>
+                {issue.isAnonymousAuthor || !onOpenProfile ? (
+                  <span className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white truncate">
+                    {authorInfo.displayName}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile({
+                      username: authorInfo.username,
+                      name: authorInfo.fullName || authorInfo.displayName,
+                      avatar: authorInfo.avatarUrl,
+                      email: issue.creatorEmail,
+                    })}
+                    className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors truncate text-left cursor-pointer"
+                    title={`View ${authorInfo.displayName}'s profile`}
+                  >
+                    {authorInfo.displayName}
+                  </button>
+                )}
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                   {relativeTime}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate">
-                {authorInfo.fullName}
-              </span>
+              {issue.isAnonymousAuthor || !onOpenProfile ? (
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate">
+                  {authorInfo.fullName}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile({
+                    username: authorInfo.username,
+                    name: authorInfo.fullName || authorInfo.displayName,
+                    avatar: authorInfo.avatarUrl,
+                    email: issue.creatorEmail,
+                  })}
+                  className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-ink-900 dark:hover:text-zinc-300 block truncate text-left cursor-pointer"
+                >
+                  {authorInfo.fullName}
+                </button>
+              )}
             </div>
           </div>
 
@@ -834,20 +890,50 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300">
-                            {resp.isAnonymous ? (
-                              <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                            ) : (
+                          {resp.isAnonymous || !onOpenProfile ? (
+                            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
+                              {resp.isAnonymous ? (
+                                <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-zinc-500" />
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onOpenProfile({
+                                username: resp.authorUsername,
+                                name: resp.authorName,
+                                email: resp.authorEmail,
+                                role: resp.authorRole,
+                              })}
+                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer"
+                              title={`View ${resp.authorName}'s profile`}
+                            >
                               <User className="w-3.5 h-3.5 text-zinc-500" />
-                            )}
-                          </div>
+                            </button>
+                          )}
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-ink-950 dark:text-white">
-                                {resp.isAnonymous 
-                                  ? resp.authorAlias || 'Anonymous' 
-                                  : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
-                              </span>
+                              {resp.isAnonymous || !onOpenProfile ? (
+                                <span className="text-xs font-bold text-ink-950 dark:text-white">
+                                  {resp.authorAlias || 'Anonymous'}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenProfile({
+                                    username: resp.authorUsername,
+                                    name: resp.authorName,
+                                    email: resp.authorEmail,
+                                    role: resp.authorRole,
+                                  })}
+                                  className="text-xs font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                  title={`View ${resp.authorName}'s profile`}
+                                >
+                                  {resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member')}
+                                </button>
+                              )}
                               {resp.authorRole && (
                                 <span className="text-[11px] text-slate-400">• {resp.authorRole}</span>
                               )}
@@ -1011,11 +1097,25 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             return (
                               <div key={reply.id} className="text-xs space-y-1 bg-slate-50 dark:bg-white/[0.02] p-2.5 rounded-xl">
                                 <div className="flex items-center justify-between">
-                                  <span className="font-bold text-ink-950 dark:text-white">
-                                    {reply.isAnonymous 
-                                      ? reply.authorAlias || 'Anonymous' 
-                                      : (reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member'))}
-                                  </span>
+                                  {reply.isAnonymous || !onOpenProfile ? (
+                                    <span className="font-bold text-ink-950 dark:text-white">
+                                      {reply.authorAlias || 'Anonymous'}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProfile({
+                                        username: reply.authorUsername,
+                                        name: reply.authorName,
+                                        email: reply.authorEmail,
+                                        role: reply.authorRole,
+                                      })}
+                                      className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                      title={`View ${reply.authorName}'s profile`}
+                                    >
+                                      {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
+                                    </button>
+                                  )}
                                   <span className="text-[10px] text-slate-400">
                                     {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                   </span>

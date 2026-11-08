@@ -29,12 +29,13 @@ import {
   notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice, CommentReply } from './types';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply } from './types';
 import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
 import { IssueDetailPage } from './components/IssueDetailPage';
+import { UserProfilePage } from './components/UserProfilePage';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CreateIssueModal } from './components/CreateIssueModal';
 import { CommunityGuidelinesModal } from './components/CommunityGuidelinesModal';
@@ -50,6 +51,7 @@ import { ContactPage } from './components/ContactPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
+import { resolveUserProfile } from './utils/userProfile';
 import { 
   Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles
 } from 'lucide-react';
@@ -65,6 +67,9 @@ function getInitialView(user: UserProfile | null): AppView {
   }
   if (hash === 'contact') {
     return 'contact';
+  }
+  if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+    return 'profile';
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
@@ -104,6 +109,7 @@ export function App() {
   const [initialVoteChoice, setInitialVoteChoice] = useState<VoteChoice | null>(null);
   const [activeDetailIssue, setActiveDetailIssue] = useState<Issue | null>(null);
   const [activeShareIssue, setActiveShareIssue] = useState<Issue | null>(null);
+  const [activeProfileUser, setActiveProfileUser] = useState<PublicUserProfile | null>(null);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalDocTab | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -392,6 +398,13 @@ export function App() {
           setActiveDetailIssue(null);
           setCurrentView(hash as AppView);
         }
+      } else if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+        const userHandle = hash.replace(/^(profile|user)\//, '');
+        const resolved = resolveUserProfile({ username: userHandle }, issues, currentUser);
+        setActiveProfileUser(resolved);
+        setActiveDetailIssue(null);
+        setCurrentView('profile');
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       } else if (hash === 'contact') {
         setActiveDetailIssue(null);
         setCurrentView('contact');
@@ -404,7 +417,66 @@ export function App() {
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
-  }, [currentUser]);
+  }, [currentUser, issues]);
+
+  // Handle direct navigation to profile on initial page load if hash present
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('profile/') || hash.startsWith('user/')) {
+      const userHandle = hash.replace(/^(profile|user)\//, '');
+      const resolved = resolveUserProfile({ username: userHandle }, issues, currentUser);
+      setActiveProfileUser(resolved);
+      setActiveDetailIssue(null);
+      setCurrentView('profile');
+    }
+  }, []);
+
+  // Open user profile page
+  const handleOpenProfile = (target: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => {
+    const resolved = resolveUserProfile(target, issues, currentUser);
+    setActiveProfileUser(resolved);
+    setActiveDetailIssue(null);
+    setCurrentView('profile');
+    window.location.hash = `profile/${encodeURIComponent(resolved.username)}`;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
+  // Toggle follow user profile
+  const handleToggleFollowProfile = (targetProfile: PublicUserProfile) => {
+    if (!currentUser) {
+      setAuthPromptMessage('Please sign in to follow community members.');
+      handleNavigate('auth');
+      return;
+    }
+    const currentFollowing = currentUser.followingCreators || [];
+    const targetHandle = targetProfile.username;
+    const targetName = targetProfile.name;
+    const targetId = targetProfile.id || targetHandle;
+
+    const isFollowing = currentFollowing.some(f => {
+      const fClean = f.replace(/^@/, '').toLowerCase();
+      return fClean === targetHandle.toLowerCase() || f.toLowerCase() === targetName.toLowerCase() || f === targetId;
+    });
+
+    let updatedFollowing: string[];
+    if (isFollowing) {
+      updatedFollowing = currentFollowing.filter(f => {
+        const fClean = f.replace(/^@/, '').toLowerCase();
+        return !(fClean === targetHandle.toLowerCase() || f.toLowerCase() === targetName.toLowerCase() || f === targetId);
+      });
+      addToast('info', 'Unfollowed', `You unfollowed @${targetProfile.username}.`);
+    } else {
+      updatedFollowing = [...currentFollowing, `@${targetProfile.username}`];
+      addToast('success', 'Following!', `You are now following @${targetProfile.username}. Their issues will be prioritized in your feed.`);
+    }
+
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      followingCreators: updatedFollowing,
+    };
+    setCurrentUser(updatedUser);
+    saveStoredUser(updatedUser);
+  };
 
   // Sync issues to localStorage and cloud server
   useEffect(() => {
@@ -1511,6 +1583,7 @@ export function App() {
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         onOpenProfileSettings={() => setIsProfileSettingsOpen(true)}
+        onOpenProfile={handleOpenProfile}
         onResetData={handleResetData}
         categoryCounts={categoryCounts}
         currentView={currentView}
@@ -1523,7 +1596,37 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">
-        {currentView === 'issue' && liveDetailIssue ? (
+        {currentView === 'profile' && activeProfileUser ? (
+          <UserProfilePage
+            profile={activeProfileUser}
+            currentUser={currentUser}
+            issues={issues}
+            onBack={() => {
+              setActiveProfileUser(null);
+              handleNavigate('app');
+            }}
+            onOpenIssue={(iss) => {
+              recordUserInterestFromIssue(iss);
+              setActiveDetailIssue(iss);
+              setCurrentView('issue');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              window.location.hash = `issue/${iss.id}`;
+            }}
+            onQuickVote={handleOpenQuickVote}
+            onInlineSubmitVote={handleVoteSubmit}
+            onToggleFollow={handleToggleFollowProfile}
+            onOpenSettings={() => setIsProfileSettingsOpen(true)}
+            onOpenProfile={handleOpenProfile}
+            userVotes={userVotes}
+            userLikes={userLikes}
+            userFavorites={userFavorites}
+            onToggleLikeIssue={handleToggleLikeIssue}
+            onToggleFavoriteIssue={handleToggleFavoriteIssue}
+            onShareIssue={(iss) => setActiveShareIssue(iss)}
+            onDeleteIssue={handleDeleteIssueByAuthor}
+            onEditIssue={handleEditIssue}
+          />
+        ) : currentView === 'issue' && liveDetailIssue ? (
           <IssueDetailPage
             issue={liveDetailIssue}
             currentUser={currentUser}
@@ -1555,6 +1658,7 @@ export function App() {
             onShareComment={handleShareComment}
             onAddInvite={handleAddInvite}
             onAddGroupInvite={handleAddGroupInvite}
+            onOpenProfile={handleOpenProfile}
           />
         ) : currentView === 'analytics' && isAdminUser(currentUser) ? (
           <AdminAnalyticsPage
@@ -1784,6 +1888,7 @@ export function App() {
                         userVoteChoice={voteRecord?.choice}
                         isLiked={!!userLikes[issue.id]}
                         isFavorited={!!userFavorites[issue.id]}
+                        onOpenProfile={handleOpenProfile}
                       />
                     );
                   })}

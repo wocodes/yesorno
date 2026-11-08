@@ -28,6 +28,7 @@ interface Props {
   userVoteChoice?: 'YES' | 'NO';
   isLiked?: boolean;
   isFavorited?: boolean;
+  onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -79,6 +80,7 @@ export const IssueCard: React.FC<Props> = ({
   userVoteChoice,
   isLiked = false,
   isFavorited = false,
+  onOpenProfile,
 }) => {
   const metrics = computeIssueMetrics(issue);
   const access = canUserAccessIssue(issue, currentUser);
@@ -340,18 +342,63 @@ export const IssueCard: React.FC<Props> = ({
           {/* Creator Profile, FirstName, Time & Category Bar */}
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <div className="flex items-center gap-2 min-w-0">
-              <img
-                src={authorInfo.avatarUrl}
-                alt={authorInfo.fullName}
-                className="w-6 h-6 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
-                }}
-              />
+              {issue.isAnonymousAuthor || !onOpenProfile ? (
+                <img
+                  src={authorInfo.avatarUrl}
+                  alt={authorInfo.fullName}
+                  className="w-6 h-6 rounded-full object-cover shrink-0 border border-black/10 dark:border-white/10"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenProfile({
+                      username: authorInfo.username,
+                      name: authorInfo.fullName || authorInfo.displayName,
+                      avatar: authorInfo.avatarUrl,
+                      email: issue.creatorEmail,
+                    });
+                  }}
+                  className="rounded-full shrink-0 hover:ring-2 hover:ring-brand-500/50 transition-all cursor-pointer"
+                  title={`View ${authorInfo.displayName}'s profile`}
+                >
+                  <img
+                    src={authorInfo.avatarUrl}
+                    alt={authorInfo.fullName}
+                    className="w-6 h-6 rounded-full object-cover border border-black/10 dark:border-white/10"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorInfo.fullName)}`;
+                    }}
+                  />
+                </button>
+              )}
               <div className="flex items-center gap-1.5 min-w-0 text-xs">
-                <span className="font-bold text-ink-950 dark:text-white truncate">
-                  {authorInfo.displayName}
-                </span>
+                {issue.isAnonymousAuthor || !onOpenProfile ? (
+                  <span className="font-bold text-ink-950 dark:text-white truncate">
+                    {authorInfo.displayName}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenProfile({
+                        username: authorInfo.username,
+                        name: authorInfo.fullName || authorInfo.displayName,
+                        avatar: authorInfo.avatarUrl,
+                        email: issue.creatorEmail,
+                      });
+                    }}
+                    className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors truncate text-left cursor-pointer"
+                    title={`View ${authorInfo.displayName}'s profile`}
+                  >
+                    {authorInfo.displayName}
+                  </button>
+                )}
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                   {relativeTime}
