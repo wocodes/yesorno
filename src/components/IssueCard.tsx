@@ -812,7 +812,7 @@ export const IssueCard: React.FC<Props> = ({
               type="text"
               value={inlineNote}
               onChange={(e) => setInlineNote(e.target.value)}
-              placeholder={`Add a quick reply to your ${inlineChoice} vote (like X / Instagram)...`}
+              placeholder={`Add a quick reply to your ${inlineChoice} vote...`}
               className="flex-1 text-xs px-3.5 py-2 bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white"
             />
 
