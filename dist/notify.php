@@ -28,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !$isTest) {
     echo json_encode([
         'status' => 'online',
         'endpoint' => 'YesOrNo Notification Gateway',
-        'recipient' => $adminEmail,
         'instructions' => 'Send POST JSON payload with { event, user, data } or visit ?test=1 to dispatch a test email.'
     ]);
     exit;
@@ -164,6 +163,20 @@ switch ($eventType) {
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Platform / Channel:</td><td style='padding:8px 0;color:#38bdf8;font-weight:700;'>{$platform}</td></tr>";
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Share Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:600;'>{$issueUrl}</a></td></tr>";
         break;
+
+    case 'contact_message':
+        $badgeColor = '#0ea5e9'; // Sky blue
+        $badgeText = 'NEW CONTACT MESSAGE';
+        $category = isset($data['category']) ? htmlspecialchars($data['category']) : 'General Inquiry';
+        $subjectText = isset($data['subject']) && !empty($data['subject']) ? htmlspecialchars($data['subject']) : "Inquiry regarding {$category}";
+        $messageText = isset($data['message']) ? htmlspecialchars($data['message']) : '';
+
+        $subject = "[YesOrNo Contact] [{$category}] {$subjectText}";
+        $headline = "A user just submitted a new message via the Contact Form!";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Category:</td><td style='padding:8px 0;color:#38bdf8;font-weight:700;font-size:14px;'>{$category}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Subject:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$subjectText}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Message:</td><td style='padding:14px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.6;font-size:13px;white-space:pre-wrap;'>{$messageText}</td></tr>";
+        break;
 }
 
 // Build Clean HTML Email Body
@@ -273,10 +286,7 @@ echo json_encode([
     'success' => true,
     'test_mode' => $isTest,
     'event' => $eventType,
-    'recipient' => $adminEmail,
     'mailSent' => $mailSent,
     'timestamp' => $timestamp,
-    'message' => $isTest 
-        ? ($mailSent ? 'Test email dispatched to ' . $adminEmail : 'Test event recorded. If mail server queue is delayed, check notifications.log.')
-        : 'Notification processed'
+    'message' => 'Notification processed'
 ]);
