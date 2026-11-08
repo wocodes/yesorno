@@ -36,7 +36,7 @@ function get_curator_settings($settingsPath) {
         'isEnabled' => true,
         'geminiApiKey' => '',
         'model' => 'gemini-1.5-flash',
-        'intervalHours' => 6,
+        'intervalHours' => 2,
         'lastRunAt' => null,
         'minTargetVotes' => 85,
         'maxTargetVotes' => 140,
