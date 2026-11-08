@@ -568,6 +568,7 @@ export function App() {
           );
 
           setIssues((prev) => {
+            const currentVotes = getUserVotesMap();
             const currentIds = new Set(prev.map((i) => i.id));
             const brandNewIssues = validServerIssues.filter((i) => !currentIds.has(i.id));
 
@@ -587,12 +588,17 @@ export function App() {
               const updatedExisting = prev.map((p) => {
                 const s = serverMap.get(p.id);
                 if (!s) return p;
+                const uv = currentVotes[p.id];
+                let yesCount = Math.max(s.yesCount, p.yesCount);
+                let noCount = Math.max(s.noCount, p.noCount);
+                if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+                if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
                 return {
                   ...p,
-                  yesCount: s.yesCount,
-                  noCount: s.noCount,
-                  likesCount: s.likesCount,
-                  favoritesCount: s.favoritesCount,
+                  yesCount,
+                  noCount,
+                  likesCount: Math.max(s.likesCount || 0, p.likesCount || 0),
+                  favoritesCount: Math.max(s.favoritesCount || 0, p.favoritesCount || 0),
                   responses: s.responses
                 };
               });
@@ -603,7 +609,14 @@ export function App() {
             // Initial mount or initial hydration:
             isInitialMountRef.current = false;
             const map = new Map<string, Issue>();
-            validServerIssues.forEach((i) => map.set(i.id, i));
+            validServerIssues.forEach((i) => {
+              const uv = currentVotes[i.id];
+              let yesCount = i.yesCount;
+              let noCount = i.noCount;
+              if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+              if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
+              map.set(i.id, { ...i, yesCount, noCount });
+            });
 
             // Only preserve locally created issues that were created within the last 60s (in-flight network sync)
             const now = Date.now();
@@ -613,7 +626,12 @@ export function App() {
                 if (!map.has(i.id)) {
                   const createdTime = new Date(i.createdAt).getTime();
                   if (!isNaN(createdTime) && now - createdTime < 60000) {
-                    map.set(i.id, i);
+                    const uv = currentVotes[i.id];
+                    let yesCount = i.yesCount;
+                    let noCount = i.noCount;
+                    if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+                    if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
+                    map.set(i.id, { ...i, yesCount, noCount });
                   }
                 }
               });
@@ -917,6 +935,22 @@ export function App() {
           'Already voted',
           `You already voted ${existingVote.choice} on this issue.`
         );
+        // Self-heal: ensure local issue count is at least 1 even if previously desynced
+        setIssues(prevIssues => {
+          const nextIssues = prevIssues.map(issue => {
+            if (issue.id === submission.issueId) {
+              const isYes = submission.choice === 'YES';
+              const nextYes = isYes && issue.yesCount === 0 ? 1 : issue.yesCount;
+              const nextNo = !isYes && issue.noCount === 0 ? 1 : issue.noCount;
+              if (nextYes !== issue.yesCount || nextNo !== issue.noCount) {
+                return { ...issue, yesCount: nextYes, noCount: nextNo };
+              }
+            }
+            return issue;
+          });
+          saveIssues(nextIssues);
+          return nextIssues;
+        });
         return;
       }
     }
@@ -925,8 +959,12 @@ export function App() {
       const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
-          const nextYes = !hasExistingVote ? (isYes ? issue.yesCount + 1 : issue.yesCount) : issue.yesCount;
-          const nextNo = !hasExistingVote ? (!isYes ? issue.noCount + 1 : issue.noCount) : issue.noCount;
+          const nextYes = isYes
+            ? (issue.yesCount === 0 ? 1 : (!hasExistingVote ? issue.yesCount + 1 : issue.yesCount))
+            : issue.yesCount;
+          const nextNo = !isYes
+            ? (issue.noCount === 0 ? 1 : (!hasExistingVote ? issue.noCount + 1 : issue.noCount))
+            : issue.noCount;
 
           return {
             ...issue,
@@ -955,7 +993,25 @@ export function App() {
       }
       return nextVotes;
     });
-    apiRecordVote(submission);
+
+    apiRecordVote(submission, targetIssue?.title).then(serverResult => {
+      if (serverResult && serverResult.success && typeof serverResult.yesCount === 'number') {
+        setIssues(prev => {
+          const updated = prev.map(iss => {
+            if (iss.id === submission.issueId) {
+              return {
+                ...iss,
+                yesCount: Math.max(iss.yesCount, serverResult.yesCount as number),
+                noCount: Math.max(iss.noCount, serverResult.noCount as number)
+              };
+            }
+            return iss;
+          });
+          saveIssues(updated);
+          return updated;
+        });
+      }
+    });
 
     // Record telemetry for vote / reply / voice note
     if (!hasExistingVote) {

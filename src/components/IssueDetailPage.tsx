@@ -10,7 +10,7 @@ import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '..
 import { VoicePlayer } from './VoicePlayer';
 import { IssueSummaryView } from './IssueSummaryView';
 import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay, getUserDisplayName } from '../utils/summary';
-import { canUserAccessIssue, isIssueCreator } from '../utils/auth';
+import { canUserAccessIssue, isIssueCreator, isAdminUser } from '../utils/auth';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl } from '../utils/audio';
@@ -116,10 +116,24 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   } | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
-  const metrics = computeIssueMetrics(issue);
+  // Self-heal display counts if user has voted so they never see 0% (0) for their own vote
+  const effectiveIssue = React.useMemo(() => {
+    let yes = issue.yesCount;
+    let no = issue.noCount;
+    if (hasUserVoted && userVoteChoice === 'YES' && yes === 0) yes = 1;
+    if (hasUserVoted && userVoteChoice === 'NO' && no === 0) no = 1;
+    if (yes !== issue.yesCount || no !== issue.noCount) {
+      return { ...issue, yesCount: yes, noCount: no };
+    }
+    return issue;
+  }, [issue, hasUserVoted, userVoteChoice]);
+  const metrics = computeIssueMetrics(effectiveIssue);
   const access = canUserAccessIssue(issue, currentUser);
   const isCreator = isIssueCreator(issue, currentUser);
+  const isAdmin = isAdminUser(currentUser);
   const isDeleted = Boolean(issue.isDeletedByAuthor);
+  const canEdit = (isCreator || isAdmin) && !isDeleted;
+  const canDelete = (isCreator || isAdmin) && !isDeleted;
   const authorInfo = getAuthorDisplay(issue, currentUser);
   const relativeTime = formatRelativeTime(issue.createdAt);
 
@@ -513,8 +527,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               </button>
             )}
 
-            {/* Creator Edit Issue Button */}
-            {isCreator && !isDeleted && onEditIssue && (
+            {/* Creator/Admin Edit Issue Button */}
+            {canEdit && onEditIssue && (
               <button
                 type="button"
                 onClick={() => onEditIssue(issue)}
@@ -525,8 +539,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               </button>
             )}
 
-            {/* Creator Delete Issue Button */}
-            {isCreator && !isDeleted && onDeleteIssue && (
+            {/* Creator/Admin Delete Issue Button */}
+            {canDelete && onDeleteIssue && (
               <button
                 type="button"
                 onClick={() => onDeleteIssue(issue.id)}
@@ -596,13 +610,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <ThumbsUp className="w-4 h-4" />
-                  <span>YES {metrics.yesPercent}% ({issue.yesCount})</span>
+                  <span>YES {metrics.yesPercent}% ({effectiveIssue.yesCount})</span>
                 </span>
                 <span className="text-slate-400 dark:text-zinc-500 font-mono text-[11px]">
                   {metrics.totalVotes} total votes
                 </span>
                 <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-                  <span>({issue.noCount}) NO {metrics.noPercent}%</span>
+                  <span>({effectiveIssue.noCount}) NO {metrics.noPercent}%</span>
                   <ThumbsDown className="w-4 h-4" />
                 </span>
               </div>
