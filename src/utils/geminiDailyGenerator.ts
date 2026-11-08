@@ -6,6 +6,11 @@ export const GEMINI_AUTHOR_NAME = 'William Odiomonafe';
 export const GEMINI_AUTHOR_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
 const STORAGE_KEY_SLOTS = 'yesorno_gemini_daily_slots_v1';
+const STORAGE_KEY_LAST_POST_TIME = 'yesorno_gemini_daily_last_post_time_v1';
+const MIN_HOURS_BETWEEN_POSTS = 3;
+
+// In-flight mutex to prevent concurrent double-executions across async ticks
+const inProgressSlots = new Set<string>();
 
 export const POLARIZING_CATEGORIES: IssueCategory[] = [
   'Counselling',
@@ -24,7 +29,14 @@ export const POLARIZING_CATEGORIES: IssueCategory[] = [
 
 export type DaySlot = 'morning' | 'afternoon' | 'evening';
 
-export function getEligibleSlotsForNow(): { slot: DaySlot; slotKey: string }[] {
+/**
+ * Returns the single currently active time window slot:
+ * - Morning: 06:00 to 11:59 (6:00 AM - 11:59 AM)
+ * - Afternoon: 12:00 to 16:59 (12:00 PM - 4:59 PM)
+ * - Evening: 17:00 to 23:59 (5:00 PM - 11:59 PM)
+ * - Late Night (00:00 - 05:59): Returns null (no automatic posts scheduled)
+ */
+export function getCurrentActiveSlot(): { slot: DaySlot; slotKey: string } | null {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -32,22 +44,24 @@ export function getEligibleSlotsForNow(): { slot: DaySlot; slotKey: string }[] {
   const dateStr = `${year}-${month}-${day}`;
   const hour = now.getHours();
 
-  const eligible: { slot: DaySlot; slotKey: string }[] = [];
+  if (hour >= 6 && hour < 12) {
+    return { slot: 'morning', slotKey: `${dateStr}-morning` };
+  }
+  if (hour >= 12 && hour < 17) {
+    return { slot: 'afternoon', slotKey: `${dateStr}-afternoon` };
+  }
+  if (hour >= 17 && hour < 24) {
+    return { slot: 'evening', slotKey: `${dateStr}-evening` };
+  }
+  return null;
+}
 
-  // Morning: 06:00 onwards
-  if (hour >= 6) {
-    eligible.push({ slot: 'morning', slotKey: `${dateStr}-morning` });
-  }
-  // Afternoon: 12:00 onwards
-  if (hour >= 12) {
-    eligible.push({ slot: 'afternoon', slotKey: `${dateStr}-afternoon` });
-  }
-  // Evening: 17:00 onwards
-  if (hour >= 17) {
-    eligible.push({ slot: 'evening', slotKey: `${dateStr}-evening` });
-  }
-
-  return eligible;
+/**
+ * Returns an array with at most ONE currently active slot (never dumps multiple past slots)
+ */
+export function getEligibleSlotsForNow(): { slot: DaySlot; slotKey: string }[] {
+  const active = getCurrentActiveSlot();
+  return active ? [active] : [];
 }
 
 export function getCompletedSlots(): Set<string> {
@@ -296,7 +310,7 @@ export async function generateQuestionForSlot(
   const closingDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const newIssue: Issue = {
-    id: `issue-daily-${slotKey}-${Math.random().toString(36).substring(2, 6)}`,
+    id: `issue-daily-${slotKey}`,
     title: questionData.title,
     description: questionData.description,
     category,
@@ -323,39 +337,86 @@ export async function generateQuestionForSlot(
 }
 
 /**
- * Checks eligible daily slots for today and creates missing ones
+ * Checks the single eligible daily slot for the current time of day and creates it if not already posted.
+ * Strictly guarantees:
+ * - At most 1 question per window (morning, afternoon, evening)
+ * - Zero catch-up dump of past slots
+ * - Multi-tab and multi-device in-memory & database mutex
+ * - Minimum 3 hours spacing between consecutive automated posts
  */
 export async function checkAndTriggerDailyGeminiPosts(
   existingIssues: Issue[],
   onNewIssuesCreated: (newIssues: Issue[]) => void,
   userRegion?: IssueRegion
 ): Promise<number> {
-  const eligibleSlots = getEligibleSlotsForNow();
+  const active = getCurrentActiveSlot();
+  if (!active) {
+    // Outside scheduled posting windows (e.g. night 00:00 - 05:59)
+    return 0;
+  }
+
+  const { slotKey, slot } = active;
+
+  // 1. In-flight lock: Prevent concurrent executions within the same runtime
+  if (inProgressSlots.has(slotKey)) {
+    return 0;
+  }
+
+  // 2. Client-side tracking: Already posted in this browser
   const completedSlots = getCompletedSlots();
+  if (completedSlots.has(slotKey)) {
+    return 0;
+  }
 
-  const toGenerate = eligibleSlots.filter(s => !completedSlots.has(s.slotKey));
-  if (toGenerate.length === 0) return 0;
+  // 3. Global Feed Check: Prevent cross-device / incognito / multi-visitor duplicate posts
+  const deterministicId = `issue-daily-${slotKey}`;
+  const alreadyInFeed = existingIssues.some(
+    issue => issue.id === deterministicId || issue.id.startsWith(`issue-daily-${slotKey}`)
+  );
+  if (alreadyInFeed) {
+    markSlotCompleted(slotKey);
+    return 0;
+  }
 
-  const created: Issue[] = [];
-
-  for (const { slotKey, slot } of toGenerate) {
-    try {
-      const cat = POLARIZING_CATEGORIES[Math.floor(Math.random() * POLARIZING_CATEGORIES.length)];
-      const issue = await generateQuestionForSlot(slotKey, cat, userRegion);
-      created.push(issue);
-      markSlotCompleted(slotKey);
-    } catch (err) {
-      console.warn(`Failed to generate daily question for ${slot}:`, err);
+  // 4. Rate-Limiting: Minimum 3 hours between automated posts
+  try {
+    const lastPostTimeStr = localStorage.getItem(STORAGE_KEY_LAST_POST_TIME);
+    if (lastPostTimeStr) {
+      const lastPostTime = parseInt(lastPostTimeStr, 10);
+      const hoursSinceLast = (Date.now() - lastPostTime) / (1000 * 60 * 60);
+      if (hoursSinceLast < MIN_HOURS_BETWEEN_POSTS) {
+        return 0;
+      }
     }
+  } catch {
+    // ignore storage errors
   }
 
-  if (created.length > 0) {
-    const updated = [...created, ...existingIssues];
+  // Acquire in-memory lock
+  inProgressSlots.add(slotKey);
+
+  try {
+    const cat = POLARIZING_CATEGORIES[Math.floor(Math.random() * POLARIZING_CATEGORIES.length)];
+    const issue = await generateQuestionForSlot(slotKey, cat, userRegion);
+
+    markSlotCompleted(slotKey);
+    try {
+      localStorage.setItem(STORAGE_KEY_LAST_POST_TIME, String(Date.now()));
+    } catch {
+      // ignore
+    }
+
+    const updated = [issue, ...existingIssues];
     saveIssues(updated);
-    onNewIssuesCreated(created);
-  }
+    onNewIssuesCreated([issue]);
 
-  return created.length;
+    return 1;
+  } catch (err) {
+    console.warn(`Failed to generate daily question for ${slot}:`, err);
+    return 0;
+  } finally {
+    inProgressSlots.delete(slotKey);
+  }
 }
 
 /**

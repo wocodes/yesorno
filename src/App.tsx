@@ -112,17 +112,32 @@ export function App() {
   const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
 
   // Automated Gemini Daily Polarizing Questions: 3 times a day (morning, afternoon, evening)
+  const issuesRef = useRef(issues);
+  issuesRef.current = issues;
+
   useEffect(() => {
-    checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
-      setIssues(prev => [...newlyCreated, ...prev]);
+    checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
+      setIssues(prev => {
+        const existingIds = new Set(prev.map(i => i.id));
+        const unique = newlyCreated.filter(i => !existingIds.has(i.id));
+        if (unique.length === 0) return prev;
+        return [...unique, ...prev];
+      });
     }, currentUser?.region);
+
     const interval = setInterval(() => {
-      checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
-        setIssues(prev => [...newlyCreated, ...prev]);
+      checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
+        setIssues(prev => {
+          const existingIds = new Set(prev.map(i => i.id));
+          const unique = newlyCreated.filter(i => !existingIds.has(i.id));
+          if (unique.length === 0) return prev;
+          return [...unique, ...prev];
+        });
       }, currentUser?.region);
-    }, 120000);
+    }, 300000); // Poll once every 5 minutes
+
     return () => clearInterval(interval);
-  }, [issues, currentUser?.region]);
+  }, [currentUser?.region]);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
