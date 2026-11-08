@@ -78,8 +78,10 @@ export const DiscoveryHub: React.FC<Props> = ({
 
   // Enrich issues with region and computed metrics
   const enrichedIssues = useMemo(() => {
-    return issues.map(issue => {
-      const metrics = computeIssueMetrics(issue);
+    return issues
+      .filter(issue => !issue.isDeletedByAuthor)
+      .map(issue => {
+        const metrics = computeIssueMetrics(issue);
       const region = inferIssueRegion(issue);
       // Trending velocity score: votes + 4x responses + 8x voice notes
       const trendingScore = metrics.totalVotes + (issue.responses.length * 4) + (metrics.voiceNotesCount * 8);

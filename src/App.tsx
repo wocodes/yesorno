@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
-  fetchServerIssues,
+  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds,
   apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
 import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
@@ -382,11 +382,16 @@ export function App() {
       fetchServerIssues().then((serverIssues) => {
         if (serverIssues && serverIssues.length > 0) {
           setIssues((prev) => {
+            const deletedIds = getDeletedIssueIds();
             const map = new Map<string, Issue>();
-            serverIssues.forEach((i) => map.set(i.id, i));
-            prev.forEach((i) => {
-              if (!map.has(i.id)) map.set(i.id, i);
-            });
+            serverIssues
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .forEach((i) => map.set(i.id, i));
+            prev
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .forEach((i) => {
+                if (!map.has(i.id)) map.set(i.id, i);
+              });
             const merged = Array.from(map.values());
             saveIssues(merged);
             return merged;
@@ -597,31 +602,17 @@ export function App() {
     if (!deletingIssueId) return;
     const issueId = deletingIssueId;
 
-    setIssues(prev => prev.map(issue => {
-      if (issue.id === issueId) {
-        return {
-          ...issue,
-          title: 'Deleted by Author',
-          description: 'Deleted by Author',
-          isDeletedByAuthor: true,
-          deletedAt: new Date().toISOString(),
-          images: undefined,
-          creatorVoiceNote: undefined,
-        };
-      }
-      return issue;
-    }));
+    // Permanently record deleted ID so it never returns in feed or cloud sync
+    recordDeletedIssueId(issueId);
+
+    const nextIssues = issues.filter(issue => issue.id !== issueId);
+    setIssues(nextIssues);
+    saveIssues(nextIssues);
 
     if (activeDetailIssue && activeDetailIssue.id === issueId) {
-      setActiveDetailIssue(prev => prev ? {
-        ...prev,
-        title: 'Deleted by Author',
-        description: 'Deleted by Author',
-        isDeletedByAuthor: true,
-        deletedAt: new Date().toISOString(),
-        images: undefined,
-        creatorVoiceNote: undefined,
-      } : null);
+      setActiveDetailIssue(null);
+      setCurrentView('app');
+      window.location.hash = '';
     }
 
     apiRecordDeleteIssue(issueId);
@@ -629,8 +620,8 @@ export function App() {
 
     addToast(
       'info',
-      'Issue Deleted by Author',
-      'Topic and description now show "Deleted by Author" while keeping all responses.'
+      'Issue Deleted',
+      'The issue has been completely removed from the feed.'
     );
     recordEngagementAction('issue_deleted');
   };
@@ -1197,6 +1188,7 @@ export function App() {
     };
 
     let result = issues.filter(issue => {
+      if (issue.isDeletedByAuthor) return false;
       const matchesCategory = selectedCategory === 'All' || issue.category === selectedCategory;
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch = !query || 
