@@ -102,6 +102,7 @@ export function App() {
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalDocTab | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
@@ -639,6 +640,24 @@ export function App() {
         ? `Restricted to invited circle members.`
         : `Open for voting (${newIssue.durationLabel}).`
     );
+  };
+
+  const handleEditIssue = (issue: Issue) => {
+    setEditingIssue(issue);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleUpdateIssue = (updatedIssue: Issue) => {
+    setIssues(prev => {
+      const nextIssues = prev.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+      saveIssues(nextIssues);
+      return nextIssues;
+    });
+    if (activeDetailIssue && activeDetailIssue.id === updatedIssue.id) {
+      setActiveDetailIssue(updatedIssue);
+    }
+    setEditingIssue(null);
+    addToast('success', 'Issue Updated', 'Your changes have been saved.');
   };
 
   // Handle add email invite to private issue
@@ -1417,6 +1436,7 @@ export function App() {
             }}
             onInlineSubmitVote={handleVoteSubmit}
             onDeleteIssue={handleDeleteIssueByAuthor}
+            onEditIssue={handleEditIssue}
             onToggleLikeIssue={handleToggleLikeIssue}
             onToggleFavoriteIssue={handleToggleFavoriteIssue}
             onShareIssue={(iss) => setActiveShareIssue(iss)}
@@ -1654,6 +1674,7 @@ export function App() {
                         onQuickVote={handleOpenQuickVote}
                         onInlineSubmitVote={handleVoteSubmit}
                         onDeleteIssue={handleDeleteIssueByAuthor}
+                        onEditIssue={handleEditIssue}
                         onToggleLikeIssue={handleToggleLikeIssue}
                         onToggleFavoriteIssue={handleToggleFavoriteIssue}
                         onShareIssue={(iss) => setActiveShareIssue(iss)}
@@ -1775,8 +1796,13 @@ export function App() {
 
       <CreateIssueModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingIssue(null);
+        }}
         onCreateIssue={handleCreateIssue}
+        onUpdateIssue={handleUpdateIssue}
+        editingIssue={editingIssue}
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         currentUser={currentUser}
       />

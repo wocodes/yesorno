@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, AlertCircle, Clock, Lock, Globe, 
-  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus
+  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil
 } from 'lucide-react';
 import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment } from '../types';
 import { moderateText, generateCivicAlias, validateIssueQuestion } from '../utils/moderation';
@@ -11,7 +11,9 @@ import { fileToDataUrl } from '../utils/audio';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onCreateIssue: (issue: Issue) => void;
+  onCreateIssue?: (issue: Issue) => void;
+  onUpdateIssue?: (updated: Issue) => void;
+  editingIssue?: Issue | null;
   onOpenGuidelines: () => void;
   currentUser: UserProfile | null;
 }
@@ -61,6 +63,8 @@ export const CreateIssueModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onCreateIssue,
+  onUpdateIssue,
+  editingIssue,
   onOpenGuidelines,
   currentUser
 }) => {
@@ -97,14 +101,42 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [alias] = useState(() => generateCivicAlias());
 
   useEffect(() => {
-    if (isOpen && currentUser) {
-      setIsAnonymous(false);
-      setAuthorName(currentUser.name || '');
-      if (currentUser.interests && currentUser.interests.length > 0) {
-        setCategory(currentUser.interests[0]);
+    if (isOpen) {
+      if (editingIssue) {
+        setTitle(editingIssue.title);
+        setDescription(editingIssue.description || '');
+        setShowDescription(Boolean(editingIssue.description));
+        setCategory(editingIssue.category);
+        setTagsInput((editingIssue.tags || []).join(', '));
+        setImages(editingIssue.images || []);
+        setCreatorVoice(editingIssue.creatorVoiceNote || null);
+        setVisibility(editingIssue.visibility || 'public');
+        setInvitedEmails(editingIssue.invitedEmails || []);
+        setInvitedGroups(editingIssue.invitedGroups || []);
+        setIsAnonymous(Boolean(editingIssue.isAnonymousAuthor));
+        setAuthorName(editingIssue.author);
+        const matchDuration = DURATION_OPTIONS.find(d => d.label === editingIssue.durationLabel);
+        if (matchDuration) {
+          setDuration(matchDuration);
+        }
+      } else {
+        setTitle('');
+        setDescription('');
+        setShowDescription(false);
+        setImages([]);
+        setCreatorVoice(null);
+        setDuration(DURATION_OPTIONS[5]);
+        setActiveTool(null);
+        setIsAnonymous(false);
+        if (currentUser) {
+          setAuthorName(currentUser.name || '');
+          if (currentUser.interests && currentUser.interests.length > 0) {
+            setCategory(currentUser.interests[0]);
+          }
+        }
       }
     }
-  }, [isOpen, currentUser]);
+  }, [isOpen, editingIssue, currentUser]);
 
   if (!isOpen) return null;
 
@@ -181,11 +213,39 @@ export const CreateIssueModal: React.FC<Props> = ({
       .map(t => t.trim().replace(/^#/, ''))
       .filter(Boolean);
 
-    const now = Date.now();
-    const closingTime = new Date(now + duration.hours * 60 * 60 * 1000).toISOString();
-
     // Normalize question mark: strip any trailing ? or . or whitespace and append a single ?
     const normalizedTitle = title.trim().replace(/[?.!\s]+$/, '') + '?';
+
+    if (editingIssue) {
+      const durationChanged = duration.label !== editingIssue.durationLabel;
+      const closingDate = durationChanged
+        ? new Date(Date.now() + duration.hours * 60 * 60 * 1000).toISOString()
+        : editingIssue.closingDate;
+
+      const updatedIssue: Issue = {
+        ...editingIssue,
+        title: normalizedTitle,
+        description: description.trim(),
+        category: visibility === 'private' ? 'Private & Internal' : category,
+        tags: tags.length > 0 ? tags : [category.split(' ')[0]],
+        images: images.length > 0 ? images : undefined,
+        creatorVoiceNote: creatorVoice || undefined,
+        visibility,
+        durationLabel: duration.label,
+        closingDate,
+        invitedEmails: visibility === 'private' ? invitedEmails : [],
+        invitedGroups: visibility === 'private' ? invitedGroups : [],
+      };
+
+      if (onUpdateIssue) {
+        onUpdateIssue(updatedIssue);
+      }
+      onClose();
+      return;
+    }
+
+    const now = Date.now();
+    const closingTime = new Date(now + duration.hours * 60 * 60 * 1000).toISOString();
 
     const cleanUsername = currentUser?.username ? currentUser.username.replace(/^@/, '') : undefined;
 
@@ -215,7 +275,9 @@ export const CreateIssueModal: React.FC<Props> = ({
       creatorVoiceNote: creatorVoice || undefined
     };
 
-    onCreateIssue(newIssue);
+    if (onCreateIssue) {
+      onCreateIssue(newIssue);
+    }
     setTitle('');
     setDescription('');
     setShowDescription(false);
@@ -240,7 +302,9 @@ export const CreateIssueModal: React.FC<Props> = ({
         <div className="px-5 pt-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-full bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300 font-bold text-sm flex items-center justify-center overflow-hidden shrink-0">
-              {isAnonymous ? (
+              {editingIssue ? (
+                <Pencil className="w-4 h-4 text-brand-500" />
+              ) : isAnonymous ? (
                 <ShieldCheck className="w-4 h-4 text-brand-500" />
               ) : currentUser?.avatar ? (
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
@@ -251,7 +315,7 @@ export const CreateIssueModal: React.FC<Props> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-xs font-bold text-ink-950 dark:text-white truncate">
                 <span id="create-issue-title" className="truncate">
-                  {isAnonymous ? alias : (currentUser?.name || 'Member')}
+                  {editingIssue ? 'Edit Issue' : (isAnonymous ? alias : (currentUser?.name || 'Member'))}
                 </span>
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 whitespace-nowrap">
@@ -761,7 +825,7 @@ export const CreateIssueModal: React.FC<Props> = ({
                     : 'bg-slate-200 dark:bg-ink-800 text-slate-400 dark:text-zinc-500 cursor-not-allowed'
                 }`}
               >
-                Post Issue
+                {editingIssue ? 'Save Changes' : 'Post Issue'}
               </button>
             </div>
           </div>

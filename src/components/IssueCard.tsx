@@ -3,7 +3,7 @@ import {
   ThumbsUp, ThumbsDown, MessageSquare, Mic, CheckCircle2, 
   Lock, Clock, Image as ImageIcon, ArrowUpRight, Share2,
   UserCheck, Trash2, Send, ShieldCheck, Square, X,
-  Heart, Bookmark, Flag
+  Heart, Bookmark, Flag, Pencil
 } from 'lucide-react';
 import { Issue, UserProfile, VoteChoice, VoteSubmission } from '../types';
 import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay, getUserDisplayName } from '../utils/summary';
@@ -20,6 +20,7 @@ interface Props {
   onQuickVote: (issue: Issue, initialChoice?: VoteChoice) => void;
   onInlineSubmitVote: (submission: VoteSubmission) => void;
   onDeleteIssue?: (issueId: string) => void;
+  onEditIssue?: (issue: Issue) => void;
   onToggleLikeIssue?: (issueId: string) => void;
   onToggleFavoriteIssue?: (issueId: string) => void;
   onShareIssue: (issue: Issue) => void;
@@ -70,6 +71,7 @@ export const IssueCard: React.FC<Props> = ({
   onQuickVote,
   onInlineSubmitVote,
   onDeleteIssue,
+  onEditIssue,
   onToggleLikeIssue,
   onToggleFavoriteIssue,
   onShareIssue,
@@ -505,6 +507,18 @@ export const IssueCard: React.FC<Props> = ({
               className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer shrink-0"
             >
               <Flag className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Creator Edit Issue Button */}
+          {isCreator && !isDeleted && onEditIssue && (
+            <button
+              type="button"
+              onClick={() => onEditIssue(issue)}
+              title="Edit issue question & description"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-200/60 dark:hover:bg-ink-800 transition-colors cursor-pointer shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
             </button>
           )}
 
