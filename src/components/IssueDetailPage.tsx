@@ -114,7 +114,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     return acc + 1 + (resp.replies?.length || 0);
   }, 0);
 
-  // Highlight linked comment if URL query parameter ?c=<commentId> is present
+  // Scroll to top upon opening an issue so top navigation, question and creator are never cut off
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -127,9 +127,11 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 350);
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
     } catch {
-      // Ignore
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, [issue.id]);
 

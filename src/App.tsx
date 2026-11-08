@@ -110,14 +110,14 @@ export function App() {
   useEffect(() => {
     checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
       setIssues(prev => [...newlyCreated, ...prev]);
-    });
+    }, currentUser?.region);
     const interval = setInterval(() => {
       checkAndTriggerDailyGeminiPosts(issues, (newlyCreated) => {
         setIssues(prev => [...newlyCreated, ...prev]);
-      });
+      }, currentUser?.region);
     }, 120000);
     return () => clearInterval(interval);
-  }, [issues]);
+  }, [issues, currentUser?.region]);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -347,6 +347,7 @@ export function App() {
         if (found) {
           setActiveDetailIssue(found);
           setCurrentView('issue');
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         }
       } else if (hash === 'app' || hash === 'discovery' || hash === 'analytics') {
         if (!currentUser) {
@@ -1454,6 +1455,7 @@ export function App() {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
               setCurrentView('issue');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
               window.location.hash = `issue/${iss.id}`;
             }}
             onQuickVote={handleOpenQuickVote}
@@ -1646,6 +1648,7 @@ export function App() {
                           recordUserInterestFromIssue(iss);
                           setActiveDetailIssue(iss);
                           setCurrentView('issue');
+                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
                           window.location.hash = `issue/${iss.id}`;
                         }}
                         onQuickVote={handleOpenQuickVote}
