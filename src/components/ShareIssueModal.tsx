@@ -30,7 +30,7 @@ export const ShareIssueModal: React.FC<Props> = ({
   issue, 
   isOpen, 
   onClose, 
-  colorTone = 'vibrant',
+  colorTone = 'toned',
   currentUser
 }) => {
   const [style, setStyle] = useState<CardStyle>('bold');

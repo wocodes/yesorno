@@ -90,13 +90,14 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [groupInput, setGroupInput] = useState('');
   const [invitedGroups, setInvitedGroups] = useState<string[]>(currentUser?.groups || []);
 
-  // Author identity
-  const [isAnonymous, setIsAnonymous] = useState(currentUser?.defaultAnonymous ?? false);
+  // Author identity (defaults to authenticated profile, never anonymous by default)
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [authorName, setAuthorName] = useState(currentUser?.name || '');
   const [alias] = useState(() => generateCivicAlias());
 
   useEffect(() => {
     if (isOpen && currentUser) {
+      setIsAnonymous(false);
       setAuthorName(currentUser.name || '');
       if (currentUser.interests && currentUser.interests.length > 0) {
         setCategory(currentUser.interests[0]);

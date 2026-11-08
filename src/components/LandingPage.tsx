@@ -216,7 +216,7 @@ export const LandingPage: React.FC<Props> = ({
   currentUser,
   theme,
   onToggleTheme,
-  colorTone = 'vibrant',
+  colorTone = 'toned',
   onToggleColorTone
 }) => {
   const [mockChoice, setMockChoice] = useState<'YES' | 'NO' | null>('YES');
