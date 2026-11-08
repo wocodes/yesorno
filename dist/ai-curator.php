@@ -387,6 +387,151 @@ function get_curated_fallback_debates() {
                     'content' => 'Students will use AI on their phones regardless of university bans. Instead of pretending it does not exist, teach students to build original projects that AI cannot simply copy-paste.'
                 ]
             ]
+        ],
+        // Confidently Annoying / Rage-Baiting & High-Friction Debates
+        [
+            'title' => 'If you earn under ₦800,000 monthly, is dating in Lagos pure financial recklessness?',
+            'description' => 'With the average casual dinner date costing upwards of ₦45,000 plus surge Bolt rides and drinks, financial pragmatists argue that dating on a modest salary is fiscal suicide, while romantics argue that companionship should not be reserved for high earners.',
+            'category' => 'Relationships & Dating',
+            'region' => 'West Africa',
+            'tags' => ['Dating', 'Relationships', 'Personal Finance', 'Lagos Life', 'Cost of Living'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Financial Educator',
+                    'choice' => 'YES',
+                    'note' => 'Let us do simple maths. Take two dinner dates a month at ₦40k each, add surge Bolt fares of ₦15k round trip, and throw in occasional unexpected requests. You have blown ₦120k on outings alone. If your take-home is under ₦800k, you are literally dating yourself into poverty. Focus on your cash flow first.'
+                ],
+                [
+                    'archetype' => 'Full-Time Mother',
+                    'choice' => 'NO',
+                    'note' => 'Our parents built marriages on teacher salaries and modest civil service wages. If you wait until you have millions before you date, you will wake up at 40 with a loaded bank account and zero companionship. The problem is not salary; the problem is trying to impress people with expensive lifestyle inflation.'
+                ],
+                [
+                    'archetype' => 'Ride-Hailing Driver',
+                    'choice' => 'YES',
+                    'note' => 'I pick up young guys from Mainland taking girls to restaurants in Victoria Island every weekend. By Sunday evening their transfer accounts are crying. If you cannot afford to maintain yourself without sweating over fuel prices, why are you carrying extra baggage? Stay in your house and rest.'
+                ],
+                [
+                    'archetype' => 'Barber & Stylist',
+                    'choice' => 'NO',
+                    'note' => 'Dating does not mean booking a table at an upscale seafood lounge every weekend. A real partner will sit with you to eat roasted plantain and fish while you both plan your future. If the person you are dating requires ₦800k minimum wage to smile, you picked the wrong person.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Full-Time Mother',
+                    'archetype' => 'E-Commerce Seller',
+                    'content' => 'Our parents dated when a crate of eggs was ₦150 and house rent in Yaba was ₦3,000 a year! You cannot use 1985 economic reality to judge 2026 inflation.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'If you sleep more than 4 hours a night in your twenties, are you quietly planning for poverty?',
+            'description' => 'Self-proclaimed hustle gurus argue that your twenties are for extreme sleepless sacrifice, side projects, and continuous compounding, while medical professionals warn that glorifying chronic sleep deprivation causes early organ breakdown and mental ruin.',
+            'category' => 'Workplace & Career',
+            'region' => 'West Africa',
+            'tags' => ['Hustle Culture', 'Sleep', 'Health', 'Productivity', 'Youth'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Crypto Trader',
+                    'choice' => 'YES',
+                    'note' => 'Your twenties are your only compounding window. While you are sleeping 8 full hours under a cozy duvet, global competitors in India and China are upskilling, trading markets at 3 AM, and building software. Nobody ever broke generational poverty by observing beauty sleep.'
+                ],
+                [
+                    'archetype' => 'Frontline Nurse',
+                    'choice' => 'NO',
+                    'note' => 'Sleeping 4 hours a night does not make you a billionaire; it gives you high blood pressure at 27, clinical depression, and chronic kidney damage. We admit young burnout patients into hospital wards every week. You cannot spend wealth from an intensive care unit bed.'
+                ],
+                [
+                    'archetype' => 'Fitness Coach',
+                    'choice' => 'NO',
+                    'note' => 'Brain recovery, muscle protein synthesis, and hormone regulation all happen during deep REM sleep. A person who sleeps 7 hours makes sharper, high-leverage strategic decisions than a sleep-deprived zombie typing bugs for 18 hours straight. Work smart, not suicidal.'
+                ],
+                [
+                    'archetype' => 'Entrepreneur',
+                    'choice' => 'YES',
+                    'note' => 'Building a business in an environment with poor electricity, bad roads, and volatile currency requires abnormal obsession. If you insist on European work-life balance in an emerging market, your startup will run out of cash before your second product launch.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Crypto Trader',
+                    'archetype' => 'Medical Doctor',
+                    'content' => 'Chronic 4-hour sleep impairs cognitive reaction time equivalent to being legally drunk. You are not compounding wealth at 3 AM; you are just typing hallucinated code.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Should a woman immediately block a man who suggests splitting the bill on a first date?',
+            'description' => 'A fiery battle between traditional romantic courtship and modern progressive partnership. Traditionalists argue that the person initiating the date must provide, while modernists argue that equal adults should share expenses without entitlement.',
+            'category' => 'Relationships & Dating',
+            'region' => 'West Africa',
+            'tags' => ['Dating', 'Chivalry', 'Gender Roles', 'Modern Life', 'Etiquette'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Beauty Stylist',
+                    'choice' => 'YES',
+                    'note' => 'A first date is a man presenting his best foot forward. If he is already calculating 50/50 on two plates of pasta and mocktails, he has zero chivalry and will split hospital bills when you are in labor. Save your energy and block him with immediate effect.'
+                ],
+                [
+                    'archetype' => 'Tech Youth & Freelancer',
+                    'choice' => 'NO',
+                    'note' => 'We are in 2026 where women earn salaries, run businesses, and demand equal respect in offices and boardrooms. A first date is two equal humans meeting to check mutual vibe, not a job interview where the man must pay a feeding allowance.'
+                ],
+                [
+                    'archetype' => 'Sociologist',
+                    'choice' => 'NO',
+                    'note' => 'Splitting or offering to cover your share shows emotional maturity and mutual consideration. The sense of entitlement that expects one stranger to sponsor another stranger\'s luxury lifestyle on day one is why dating in modern cities has become so transactional.'
+                ],
+                [
+                    'archetype' => 'Customer Service',
+                    'choice' => 'YES',
+                    'note' => 'Whoever picks the expensive venue should pay. If a guy chooses an upscale restaurant in Lekki and expects you to whip out your debit card when the bill arrives, that is a trap, not a date. Generosity is attractive; stinginess is an immediate turn-off.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Beauty Stylist',
+                    'archetype' => 'Law Student & Debater',
+                    'content' => 'You cannot demand progressive equality in careers and politics, but revert to 18th-century patriarchal entitlement the second the waiter drops the receipt.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Is working from bed in your pajamas \'real work\' compared to doctors, mechanics, and teachers?',
+            'description' => 'A battle between traditional physical labor and modern remote knowledge work. Traditional trade artisans argue that physical presence and grit are the true markers of productivity, while remote workers argue value is purely cognitive.',
+            'category' => 'Workplace & Career',
+            'region' => 'West Africa',
+            'tags' => ['Remote Work', 'Blue Collar', 'Future of Work', 'Tech', 'Career'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Artisan & Business Owner',
+                    'choice' => 'NO',
+                    'note' => 'Real work is sweat, handling raw materials, standing on your feet for 8 hours, and creating physical value that people can touch. Lying under a duvet in shorts pressing keyboard while eating cereal is a comfortable hobby. When your transformer blows up, you call real workers to fix your life.'
+                ],
+                [
+                    'archetype' => 'Systems Engineer',
+                    'choice' => 'YES',
+                    'note' => 'Companies do not pay for your physical sweat or how much you suffered inside a yellow Danfo bus in traffic; they pay for business leverage. One optimization to an international payment gateway processes millions of dollars in seconds. Brain work is 100x more scalable than manual labor.'
+                ],
+                [
+                    'archetype' => 'Ride-Hailing Driver',
+                    'choice' => 'NO',
+                    'note' => 'Let all the remote workers stay in bed for two weeks while drivers, doctors, electricity technicians, and market women take a break. The entire country will collapse into darkness and starvation in 48 hours. Let us not confuse comfort with essential productivity.'
+                ],
+                [
+                    'archetype' => 'Creative & Designer',
+                    'choice' => 'YES',
+                    'note' => 'Without the remote designers, software engineers, and product managers who built your mobile banking app and mapping software, the driver cannot find rides and the mechanic cannot receive bank transfers. All legitimate honest work is real work.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Artisan & Business Owner',
+                    'archetype' => 'Tech Youth & Freelancer',
+                    'content' => 'Suffering is not a KPI! Just because someone didn\'t inhale exhaust fumes on third mainland bridge doesn\'t mean their brain didn\'t solve complex problems all day.'
+                ]
+            ]
         ]
     ];
 }
@@ -409,10 +554,15 @@ function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash'
 
         $prompt = "
 You are an expert community debate curator for YesOrNo, a fast-paced public voting and deliberation app.
-Create ONE provocative, time-bound binary question (strictly YES or NO) grounded in real-world everyday life, tech, economy, career, or society.
+Create ONE provocative, time-bound binary question (strictly YES or NO).
 
-CRITICAL TONE & STYLE RULES:
-- Use an authentic, natural, semi-formal to informal conversational tone. Think like sharp, intelligent Nigerians discussing real life on X / Twitter, WhatsApp groups, or at a cafe in Lagos or Abuja.
+PROVOCATION & SPICE INSTRUCTIONS:
+- Alternately generate EITHER:
+  1. A fiery, confidently annoying, rage-baiting social/lifestyle hot-take (dating standards, hustle-culture snobbery, remote work privilege, wedding budgets, sleep guilt, money etiquette).
+  2. A high-friction civic or economic friction question (taxes, transport bans, currency pegging, AI bans).
+- Use an authentic, natural, semi-formal to informal conversational tone. Think like sharp, opinionated Nigerians arguing passionately on X / Twitter, WhatsApp group chats, or a Lagos cafe.
+- Takes must have CONFIDENT ARROGANCE on one side and FURIOUS, STREET-SMART INDIGNATION on the other side.
+- Make users itch to tap NO or YES out of pure conviction or outrage!
 - NEVER use formal titles (No 'Dr.', 'Prof.', 'Chief', etc.). Use strictly first and last names.
 - Avoid robotic corporate AI phrasing (no 'In conclusion', 'It is important to remember', 'On the other hand').
 - The takes should be punchy, relatable, and opinionated (2 to 4 sentences).
