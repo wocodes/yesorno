@@ -545,6 +545,8 @@ export function App() {
     const hasExistingVote = Boolean(existingVote);
     const hasContent = Boolean(submission.note || submission.voiceNote);
 
+    const isStanceChange = hasExistingVote && existingVote.choice !== submission.choice;
+
     setIssues(prevIssues => {
       const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
@@ -555,17 +557,31 @@ export function App() {
           if (!hasExistingVote) {
             nextYes = isYes ? issue.yesCount + 1 : issue.yesCount;
             nextNo = !isYes ? issue.noCount + 1 : issue.noCount;
-          } else if (existingVote.choice !== submission.choice) {
+          } else if (isStanceChange) {
             // User switched stance from YES->NO or NO->YES
             nextYes = isYes ? issue.yesCount + 1 : Math.max(0, issue.yesCount - 1);
             nextNo = !isYes ? issue.noCount + 1 : Math.max(0, issue.noCount - 1);
+          }
+
+          // If stance changed, update any existing perspective choice tag by this user
+          let updatedResponses = issue.responses;
+          if (isStanceChange) {
+            updatedResponses = updatedResponses.map(resp => {
+              if (
+                (existingVote.responseId && resp.id === existingVote.responseId) ||
+                (!resp.isAnonymous && currentUser && resp.authorUsername === currentUser.username)
+              ) {
+                return { ...resp, choice: submission.choice };
+              }
+              return resp;
+            });
           }
 
           return {
             ...issue,
             yesCount: nextYes,
             noCount: nextNo,
-            responses: hasContent ? [submission, ...issue.responses] : issue.responses
+            responses: hasContent ? [submission, ...updatedResponses] : updatedResponses
           };
         }
         return issue;
@@ -574,15 +590,16 @@ export function App() {
       return nextIssues;
     });
 
-    recordUserVote(submission.issueId, submission.choice, submission.id);
+    const savedResponseId = hasContent ? submission.id : existingVote?.responseId;
+    recordUserVote(submission.issueId, submission.choice, savedResponseId);
     setUserVotes(prev => ({
       ...prev,
-      [submission.issueId]: { choice: submission.choice, responseId: submission.id }
+      [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
     }));
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
-    if (!hasExistingVote || existingVote.choice !== submission.choice) {
+    if (!hasExistingVote || isStanceChange) {
       recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
     }
     if (submission.note) {
@@ -606,25 +623,43 @@ export function App() {
         if (!hasExistingVote) {
           nextYes = isYes ? prev.yesCount + 1 : prev.yesCount;
           nextNo = !isYes ? prev.noCount + 1 : prev.noCount;
-        } else if (existingVote.choice !== submission.choice) {
+        } else if (isStanceChange) {
           nextYes = isYes ? prev.yesCount + 1 : Math.max(0, prev.yesCount - 1);
           nextNo = !isYes ? prev.noCount + 1 : Math.max(0, prev.noCount - 1);
         }
+
+        let updatedResponses = prev.responses;
+        if (isStanceChange) {
+          updatedResponses = updatedResponses.map(resp => {
+            if (
+              (existingVote.responseId && resp.id === existingVote.responseId) ||
+              (!resp.isAnonymous && currentUser && resp.authorUsername === currentUser.username)
+            ) {
+              return { ...resp, choice: submission.choice };
+            }
+            return resp;
+          });
+        }
+
         return {
           ...prev,
           yesCount: nextYes,
           noCount: nextNo,
-          responses: hasContent ? [submission, ...prev.responses] : prev.responses
+          responses: hasContent ? [submission, ...updatedResponses] : updatedResponses
         };
       });
     }
 
-    // Do not show a toast when the user is adding a reply to an existing vote (since the reply appears instantly)
-    if (!(hasExistingVote && hasContent)) {
+    // Show toast for new votes and stance changes (skip only when posting follow-up reply without changing vote)
+    if (!hasExistingVote || isStanceChange) {
       addToast(
         'success',
-        `Your ${submission.choice} vote was recorded`,
-        submission.voiceNote 
+        isStanceChange
+          ? `Vote changed to ${submission.choice}!`
+          : `Your ${submission.choice} vote was recorded`,
+        isStanceChange
+          ? `Your vote was successfully updated from ${existingVote.choice} to ${submission.choice}.`
+          : submission.voiceNote 
           ? 'Voice note attached.'
           : submission.note
           ? 'Perspective posted to the thread.'
@@ -1836,6 +1871,7 @@ export function App() {
       <VoteModal
         issue={activeVoteIssue}
         initialChoice={initialVoteChoice}
+        existingVoteChoice={activeVoteIssue ? userVotes[activeVoteIssue.id]?.choice : undefined}
         isOpen={!!activeVoteIssue}
         onClose={() => {
           setActiveVoteIssue(null);

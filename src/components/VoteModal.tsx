@@ -10,6 +10,7 @@ import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 interface Props {
   issue: Issue | null;
   initialChoice?: VoteChoice | null;
+  existingVoteChoice?: VoteChoice | null;
   isOpen: boolean;
   onClose: () => void;
   onSubmitVote: (submission: VoteSubmission) => void;
@@ -20,13 +21,14 @@ interface Props {
 export const VoteModal: React.FC<Props> = ({
   issue,
   initialChoice = null,
+  existingVoteChoice = null,
   isOpen,
   onClose,
   onSubmitVote,
   onOpenGuidelines,
   currentUser
 }) => {
-  const [choice, setChoice] = useState<VoteChoice | null>(initialChoice);
+  const [choice, setChoice] = useState<VoteChoice | null>(initialChoice || existingVoteChoice || null);
   const [note, setNote] = useState('');
   const [voiceAttachment, setVoiceAttachment] = useState<VoiceAttachment | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -39,14 +41,14 @@ export const VoteModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setChoice(initialChoice || null);
+      setChoice(initialChoice || existingVoteChoice || null);
       setNote('');
       setVoiceAttachment(null);
       setIsAnonymous(currentUser?.defaultAnonymous ?? true);
       setAuthorName(currentUser?.name || '');
       setAuthorRole(currentUser?.role || '');
     }
-  }, [isOpen, initialChoice, currentUser]);
+  }, [isOpen, initialChoice, existingVoteChoice, currentUser]);
 
   if (!isOpen || !issue) return null;
 
@@ -139,6 +141,15 @@ export const VoteModal: React.FC<Props> = ({
             <div className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl text-xs flex items-center gap-2">
               <Lock className="w-4 h-4 text-rose-600 shrink-0" />
               <span>Restricted to invited private circle members.</span>
+            </div>
+          )}
+
+          {existingVoteChoice && (
+            <div className="p-3 rounded-2xl bg-brand-50/80 border border-brand-200/80 text-xs flex items-center justify-between text-brand-900">
+              <span className="flex items-center gap-1.5 font-semibold">
+                <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                <span>You previously voted <strong>{existingVoteChoice}</strong>. You can switch your stance anytime.</span>
+              </span>
             </div>
           )}
 
@@ -293,7 +304,13 @@ export const VoteModal: React.FC<Props> = ({
                 <span>Recording Vote...</span>
               ) : (
                 <>
-                  <span>Submit {choice ? `${choice} Vote` : 'Vote'}</span>
+                  <span>
+                    {existingVoteChoice && choice && choice !== existingVoteChoice
+                      ? `Switch Vote to ${choice}`
+                      : existingVoteChoice && choice && choice === existingVoteChoice && (note.trim() || voiceAttachment)
+                      ? `Add Perspective to ${choice} Vote`
+                      : `Submit ${choice ? `${choice} Vote` : 'Vote'}`}
+                  </span>
                   {choice && <span className="text-xs opacity-85 font-normal">• {isAnonymous ? generatedAlias : (authorName || 'Public')}</span>}
                 </>
               )}

@@ -3,7 +3,8 @@ import {
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Heart, User, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
-  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil
+  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag, Pencil,
+  CheckCircle2
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
@@ -577,7 +578,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
           <form onSubmit={handleSubmitReply} className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-bold text-ink-900 dark:text-zinc-200">
-                {hasUserVoted ? 'Add to your perspective / Update stance' : 'Cast your stance & reply'}
+                {hasUserVoted ? 'Your stance & perspective' : 'Cast your stance & reply'}
               </span>
 
               {/* Anonymous Toggle */}
@@ -595,6 +596,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               </button>
             </div>
 
+            {/* Changed mind helper strip */}
+            {hasUserVoted && (
+              <div className="flex items-center justify-between p-2.5 px-3.5 rounded-xl bg-brand-50/80 dark:bg-white/[0.03] border border-brand-200/60 dark:border-white/10 text-xs">
+                <span className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300">
+                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${userVoteChoice === 'YES' ? 'text-emerald-500' : 'text-rose-500'}`} />
+                  <span>
+                    You currently voted <strong>{userVoteChoice}</strong>. You can change your vote anytime by tapping{' '}
+                    <strong className={userVoteChoice === 'YES' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                      {userVoteChoice === 'YES' ? 'NO' : 'YES'}
+                    </strong>.
+                  </span>
+                </span>
+              </div>
+            )}
+
             {/* 1-Tap YES / NO Choice Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -603,11 +619,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
                   replyChoice === 'YES'
                     ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01]'
-                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005]'
                 }`}
               >
-                <ThumbsUp className="w-4 h-4" />
-                <span>VOTE YES</span>
+                {hasUserVoted && userVoteChoice === 'YES' ? (
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                ) : (
+                  <ThumbsUp className="w-4 h-4" />
+                )}
+                <span>
+                  {hasUserVoted
+                    ? userVoteChoice === 'YES'
+                      ? 'VOTED YES ✓'
+                      : 'SWITCH VOTE TO YES'
+                    : 'VOTE YES'}
+                </span>
               </button>
 
               <button
@@ -616,11 +642,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
                   replyChoice === 'NO'
                     ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01]'
-                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005]'
                 }`}
               >
-                <ThumbsDown className="w-4 h-4" />
-                <span>VOTE NO</span>
+                {hasUserVoted && userVoteChoice === 'NO' ? (
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                ) : (
+                  <ThumbsDown className="w-4 h-4" />
+                )}
+                <span>
+                  {hasUserVoted
+                    ? userVoteChoice === 'NO'
+                      ? 'VOTED NO ✓'
+                      : 'SWITCH VOTE TO NO'
+                    : 'VOTE NO'}
+                </span>
               </button>
             </div>
 
