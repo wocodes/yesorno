@@ -122,6 +122,8 @@ export function App() {
   // Automated Gemini Daily Polarizing Questions: 3 times a day (morning, afternoon, evening)
   const issuesRef = useRef(issues);
   issuesRef.current = issues;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
 
   useEffect(() => {
     checkAndTriggerDailyGeminiPosts(issuesRef.current, (newlyCreated) => {
@@ -555,6 +557,52 @@ export function App() {
       }).catch(() => {
         setIsInitialLoadingIssues(false);
       });
+
+      // Also sync user profile, votes, likes, and settings across devices in real-time
+      const activeEmail = currentUserRef.current?.email;
+      if (activeEmail) {
+        fetchServerProfileByEmail(activeEmail).then((serverProf) => {
+          if (serverProf) {
+            setCurrentUser((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                ...serverProf,
+                username: serverProf.username || prev.username,
+                interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
+                region: serverProf.region || prev.region,
+                soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
+                animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
+                onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
+              };
+            });
+
+            if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
+              setUserVotes((prev) => {
+                const m = { ...serverProf.votedIssues, ...prev };
+                try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+                return m;
+              });
+            }
+            if (serverProf.likedIssueIds && serverProf.likedIssueIds.length > 0) {
+              setUserLikes((prev) => {
+                const m = { ...prev };
+                serverProf.likedIssueIds?.forEach((id) => { m[id] = true; });
+                saveUserLikesMap(m);
+                return m;
+              });
+            }
+            if (serverProf.favoriteIssueIds && serverProf.favoriteIssueIds.length > 0) {
+              setUserFavorites((prev) => {
+                const m = { ...prev };
+                serverProf.favoriteIssueIds?.forEach((id) => { m[id] = true; });
+                saveUserFavoritesMap(m);
+                return m;
+              });
+            }
+          }
+        }).catch(() => {});
+      }
     };
 
     syncFromCloud();
