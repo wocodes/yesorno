@@ -1,7 +1,7 @@
 import { UserProfile, Issue, VoteSubmission, CommentReply } from '../types';
 import { buildIssueSlug } from './share';
 
-export type NotificationEvent = 
+export type NotificationEvent =
   | 'register'
   | 'login'
   | 'create_issue'
@@ -40,7 +40,7 @@ export async function sendAdminNotification(payload: NotifyPayload): Promise<boo
   if (typeof window === 'undefined') return false;
 
   // On localhost, we can target the live production endpoint or local relative endpoint
-  const endpoint = 
+  const endpoint =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? '/notify.php'
       : '/notify.php';
@@ -138,8 +138,8 @@ export function notifyAdminIssueCreated(
   issue: Issue,
   user?: UserProfile | null
 ): void {
-  const origin = typeof window !== 'undefined' && window.location.origin 
-    ? window.location.origin 
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
     : 'https://yesorno.chillon.top';
   const issueUrl = `${origin}/${buildIssueSlug(issue)}`;
 
@@ -195,8 +195,8 @@ export function notifyAdminIssueShared(
   const throttleKey = `share:${issue.id}:${platform}`;
   if (shouldThrottle(throttleKey, 5000)) return;
 
-  const origin = typeof window !== 'undefined' && window.location.origin 
-    ? window.location.origin 
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
     : 'https://yesorno.chillon.top';
   const issueUrl = `${origin}/${buildIssueSlug(issue)}`;
 

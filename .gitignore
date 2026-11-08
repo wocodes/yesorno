@@ -6,5 +6,7 @@ client_secret_*.json
 *.sqlite-shm
 /public/data/*.sqlite*
 /public/data/*.json
+!/public/data/seed_personas.json
 /dist/data/*.sqlite*
 /dist/data/*.json
+!/dist/data/seed_personas.json
