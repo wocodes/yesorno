@@ -90,3 +90,4 @@ export const DeleteConfirmModal: React.FC<Props> = ({
     </div>
   );
 };
+

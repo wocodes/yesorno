@@ -1,4 +1,4 @@
-import { ModerationResult } from '../types';
+import { ModerationResult, IssueFlagReport } from '../types';
 
 // Curated list of offensive terms, slurs, abusive phrases, and aggressive personal attack patterns
 const HARMFUL_TERMS = [
@@ -73,6 +73,96 @@ export function moderateText(text: string): ModerationResult {
     flags: [],
     severity: 'clean',
   };
+}
+
+/**
+ * Validates whether an issue title is phrased properly as a question suitable for YES/NO voting.
+ */
+export function validateIssueQuestion(title: string): {
+  isQuestion: boolean;
+  severity: 'valid' | 'warning' | 'invalid';
+  reason?: string;
+  suggestion?: string;
+} {
+  const trimmed = title.trim();
+  if (trimmed.length < 5) {
+    return {
+      isQuestion: false,
+      severity: 'invalid',
+      reason: 'Question is too short (must be at least 5 characters).',
+      suggestion: 'Type a complete question that voters can answer YES or NO.'
+    };
+  }
+
+  const hasQuestionMark = trimmed.includes('?');
+  const questionWords = [
+    'should', 'is', 'are', 'do', 'does', 'did', 'can', 'could', 'would', 'will',
+    'shall', 'has', 'have', 'was', 'were', 'must', 'ought', 'why', 'what', 'how',
+    'who', 'where', 'when', 'which', 'am'
+  ];
+
+  const firstWord = (trimmed.split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
+  const startsWithQuestionWord = questionWords.includes(firstWord);
+
+  // If it starts with a declarative indicator without a question mark:
+  const declarativeStarters = [
+    'i think', 'i believe', 'we must', 'we need to', 'everyone knows',
+    'the problem is', 'it sucks', 'stop', 'ban all', 'never'
+  ];
+  const startsWithDeclarative = declarativeStarters.some(starter => 
+    trimmed.toLowerCase().startsWith(starter)
+  );
+
+  if (startsWithDeclarative && !hasQuestionMark) {
+    return {
+      isQuestion: false,
+      severity: 'warning',
+      reason: 'This reads like a statement or rant rather than a question.',
+      suggestion: `Try rephrasing as a YES/NO question, e.g. "Should we ${trimmed.replace(/^(i think|we need to|we must)\s+/i, '')}?"`
+    };
+  }
+
+  if (!hasQuestionMark && !startsWithQuestionWord) {
+    return {
+      isQuestion: false,
+      severity: 'warning',
+      reason: 'This does not appear to be a question.',
+      suggestion: 'YesOrNo works best when phrased as a question starting with "Should...", "Is...", "Do you support...", and ending with "?"'
+    };
+  }
+
+  return {
+    isQuestion: true,
+    severity: 'valid'
+  };
+}
+
+const STORAGE_KEY_FLAG_REPORTS = 'yesorno_issue_flags_v1';
+
+/**
+ * Records a community flag report for an issue
+ */
+export function recordIssueFlag(report: IssueFlagReport): void {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FLAG_REPORTS);
+    const reports: IssueFlagReport[] = raw ? JSON.parse(raw) : [];
+    reports.push(report);
+    localStorage.setItem(STORAGE_KEY_FLAG_REPORTS, JSON.stringify(reports));
+  } catch (err) {
+    console.warn('Failed to save issue flag report:', err);
+  }
+}
+
+/**
+ * Retrieves all stored flag reports
+ */
+export function getStoredFlagReports(): IssueFlagReport[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FLAG_REPORTS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 /**

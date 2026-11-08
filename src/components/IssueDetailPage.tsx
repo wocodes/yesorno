@@ -3,16 +3,17 @@ import {
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
   Heart, User, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
-  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight
+  Smile, Check, Copy, ExternalLink, ChevronLeft, ChevronRight, Flag
 } from 'lucide-react';
 import { Issue, VoteSubmission, UserProfile, VoteChoice, CommentReply } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { IssueSummaryView } from './IssueSummaryView';
-import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay } from '../utils/summary';
+import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay, getUserDisplayName } from '../utils/summary';
 import { canUserAccessIssue, isIssueCreator } from '../utils/auth';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl } from '../utils/audio';
+import { ReportIssueModal } from './ReportIssueModal';
 
 export const AVAILABLE_REACTIONS = [
   { emoji: '👍', label: 'Agree' },
@@ -100,6 +101,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     choice: VoteChoice;
   } | null>(null);
   const [copiedCommentLink, setCopiedCommentLink] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const metrics = computeIssueMetrics(issue);
   const access = canUserAccessIssue(issue, currentUser);
@@ -145,7 +147,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
         issueId: issue.id,
         choice,
         isAnonymous: replyAnon,
-        authorName: replyAnon ? 'Anonymous Neighbor' : currentUser.name,
+        authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+        authorUsername: !replyAnon ? currentUser.username : undefined,
         authorEmail: !replyAnon ? currentUser.email : undefined,
         authorAlias: replyAnon ? alias : undefined,
         authorRole: !replyAnon ? currentUser.role : undefined,
@@ -240,7 +243,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       issueId: issue.id,
       choice: replyChoice,
       isAnonymous: replyAnon,
-      authorName: replyAnon ? 'Anonymous Neighbor' : currentUser.name,
+      authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !replyAnon ? currentUser.username : undefined,
       authorEmail: !replyAnon ? currentUser.email : undefined,
       authorAlias: replyAnon ? alias : undefined,
       authorRole: !replyAnon ? currentUser.role : undefined,
@@ -279,7 +283,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     const newReply: CommentReply = {
       id: `rep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       submissionId,
-      authorName: replyIsAnon ? 'Anonymous Neighbor' : currentUser.name,
+      authorName: replyIsAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !replyIsAnon ? currentUser.username : undefined,
       authorEmail: !replyIsAnon ? currentUser.email : undefined,
       authorAlias: replyIsAnon ? alias : undefined,
       authorRole: !replyIsAnon ? currentUser.role : undefined,
@@ -343,7 +348,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-sm sm:text-base text-ink-950 dark:text-white truncate">
-                  {authorInfo.firstName}
+                  {authorInfo.displayName}
                 </span>
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium whitespace-nowrap">
@@ -357,6 +362,12 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
           </div>
 
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
+            {issue.isFlagged || (issue.flagReportsCount && issue.flagReportsCount > 0) ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 whitespace-nowrap">
+                ⚠️ Under review
+              </span>
+            ) : null}
+
             {issue.visibility === 'private' ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-400/20">
                 <Lock className="w-3 h-3" /> Private Circle
@@ -418,6 +429,18 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Share Card</span>
+              </button>
+            )}
+
+            {/* Flag / Report Issue Button */}
+            {!isDeleted && (
+              <button
+                type="button"
+                onClick={() => setShowReportModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-300 bg-slate-100 dark:bg-ink-800 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                <span>Report</span>
               </button>
             )}
 
@@ -762,7 +785,9 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-bold text-ink-950 dark:text-white">
-                                {resp.isAnonymous ? resp.authorAlias || 'Anonymous' : resp.authorName}
+                                {resp.isAnonymous 
+                                  ? resp.authorAlias || 'Anonymous' 
+                                  : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
                               </span>
                               {resp.authorRole && (
                                 <span className="text-[11px] text-slate-400">• {resp.authorRole}</span>
@@ -928,7 +953,9 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                               <div key={reply.id} className="text-xs space-y-1 bg-slate-50 dark:bg-white/[0.02] p-2.5 rounded-xl">
                                 <div className="flex items-center justify-between">
                                   <span className="font-bold text-ink-950 dark:text-white">
-                                    {reply.isAnonymous ? reply.authorAlias || 'Anonymous' : reply.authorName}
+                                    {reply.isAnonymous 
+                                      ? reply.authorAlias || 'Anonymous' 
+                                      : (reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member'))}
                                   </span>
                                   <span className="text-[10px] text-slate-400">
                                     {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -1053,6 +1080,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
             </div>
           </div>
         </div>
+      )}
+      {/* Report / Flag Issue Modal */}
+      {showReportModal && (
+        <ReportIssueModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          issue={issue}
+          currentUser={currentUser}
+          onReportSubmitted={() => {
+            issue.flagReportsCount = (issue.flagReportsCount || 0) + 1;
+            if (issue.flagReportsCount >= 2) {
+              issue.isFlagged = true;
+            }
+          }}
+        />
       )}
     </div>
   );

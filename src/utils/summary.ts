@@ -263,47 +263,74 @@ export function formatRelativeTime(dateString?: string): string {
 }
 
 /**
- * Derives creator avatar, firstname, and display name for an issue
+ * Returns the preferred public display name for a user based on their settings (defaults to @username)
+ */
+export function getUserDisplayName(user: UserProfile | null | undefined, fallback = 'Member'): string {
+  if (!user) return fallback;
+  const pref = user.displayPreference || 'username';
+  if (pref === 'name') return user.name || fallback;
+  if (pref === 'firstname') return user.name ? user.name.trim().split(' ')[0] : fallback;
+  if (user.username) {
+    const clean = user.username.replace(/^@/, '');
+    return `@${clean}`;
+  }
+  return user.name ? user.name.trim().split(' ')[0] : fallback;
+}
+
+/**
+ * Derives creator avatar, username, and preferred display name for an issue
  */
 export function getAuthorDisplay(issue: Issue, currentUser?: UserProfile | null) {
   if (issue.isAnonymousAuthor) {
     return {
+      displayName: 'Anonymous',
       firstName: 'Anonymous',
       fullName: 'Anonymous Neighbor',
+      username: 'anonymous',
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(issue.id)}`,
     };
   }
 
-  // Explicit creator avatar attached to issue
-  if (issue.creatorAvatar) {
-    const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Author';
-    return {
-      firstName,
-      fullName: issue.author,
-      avatarUrl: issue.creatorAvatar,
-    };
-  }
-
-  // Check current user if they authored it
+  // Current user is author
   if (
     currentUser &&
     currentUser.email &&
     issue.creatorEmail &&
     currentUser.email.toLowerCase() === issue.creatorEmail.toLowerCase()
   ) {
+    const rawUsername = currentUser.username ? currentUser.username.replace(/^@/, '') : '';
+    const formattedUsername = rawUsername ? `@${rawUsername}` : '';
     const firstName = currentUser.name ? currentUser.name.trim().split(' ')[0] : 'You';
+    const fullName = currentUser.name;
+    const pref = currentUser.displayPreference || 'username';
+    const displayName = pref === 'name' ? fullName : pref === 'firstname' ? firstName : (formattedUsername || firstName);
+
     return {
+      displayName,
       firstName,
-      fullName: currentUser.name,
+      fullName,
+      username: rawUsername || firstName.toLowerCase(),
       avatarUrl: currentUser.avatar || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(currentUser.email)}`,
     };
   }
 
+  // Author with explicit username
+  const rawCreatorUsername = issue.creatorUsername ? issue.creatorUsername.replace(/^@/, '') : '';
   const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Member';
-  const seed = encodeURIComponent(issue.creatorEmail || issue.author || issue.id);
+  const fullName = issue.author || 'Civic Member';
+  const displayName = rawCreatorUsername ? `@${rawCreatorUsername}` : (issue.creatorEmail === 'william.odiomonafe@gmail.com' ? '@william' : firstName);
+
+  let avatarUrl = issue.creatorAvatar;
+  if (!avatarUrl) {
+    const seed = encodeURIComponent(issue.creatorEmail || issue.author || issue.id);
+    avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5,0d9488,d97706,e11d48`;
+  }
+
   return {
+    displayName,
     firstName,
-    fullName: issue.author || 'Civic Member',
-    avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5,0d9488,d97706,e11d48`,
+    fullName,
+    username: rawCreatorUsername || firstName.toLowerCase(),
+    avatarUrl,
   };
 }
