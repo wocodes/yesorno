@@ -48,6 +48,15 @@
     color: #ffffff !important;
   }
 
+  /* Disable Animations & Motion when turned off by user */
+  html.disable-animations *,
+  html.disable-animations *::before,
+  html.disable-animations *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
   html.tone-muted.dark .card,
   html.tone-muted.dark article.card,
   html.tone-muted.dark .card-glass-dark {

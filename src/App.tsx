@@ -30,6 +30,7 @@ import {
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, VoteChoice, CommentReply } from './types';
+import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
@@ -151,6 +152,12 @@ export function App() {
   useEffect(() => {
     applyColorTone(colorTone);
   }, [colorTone]);
+
+  // Apply animations class to <html> based on user preference or local storage
+  useEffect(() => {
+    const enabled = currentUser?.animationsEnabled ?? areAnimationsEnabled();
+    applyAnimationsClass(enabled);
+  }, [currentUser?.animationsEnabled]);
 
   const handleToggleTheme = () => {
     setTheme(prev => {

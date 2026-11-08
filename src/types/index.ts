@@ -16,6 +16,8 @@ export interface UserProfile {
   followingCreators?: string[];
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
+  soundEnabled?: boolean;
+  animationsEnabled?: boolean;
   onboardingCompleted?: boolean;
 }
 

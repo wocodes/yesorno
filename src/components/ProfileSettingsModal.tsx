@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, User, Settings, Globe2, Sparkles, UserPlus, Check, 
-  ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users, Bookmark, Heart
+  ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users, Bookmark, Heart,
+  Volume2, VolumeX, ZapOff
 } from 'lucide-react';
 import { UserProfile, Issue, IssueCategory, IssueRegion, VoiceFilterType, DisplayPreference } from '../types';
 import { TOP_CREATORS_AND_VOTERS, TopCreatorProfile } from '../utils/auth';
 import { ThemeMode } from '../utils/theme';
+import { 
+  areSoundsEnabled, setSoundsEnabled, 
+  areAnimationsEnabled, setAnimationsEnabled 
+} from '../utils/sound';
 
 interface Props {
   isOpen: boolean;
@@ -109,6 +114,14 @@ export const ProfileSettingsModal: React.FC<Props> = ({
 
   const [defaultAnonymous, setDefaultAnonymous] = useState<boolean>(user.defaultAnonymous ?? false);
   const [defaultVoiceFilter, setDefaultVoiceFilter] = useState<VoiceFilterType>(user.defaultVoiceFilter || 'deep');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    if (user.soundEnabled !== undefined) return user.soundEnabled;
+    return areSoundsEnabled();
+  });
+  const [animationsEnabled, setAnimationsEnabledState] = useState<boolean>(() => {
+    if (user.animationsEnabled !== undefined) return user.animationsEnabled;
+    return areAnimationsEnabled();
+  });
   const [savedNotice, setSavedNotice] = useState(false);
 
   useEffect(() => {
@@ -125,6 +138,8 @@ export const ProfileSettingsModal: React.FC<Props> = ({
       setFollowing(user.followingCreators || []);
       setDefaultAnonymous(user.defaultAnonymous ?? false);
       setDefaultVoiceFilter(user.defaultVoiceFilter || 'deep');
+      setSoundEnabled(user.soundEnabled !== undefined ? user.soundEnabled : areSoundsEnabled());
+      setAnimationsEnabledState(user.animationsEnabled !== undefined ? user.animationsEnabled : areAnimationsEnabled());
     }
   }, [isOpen, user]);
 
@@ -139,6 +154,9 @@ export const ProfileSettingsModal: React.FC<Props> = ({
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setSoundsEnabled(soundEnabled);
+    setAnimationsEnabled(animationsEnabled);
+
     const rawUsername = username.trim().replace(/^@/, '');
     const updated: UserProfile = {
       ...user,
@@ -154,6 +172,8 @@ export const ProfileSettingsModal: React.FC<Props> = ({
       followingCreators: following,
       defaultAnonymous,
       defaultVoiceFilter,
+      soundEnabled,
+      animationsEnabled,
       onboardingCompleted: true
     };
     onUpdateUser(updated);
@@ -841,6 +861,94 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                   className="btn-ghost text-xs py-2 px-3.5"
                 >
                   Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode
+                </button>
+              </div>
+
+              {/* Sound Effects & Audio Chimes Toggle */}
+              <div className="card p-4 sm:p-5 flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  {soundEnabled ? (
+                    <Volume2 className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <VolumeX className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-ink-950 dark:text-white">Sound Effects &amp; Audio Chimes</h4>
+                      {!soundEnabled && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-ink-800 text-slate-600 dark:text-zinc-400">
+                          Muted
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                      Play acoustic confirmation chimes when casting votes and interacting.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !soundEnabled;
+                    setSoundEnabled(next);
+                    setSoundsEnabled(next);
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    soundEnabled ? 'bg-brand-600' : 'bg-slate-300 dark:bg-ink-700'
+                  }`}
+                  role="switch"
+                  aria-checked={soundEnabled}
+                  title={soundEnabled ? 'Turn off sounds' : 'Turn on sounds'}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
+                      soundEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Visual Animations & Confetti Toggle */}
+              <div className="card p-4 sm:p-5 flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  {animationsEnabled ? (
+                    <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <ZapOff className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-ink-950 dark:text-white">Animations &amp; Motion Effects</h4>
+                      {!animationsEnabled && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-ink-800 text-slate-600 dark:text-zinc-400">
+                          Reduced Motion
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                      Enable confetti celebrations, smooth page transitions, and interactive UI motion.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !animationsEnabled;
+                    setAnimationsEnabledState(next);
+                    setAnimationsEnabled(next);
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    animationsEnabled ? 'bg-brand-600' : 'bg-slate-300 dark:bg-ink-700'
+                  }`}
+                  role="switch"
+                  aria-checked={animationsEnabled}
+                  title={animationsEnabled ? 'Turn off animations' : 'Turn on animations'}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
+                      animationsEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
               </div>
 
