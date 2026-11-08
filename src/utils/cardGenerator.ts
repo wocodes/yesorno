@@ -703,3 +703,735 @@ export async function shareIssueCardFile(
     return false;
   }
 }
+
+/**
+ * =========================================================================
+ * COMMENT / PERSPECTIVE CARD GENERATOR
+ * =========================================================================
+ * Features:
+ * - Question / Topic placed prominently at the top
+ * - Comment / Reply placed in large prominent text inside a stylish callout bubble
+ * - Dynamic typography scaling for punchy readability
+ * - Commenter avatar initials, author handle, and YES/NO stance badge
+ * - Styles: Bold, Editorial, Neon with Vibrant/Toned support
+ */
+
+export interface CommentCardData {
+  id: string;
+  author: string;
+  authorAlias?: string;
+  text: string;
+  choice?: 'YES' | 'NO';
+  createdAt?: string;
+}
+
+export interface CommentCardRenderOptions {
+  style?: CardStyle;
+  format?: CardFormat;
+  colorTone?: 'vibrant' | 'toned';
+}
+
+/**
+ * Draws a speech / quote callout bubble with an upward pointing notch
+ */
+function drawCalloutBox(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radius: number,
+  notchX: number = 140,
+  notchWidth: number = 26,
+  notchHeight: number = 14
+) {
+  ctx.beginPath();
+  // Start from right side of notch on top edge
+  ctx.moveTo(notchX + notchWidth / 2, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.lineTo(notchX - notchWidth / 2, y);
+  // Upward pointing notch towards the question
+  ctx.lineTo(notchX, y - notchHeight);
+  ctx.lineTo(notchX + notchWidth / 2, y);
+  ctx.closePath();
+}
+
+/**
+ * Common callout inner contents (Large reply text + quote mark + author & stance footer)
+ */
+function renderCalloutContent(
+  ctx: CanvasRenderingContext2D,
+  comment: CommentCardData,
+  calloutX: number,
+  calloutY: number,
+  calloutW: number,
+  calloutH: number,
+  isEditorial: boolean
+) {
+  const isYes = comment.choice === 'YES';
+  const isNo = comment.choice === 'NO';
+
+  // 1. Decorative Quote Mark
+  ctx.save();
+  ctx.font = `900 68px ${isEditorial ? '"Instrument Serif", Georgia, serif' : '"Plus Jakarta Sans", system-ui, sans-serif'}`;
+  ctx.fillStyle = isEditorial 
+    ? 'rgba(245, 158, 11, 0.28)' 
+    : isYes 
+      ? 'rgba(16, 185, 129, 0.25)' 
+      : isNo 
+        ? 'rgba(244, 63, 94, 0.25)' 
+        : 'rgba(255, 255, 255, 0.22)';
+  ctx.fillText('“', calloutX + 38, calloutY + 62);
+  ctx.restore();
+
+  // 2. Large Comment Reply Text (Dynamic Sizing)
+  const textPadX = 42;
+  const maxTextW = calloutW - textPadX * 2;
+  const replyText = comment.text.trim();
+  const len = replyText.length;
+
+  let fontSize = len <= 65 ? 46 : len <= 130 ? 38 : len <= 220 ? 32 : 27;
+  let lineHeight = Math.round(fontSize * 1.34);
+  const fontFamily = isEditorial
+    ? '"Instrument Serif", Georgia, serif'
+    : '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
+
+  const footerSpace = 96;
+  const maxAvailableTextH = calloutH - 120 - footerSpace;
+
+  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
+  let lines = wrapText(ctx, `"${replyText}"`, maxTextW, 8);
+
+  while (lines.length * lineHeight > maxAvailableTextH && fontSize > 20) {
+    fontSize -= 2;
+    lineHeight = Math.round(fontSize * 1.34);
+    ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
+    lines = wrapText(ctx, `"${replyText}"`, maxTextW, 8);
+  }
+
+  // Draw comment lines
+  ctx.save();
+  ctx.font = `${isEditorial ? 'italic 600' : '700'} ${fontSize}px ${fontFamily}`;
+  ctx.fillStyle = isEditorial ? '#fffdf7' : '#ffffff';
+  let cursorY = calloutY + 86 + lineHeight * 0.75;
+  for (const line of lines) {
+    ctx.fillText(line, calloutX + textPadX, cursorY);
+    cursorY += lineHeight;
+  }
+  ctx.restore();
+
+  // 3. Callout Divider Line before Author Row
+  const footerDividerY = calloutY + calloutH - 84;
+  ctx.save();
+  ctx.strokeStyle = isEditorial ? 'rgba(245, 158, 11, 0.22)' : 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(calloutX + 32, footerDividerY);
+  ctx.lineTo(calloutX + calloutW - 32, footerDividerY);
+  ctx.stroke();
+  ctx.restore();
+
+  // 4. Author Avatar Initials Circle
+  const avatarCenterX = calloutX + 58;
+  const avatarCenterY = calloutY + calloutH - 42;
+  const avatarRadius = 22;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(avatarCenterX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+  const avatarGrad = ctx.createLinearGradient(
+    avatarCenterX - avatarRadius, avatarCenterY - avatarRadius,
+    avatarCenterX + avatarRadius, avatarCenterY + avatarRadius
+  );
+  if (isYes) {
+    avatarGrad.addColorStop(0, '#10b981');
+    avatarGrad.addColorStop(1, '#059669');
+  } else if (isNo) {
+    avatarGrad.addColorStop(0, '#f43f5e');
+    avatarGrad.addColorStop(1, '#e11d48');
+  } else {
+    avatarGrad.addColorStop(0, '#6366f1');
+    avatarGrad.addColorStop(1, '#8b5cf6');
+  }
+  ctx.fillStyle = avatarGrad;
+  ctx.fill();
+
+  // Initials inside avatar
+  const initials = (comment.author || 'Civic Voice')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('') || 'CV';
+
+  ctx.font = '800 15px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initials, avatarCenterX, avatarCenterY);
+  ctx.restore();
+
+  // 5. Author Name and Handle
+  ctx.save();
+  ctx.font = '800 20px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(comment.author || 'Civic Participant', calloutX + 90, calloutY + calloutH - 46);
+
+  const handle = comment.authorAlias 
+    ? `@${comment.authorAlias.replace(/^@/, '')}` 
+    : `@${(comment.author || 'anonymous').toLowerCase().replace(/\s+/g, '')}`;
+  ctx.font = '500 13px ui-monospace, SFMono-Regular, monospace';
+  ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+  ctx.fillText(handle, calloutX + 90, calloutY + calloutH - 26);
+  ctx.restore();
+
+  // 6. Stance Pill (VOTED YES / VOTED NO / PERSPECTIVE)
+  ctx.save();
+  const badgeW = isYes || isNo ? 154 : 146;
+  const badgeH = 38;
+  const badgeX = calloutX + calloutW - badgeW - 32;
+  const badgeY = calloutY + calloutH - 61;
+
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 19);
+  if (isYes) {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+    ctx.fill();
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = '800 13px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = '#34d399';
+    ctx.textAlign = 'center';
+    ctx.fillText('✓  VOTED YES', badgeX + badgeW / 2, badgeY + 24);
+  } else if (isNo) {
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.22)';
+    ctx.fill();
+    ctx.strokeStyle = '#f43f5e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = '800 13px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = '#fb7185';
+    ctx.textAlign = 'center';
+    ctx.fillText('✕  VOTED NO', badgeX + badgeW / 2, badgeY + 24);
+  } else {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.26)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = '700 13px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.textAlign = 'center';
+    ctx.fillText('💬 PERSPECTIVE', badgeX + badgeW / 2, badgeY + 24);
+  }
+  ctx.restore();
+}
+
+/**
+ * Top Question Section common across comment cards
+ */
+function renderCommentCardTopQuestion(
+  ctx: CanvasRenderingContext2D,
+  issue: Issue,
+  width: number,
+  isEditorial: boolean
+): number {
+  const padX = 72;
+  const headerY = 56;
+  const headerH = 48;
+
+  // 1. Top Left Brand Pill
+  ctx.save();
+  const brandPillW = 186;
+  drawRoundedRect(ctx, padX, headerY, brandPillW, headerH, 16);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.20)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Brand Icon Box
+  const iconSize = 30;
+  const iconOffset = (headerH - iconSize) / 2;
+  drawRoundedRect(ctx, padX + iconOffset, headerY + iconOffset, iconSize, iconSize, 8);
+  const iconGrad = ctx.createLinearGradient(padX, headerY, padX + iconSize, headerY + iconSize);
+  iconGrad.addColorStop(0, '#10b981');
+  iconGrad.addColorStop(1, '#6366f1');
+  ctx.fillStyle = iconGrad;
+  ctx.fill();
+
+  // Checkmark inside icon
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const icX = padX + iconOffset;
+  const icY = headerY + iconOffset;
+  ctx.moveTo(icX + iconSize * 0.26, icY + iconSize * 0.50);
+  ctx.lineTo(icX + iconSize * 0.44, icY + iconSize * 0.70);
+  ctx.lineTo(icX + iconSize * 0.74, icY + iconSize * 0.32);
+  ctx.stroke();
+
+  // Brand Text
+  ctx.font = '800 22px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('YesOrNo', padX + iconOffset + iconSize + 12, headerY + headerH * 0.68);
+  ctx.restore();
+
+  // 2. Top Right Category Badge
+  ctx.save();
+  const catText = (issue.category || 'COMMUNITY').toUpperCase();
+  ctx.font = '800 13px "Plus Jakarta Sans", system-ui, sans-serif';
+  const catTextW = ctx.measureText(catText).width;
+  const catPillW = catTextW + 30;
+  const catPillX = width - padX - catPillW;
+
+  drawRoundedRect(ctx, catPillX, headerY, catPillW, headerH, 16);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
+  ctx.textAlign = 'center';
+  ctx.fillText(catText, catPillX + catPillW / 2, headerY + headerH * 0.65);
+  ctx.restore();
+
+  // 3. Eyebrow: QUESTION & TOPIC
+  const questionStartY = headerY + headerH + 28;
+  ctx.save();
+  ctx.font = '800 12px ui-monospace, SFMono-Regular, monospace';
+  ctx.fillStyle = isEditorial ? 'rgba(245, 158, 11, 0.90)' : 'rgba(148, 163, 184, 0.85)';
+  ctx.fillText('QUESTION & TOPIC', padX, questionStartY);
+  ctx.restore();
+
+  // 4. The Question (The reply is based on at the top)
+  const question = formatQuestion(issue.title);
+  const maxQWidth = width - padX * 2;
+  const qFontFamily = isEditorial ? '"Instrument Serif", Georgia, serif' : '"Plus Jakarta Sans", system-ui, sans-serif';
+  const qFontSize = isEditorial ? 36 : 32;
+  const qLineHeight = Math.round(qFontSize * 1.25);
+
+  ctx.save();
+  ctx.font = `${isEditorial ? '700' : '800'} ${qFontSize}px ${qFontFamily}`;
+  ctx.fillStyle = '#ffffff';
+  const qLines = wrapText(ctx, question, maxQWidth, 3);
+
+  let qCursorY = questionStartY + 28;
+  for (const line of qLines) {
+    ctx.fillText(line, padX, qCursorY);
+    qCursorY += qLineHeight;
+  }
+  ctx.restore();
+
+  return qCursorY;
+}
+
+/**
+ * Renders Bold Duelist Style Comment Card
+ */
+function renderBoldCommentCard(
+  ctx: CanvasRenderingContext2D,
+  issue: Issue,
+  comment: CommentCardData,
+  width: number,
+  height: number,
+  isToned: boolean
+) {
+  // Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  if (isToned) {
+    bgGrad.addColorStop(0, '#0f172a');
+    bgGrad.addColorStop(0.5, '#1e293b');
+    bgGrad.addColorStop(1, '#090d16');
+  } else {
+    bgGrad.addColorStop(0, '#0b0f19');
+    bgGrad.addColorStop(0.5, '#111827');
+    bgGrad.addColorStop(1, '#030712');
+  }
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Corner ambient glows
+  const isYes = comment.choice === 'YES';
+  const isNo = comment.choice === 'NO';
+
+  const glow1 = ctx.createRadialGradient(width * 0.85, height * 0.15, 10, width * 0.85, height * 0.15, 380);
+  glow1.addColorStop(0, isToned ? 'rgba(71, 85, 105, 0.40)' : 'rgba(99, 102, 241, 0.22)');
+  glow1.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow1;
+  ctx.fillRect(0, 0, width, height);
+
+  const glow2 = ctx.createRadialGradient(width * 0.15, height * 0.85, 10, width * 0.15, height * 0.85, 420);
+  glow2.addColorStop(0, isYes ? 'rgba(16, 185, 129, 0.22)' : isNo ? 'rgba(244, 63, 94, 0.22)' : 'rgba(99, 102, 241, 0.18)');
+  glow2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 0, width, height);
+
+  // Outer border
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+  ctx.lineWidth = 2.5;
+  drawRoundedRect(ctx, 36, 36, width - 72, height - 72, 32);
+  ctx.stroke();
+  ctx.restore();
+
+  // Top Question
+  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, false);
+
+  // Callout Box Geometry
+  const calloutX = 64;
+  const calloutW = width - calloutX * 2;
+  const footerCardY = height - 56;
+  const calloutY = Math.max(questionBottomY + 24, 280);
+  const calloutH = footerCardY - calloutY - 24;
+
+  // Draw Callout Box with speech notch
+  ctx.save();
+  drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 28, calloutX + 76, 26, 14);
+  if (isYes) {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.38)';
+  } else if (isNo) {
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.08)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.38)';
+  } else {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.20)';
+  }
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Callout Inner Content
+  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, false);
+
+  // Card Bottom Footer
+  ctx.save();
+  ctx.font = '600 15px ui-monospace, SFMono-Regular, monospace';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.70)';
+  ctx.textAlign = 'center';
+  ctx.fillText('Vote & join the conversation at yesorno.chillon.top →', width / 2, footerCardY);
+  ctx.restore();
+}
+
+/**
+ * Renders Editorial Spotlight Style Comment Card
+ */
+function renderEditorialCommentCard(
+  ctx: CanvasRenderingContext2D,
+  issue: Issue,
+  comment: CommentCardData,
+  width: number,
+  height: number,
+  isToned: boolean
+) {
+  // Deep Rich Editorial Slate Background
+  ctx.fillStyle = isToned ? '#090d16' : '#0a0f1d';
+  ctx.fillRect(0, 0, width, height);
+
+  // Dot Grid Pattern
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  const dotStep = 32;
+  for (let x = 32; x < width; x += dotStep) {
+    for (let y = 32; y < height; y += dotStep) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // Subtle warm amber ambient glow
+  const amberGlow = ctx.createRadialGradient(width * 0.5, height * 0.45, 20, width * 0.5, height * 0.45, 500);
+  amberGlow.addColorStop(0, 'rgba(245, 158, 11, 0.08)');
+  amberGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = amberGlow;
+  ctx.fillRect(0, 0, width, height);
+
+  // Outer border with warm tint
+  ctx.save();
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
+  ctx.lineWidth = 2;
+  drawRoundedRect(ctx, 36, 36, width - 72, height - 72, 28);
+  ctx.stroke();
+  ctx.restore();
+
+  // Top Question
+  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, true);
+
+  // Callout Box Geometry
+  const calloutX = 64;
+  const calloutW = width - calloutX * 2;
+  const footerCardY = height - 56;
+  const calloutY = Math.max(questionBottomY + 24, 280);
+  const calloutH = footerCardY - calloutY - 24;
+
+  const isYes = comment.choice === 'YES';
+  const isNo = comment.choice === 'NO';
+
+  // Draw Callout Box
+  ctx.save();
+  drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 24, calloutX + 76, 26, 14);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.fill();
+  ctx.strokeStyle = isYes 
+    ? 'rgba(16, 185, 129, 0.45)' 
+    : isNo 
+      ? 'rgba(244, 63, 94, 0.45)' 
+      : 'rgba(245, 158, 11, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Callout Inner Content with serif typography
+  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, true);
+
+  // Card Bottom Footer
+  ctx.save();
+  ctx.font = '600 15px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+  ctx.textAlign = 'center';
+  ctx.fillText('YesOrNo Editorial Perspectives  ·  yesorno.chillon.top', width / 2, footerCardY);
+  ctx.restore();
+}
+
+/**
+ * Renders Midnight Neon Style Comment Card
+ */
+function renderNeonCommentCard(
+  ctx: CanvasRenderingContext2D,
+  issue: Issue,
+  comment: CommentCardData,
+  width: number,
+  height: number,
+  _isToned?: boolean
+) {
+  // Midnight Cyberpunk Background
+  ctx.fillStyle = '#050814';
+  ctx.fillRect(0, 0, width, height);
+
+  // Neon ambient mesh glows
+  const isYes = comment.choice === 'YES';
+  const isNo = comment.choice === 'NO';
+
+  const glowCyan = ctx.createRadialGradient(width * 0.9, height * 0.1, 10, width * 0.9, height * 0.1, 460);
+  glowCyan.addColorStop(0, 'rgba(6, 182, 212, 0.28)');
+  glowCyan.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glowCyan;
+  ctx.fillRect(0, 0, width, height);
+
+  const glowPurple = ctx.createRadialGradient(width * 0.1, height * 0.9, 10, width * 0.1, height * 0.9, 480);
+  glowPurple.addColorStop(0, isYes ? 'rgba(16, 185, 129, 0.28)' : isNo ? 'rgba(244, 63, 94, 0.28)' : 'rgba(168, 85, 247, 0.28)');
+  glowPurple.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glowPurple;
+  ctx.fillRect(0, 0, width, height);
+
+  // Radiant outer border with glow
+  ctx.save();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
+  ctx.lineWidth = 2.5;
+  drawRoundedRect(ctx, 36, 36, width - 72, height - 72, 32);
+  ctx.stroke();
+  ctx.restore();
+
+  // Top Question
+  const questionBottomY = renderCommentCardTopQuestion(ctx, issue, width, false);
+
+  // Callout Box Geometry
+  const calloutX = 64;
+  const calloutW = width - calloutX * 2;
+  const footerCardY = height - 56;
+  const calloutY = Math.max(questionBottomY + 24, 280);
+  const calloutH = footerCardY - calloutY - 24;
+
+  // Draw Callout Box with neon glow
+  ctx.save();
+  drawCalloutBox(ctx, calloutX, calloutY, calloutW, calloutH, 28, calloutX + 76, 26, 14);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.fill();
+
+  ctx.shadowColor = isYes ? 'rgba(16, 185, 129, 0.60)' : isNo ? 'rgba(244, 63, 94, 0.60)' : 'rgba(99, 102, 241, 0.55)';
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = isYes ? '#10b981' : isNo ? '#f43f5e' : '#6366f1';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Callout Inner Content
+  renderCalloutContent(ctx, comment, calloutX, calloutY, calloutW, calloutH, false);
+
+  // Card Bottom Footer
+  ctx.save();
+  ctx.font = '700 15px ui-monospace, SFMono-Regular, monospace';
+  ctx.fillStyle = '#06b6d4';
+  ctx.textAlign = 'center';
+  ctx.fillText('LIVE CIVIC PULSE  ·  yesorno.chillon.top', width / 2, footerCardY);
+  ctx.restore();
+}
+
+/**
+ * Master Render Dispatcher for Comment / Perspective Card
+ */
+export async function renderCommentCardToCanvas(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<HTMLCanvasElement> {
+  // Wait for Google fonts to be ready
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Continue if font API fails
+    }
+  }
+
+  const style = options.style || 'bold';
+  const width = 1080;
+  const height = 1080;
+  const isToned = options.colorTone === 'toned';
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context not available');
+
+  if (style === 'editorial') {
+    renderEditorialCommentCard(ctx, issue, comment, width, height, isToned);
+  } else if (style === 'neon') {
+    renderNeonCommentCard(ctx, issue, comment, width, height, isToned);
+  } else {
+    renderBoldCommentCard(ctx, issue, comment, width, height, isToned);
+  }
+
+  return canvas;
+}
+
+/**
+ * Converts comment card to PNG Blob
+ */
+export async function generateCommentCardBlob(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<Blob> {
+  const canvas = await renderCommentCardToCanvas(issue, comment, options);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Failed to generate PNG blob from comment canvas'));
+    }, 'image/png');
+  });
+}
+
+/**
+ * Converts comment card to Data URL for instant in-browser preview
+ */
+export async function generateCommentCardDataUrl(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<string> {
+  const canvas = await renderCommentCardToCanvas(issue, comment, options);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Triggers browser download of comment PNG card
+ */
+export async function downloadCommentCard(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<string> {
+  const blob = await generateCommentCardBlob(issue, comment, options);
+  const slug = buildIssueSlug(issue);
+  const fileName = `comment-${comment.id}-${slug}-${options.style || 'bold'}.png`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return fileName;
+}
+
+/**
+ * Copies comment PNG card to clipboard
+ */
+export async function copyCommentCardToClipboard(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !navigator.clipboard || !window.ClipboardItem) {
+    return false;
+  }
+  try {
+    const blob = await generateCommentCardBlob(issue, comment, options);
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ]);
+    return true;
+  } catch (err) {
+    console.warn('Failed to copy comment card to clipboard:', err);
+    return false;
+  }
+}
+
+/**
+ * Shares comment card image file via native Web Share API
+ */
+export async function shareCommentCardFile(
+  issue: Issue,
+  comment: CommentCardData,
+  options: CommentCardRenderOptions = {}
+): Promise<boolean> {
+  if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+    return false;
+  }
+  try {
+    const blob = await generateCommentCardBlob(issue, comment, options);
+    const slug = buildIssueSlug(issue);
+    const file = new File([blob], `comment-${comment.id}-${slug}.png`, { type: 'image/png' });
+
+    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+      return false;
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://yesorno.chillon.top';
+    const shareUrl = `${origin}/${slug}?c=${comment.id}`;
+    const shareText = `"${comment.text}" — ${comment.author} on YesOrNo: ${issue.title}`;
+
+    await navigator.share({
+      title: `${comment.author}'s perspective on ${issue.title}`,
+      text: `${shareText}\n${shareUrl}`,
+      files: [file],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
