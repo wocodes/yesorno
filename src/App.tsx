@@ -45,6 +45,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
+import { ContactPage } from './components/ContactPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
@@ -60,6 +61,9 @@ function getInitialView(user: UserProfile | null): AppView {
 
   if (hash === 'landing') {
     return 'landing';
+  }
+  if (hash === 'contact') {
+    return 'contact';
   }
   if (user) {
     if (hash === 'discovery') return 'discovery';
@@ -362,6 +366,9 @@ export function App() {
           setActiveDetailIssue(null);
           setCurrentView(hash as AppView);
         }
+      } else if (hash === 'contact') {
+        setActiveDetailIssue(null);
+        setCurrentView('contact');
       } else if (hash === 'auth') {
         setCurrentView('auth');
       } else if (hash === '' || hash === 'landing') {
@@ -1345,6 +1352,35 @@ export function App() {
           onToggleTheme={handleToggleTheme}
           colorTone={colorTone}
           onToggleColorTone={handleToggleColorTone}
+        />
+        <CommunityGuidelinesModal
+          isOpen={isGuidelinesOpen}
+          onClose={() => setIsGuidelinesOpen(false)}
+        />
+        <LegalModal
+          isOpen={legalModalTab !== null}
+          initialTab={legalModalTab || 'terms'}
+          onClose={() => setLegalModalTab(null)}
+        />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        <PWAInstallPrompt />
+      </>
+    );
+  }
+
+  // Contact view (available to both authenticated and guest visitors)
+  if (currentView === 'contact') {
+    return (
+      <>
+        <ContactPage
+          onNavigate={handleNavigate}
+          currentUser={currentUser}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          colorTone={colorTone}
+          onToggleColorTone={handleToggleColorTone}
+          onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+          onOpenLegal={(tab) => setLegalModalTab(tab)}
         />
         <CommunityGuidelinesModal
           isOpen={isGuidelinesOpen}

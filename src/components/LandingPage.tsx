@@ -812,6 +812,9 @@ export const LandingPage: React.FC<Props> = ({
             <button onClick={onOpenGuidelines} className="hover:text-white transition-colors cursor-pointer">
               Community Guidelines
             </button>
+            <button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors cursor-pointer">
+              Contact
+            </button>
             <button onClick={() => onNavigate('auth')} className="hover:text-white transition-colors cursor-pointer">
               Sign In
             </button>

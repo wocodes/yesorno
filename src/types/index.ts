@@ -159,4 +159,4 @@ export interface ModerationResult {
   severity: 'clean' | 'warning' | 'rejected';
 }
 
-export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue';
+export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue' | 'contact';

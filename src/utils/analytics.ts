@@ -141,6 +141,7 @@ function createInitialAnalyticsStore(): AdminAnalyticsStore {
       landing: { view: 'landing', label: 'Landing Page', views: 0, totalSecondsSpent: 0, lastViewedAt: now },
       auth: { view: 'auth', label: 'Sign In / Auth Page', views: 0, totalSecondsSpent: 0, lastViewedAt: now },
       analytics: { view: 'analytics', label: 'Admin Analytics Dashboard', views: 0, totalSecondsSpent: 0, lastViewedAt: now },
+      contact: { view: 'contact', label: 'Contact & Support Page', views: 0, totalSecondsSpent: 0, lastViewedAt: now },
     },
     elementClicks: {},
     engagement: {
@@ -331,6 +332,7 @@ export function recordPageView(viewKey: string, label?: string): void {
     landing: 'Landing Page',
     auth: 'Sign In / Auth Page',
     analytics: 'Admin Analytics Dashboard',
+    contact: 'Contact & Support Page',
     'modal:issue-detail': 'Issue Detail & Replies Modal',
     'modal:create-issue': 'Post New Issue Modal',
     'modal:vote-studio': 'Full Vote Studio Modal',
