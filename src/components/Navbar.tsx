@@ -145,7 +145,7 @@ export const Navbar: React.FC<Props> = ({
             {/* Color Tone Switch (Full-Coloured vs Toned-Down) */}
             <button
               onClick={onToggleColorTone}
-              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+              className={`p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
                 colorTone === 'toned'
                   ? 'bg-black text-white border border-zinc-700 dark:bg-white dark:text-black'
                   : 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30'
@@ -154,7 +154,6 @@ export const Navbar: React.FC<Props> = ({
               aria-label="Toggle color palette tone"
             >
               <Palette className="w-4 h-4 shrink-0" />
-              <span className="hidden xl:inline">{colorTone === 'vibrant' ? 'Vibrant' : 'Monochrome'}</span>
             </button>
 
             {/* Install PWA Button */}
