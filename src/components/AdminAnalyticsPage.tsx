@@ -788,7 +788,7 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
                 onClick={() => setShowPersonasModal(!showPersonasModal)}
                 className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-ink-100 dark:bg-zinc-800 text-ink-700 dark:text-zinc-300 hover:bg-ink-200 transition-colors cursor-pointer flex items-center gap-1"
               >
-                <span>{showPersonasModal ? 'Hide Library' : 'Inspect 51 Personas'}</span>
+                <span>{showPersonasModal ? 'Hide Library' : `Inspect ${curatorData?.totalPersonasLoaded || SEED_PERSONAS.length} Personas`}</span>
                 {showPersonasModal ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             </div>
@@ -843,17 +843,17 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Expandable 51 Resident Personas Drawer */}
+        {/* Expandable Resident Personas Drawer */}
         {showPersonasModal && (
           <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-white/80 dark:bg-zinc-900 border border-ink-100 dark:border-zinc-800 space-y-4 animate-fade-in">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-100 dark:border-zinc-800">
               <div>
                 <h3 className="text-sm font-extrabold text-ink-950 dark:text-white flex items-center gap-2">
                   <Users2 className="w-4 h-4 text-brand-500" />
-                  Persona Library (51 Distinct Intellectual Archetypes)
+                  Community Persona Library ({curatorData?.totalPersonasLoaded || SEED_PERSONAS.length} Profiles)
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400">
-                  Economists, Historians, Political Analysts, Doctors, Blue-Collar Artisans, Tech Operators, and Community Leaders.
+                  Ordinary everyday Nigerians: Bolt drivers, nurses, NYSC corpers, POS agents, techies, artisans, teachers, and students.
                 </p>
               </div>
               <input
