@@ -1,4 +1,4 @@
-import { Issue, IssueSummaryInsights } from '../types';
+import { Issue, IssueSummaryInsights, UserProfile } from '../types';
 
 /**
  * Calculates whether an issue is closed based on its time deadline
@@ -237,5 +237,73 @@ export function computeIssueMetrics(issue: Issue): IssueActivityMetrics {
     voicePercent,
     isClosed,
     timeRemaining
+  };
+}
+
+/**
+ * Returns human-friendly relative time (e.g. "just now", "5m ago", "2h ago", "yesterday", "3d ago")
+ */
+export function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return 'recently';
+  const time = new Date(dateString).getTime();
+  if (isNaN(time)) return 'recently';
+  const now = Date.now();
+  const diffSec = Math.floor((now - time) / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  const d = new Date(dateString);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Derives creator avatar, firstname, and display name for an issue
+ */
+export function getAuthorDisplay(issue: Issue, currentUser?: UserProfile | null) {
+  if (issue.isAnonymousAuthor) {
+    return {
+      firstName: 'Anonymous',
+      fullName: 'Anonymous Neighbor',
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(issue.id)}`,
+    };
+  }
+
+  // Explicit creator avatar attached to issue
+  if (issue.creatorAvatar) {
+    const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Author';
+    return {
+      firstName,
+      fullName: issue.author,
+      avatarUrl: issue.creatorAvatar,
+    };
+  }
+
+  // Check current user if they authored it
+  if (
+    currentUser &&
+    currentUser.email &&
+    issue.creatorEmail &&
+    currentUser.email.toLowerCase() === issue.creatorEmail.toLowerCase()
+  ) {
+    const firstName = currentUser.name ? currentUser.name.trim().split(' ')[0] : 'You';
+    return {
+      firstName,
+      fullName: currentUser.name,
+      avatarUrl: currentUser.avatar || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(currentUser.email)}`,
+    };
+  }
+
+  const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Member';
+  const seed = encodeURIComponent(issue.creatorEmail || issue.author || issue.id);
+  return {
+    firstName,
+    fullName: issue.author || 'Civic Member',
+    avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5,0d9488,d97706,e11d48`,
   };
 }

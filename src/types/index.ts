@@ -68,12 +68,15 @@ export type IssueCategory =
   | 'Workplace & Career'
   | 'Community & Neighborhood'
   | 'Religious & Faith'
-  | 'Clubs & Groups'
+  | 'Business'
+  | 'Gender'
+  | 'Entertainment'
   | 'Politics & Policy'
   | 'Environment & Climate'
   | 'Economy & Finance'
   | 'Education & Campus'
-  | 'Private & Internal';
+  | 'Private & Internal'
+  | 'Clubs & Groups'; // legacy backwards-compatible alias
 
 export type IssueVisibility = 'public' | 'private';
 
@@ -103,6 +106,7 @@ export interface Issue {
   author: string;
   creatorId?: string;
   creatorEmail?: string;
+  creatorAvatar?: string;
   isAnonymousAuthor?: boolean;
   createdAt: string;
   closingDate: string; // ISO string representing exact deadline set by user
@@ -130,4 +134,4 @@ export interface ModerationResult {
   severity: 'clean' | 'warning' | 'rejected';
 }
 
-export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics';
+export type AppView = 'landing' | 'app' | 'discovery' | 'auth' | 'analytics' | 'issue';

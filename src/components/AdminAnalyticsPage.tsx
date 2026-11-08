@@ -3,10 +3,12 @@ import {
   BarChart3, Clock, Repeat, Search, MousePointerClick, Palette,
   Sun, Moon, TrendingUp, Vote, MessageSquare, Heart, Bookmark,
   Download, RotateCcw, ArrowLeft, Eye, Activity, Layers, Globe2,
-  Mail, Check, Loader2
+  Mail, Check, Loader2, Sparkles
 } from 'lucide-react';
 import { Issue, UserProfile, AppView } from '../types';
 import { ColorTone, ThemeMode } from '../utils/theme';
+import { generatePolarizingQuestionNow } from '../utils/geminiDailyGenerator';
+import { saveIssues } from '../utils/storage';
 import {
   loadAnalyticsStore,
   resetAnalyticsStore,
@@ -35,6 +37,28 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
   const [clickFilter, setClickFilter] = useState<'all' | 'button' | 'link'>('all');
   const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isGeneratingGemini, setIsGeneratingGemini] = useState(false);
+  const [geminiResultStatus, setGeminiResultStatus] = useState<string | null>(null);
+
+  const handleGenerateGeminiQuestion = async () => {
+    setIsGeneratingGemini(true);
+    setGeminiResultStatus(null);
+    try {
+      const newIssue = await generatePolarizingQuestionNow();
+      const updated = [newIssue, ...issues];
+      saveIssues(updated);
+      setGeminiResultStatus(`Posted: "${newIssue.title}" (${newIssue.category}) under william.odiomonafe@gmail.com!`);
+      setTimeout(() => {
+        onOpenIssue(newIssue);
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to generate Gemini issue:', err);
+      setGeminiResultStatus('Failed to generate. Check console.');
+    } finally {
+      setIsGeneratingGemini(false);
+      setTimeout(() => setGeminiResultStatus(null), 10000);
+    }
+  };
 
   const handleTriggerTestEmail = async () => {
     setIsSendingTest(true);
@@ -344,6 +368,26 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
 
             <button
               type="button"
+              onClick={handleGenerateGeminiQuestion}
+              disabled={isGeneratingGemini}
+              className="px-3.5 py-2 rounded-xl bg-purple-500/25 hover:bg-purple-500/40 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Generate a polarizing question with Gemini and post under william.odiomonafe@gmail.com"
+            >
+              {isGeneratingGemini ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating (Gemini)...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Generate Question (Gemini)</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={handleExportCSV}
               className="btn-brand text-xs py-2 px-4 shadow-glow flex items-center gap-1.5 cursor-pointer"
             >
@@ -370,6 +414,13 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
           <div className="mt-4 p-3 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-100 text-xs font-semibold flex items-center gap-2 animate-fade-in">
             <Mail className="w-4 h-4 text-indigo-300 shrink-0" />
             <span>{testEmailStatus}</span>
+          </div>
+        )}
+
+        {geminiResultStatus && (
+          <div className="mt-4 p-3 rounded-2xl bg-purple-500/20 border border-purple-400/30 text-purple-100 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+            <Sparkles className="w-4 h-4 text-purple-300 shrink-0" />
+            <span>{geminiResultStatus}</span>
           </div>
         )}
       </section>

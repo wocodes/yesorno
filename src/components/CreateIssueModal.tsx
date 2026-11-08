@@ -17,11 +17,13 @@ interface Props {
 }
 
 const CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
-  { key: 'Workplace & Career', label: 'Workplace', emoji: '💼' },
+  { key: 'Business', label: 'Business', emoji: '💼' },
+  { key: 'Gender', label: 'Gender', emoji: '⚧️' },
+  { key: 'Entertainment', label: 'Entertainment', emoji: '🎬' },
+  { key: 'Workplace & Career', label: 'Workplace', emoji: '🏢' },
   { key: 'Family & Home', label: 'Family', emoji: '👨‍👩‍👧' },
   { key: 'Community & Neighborhood', label: 'Community', emoji: '🏡' },
   { key: 'Religious & Faith', label: 'Faith', emoji: '🕊️' },
-  { key: 'Clubs & Groups', label: 'Clubs', emoji: '👥' },
   { key: 'Politics & Policy', label: 'Policy', emoji: '🏛️' },
   { key: 'Environment & Climate', label: 'Climate', emoji: '🌱' },
   { key: 'Economy & Finance', label: 'Economy', emoji: '📈' },

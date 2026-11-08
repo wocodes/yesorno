@@ -13,14 +13,16 @@ interface Props {
 }
 
 const INTEREST_OPTIONS: { category: IssueCategory; label: string; emoji: string; desc: string }[] = [
-  { category: 'Workplace & Career', label: 'Workplace & Teams', emoji: '💼', desc: 'Remote work, sprints & policies' },
+  { category: 'Business', label: 'Business & Ventures', emoji: '💼', desc: 'Startups, equity, management & strategy' },
+  { category: 'Gender', label: 'Gender & Identity', emoji: '⚧️', desc: 'Representation, pay equity & inclusion' },
+  { category: 'Entertainment', label: 'Entertainment & Culture', emoji: '🎬', desc: 'Media, cinema, music & pop culture' },
+  { category: 'Workplace & Career', label: 'Workplace & Teams', emoji: '🏢', desc: 'Remote work, compensation & policies' },
   { category: 'Family & Home', label: 'Family & Home', emoji: '👨‍👩‍👧', desc: 'Household rules & routines' },
   { category: 'Community & Neighborhood', label: 'Community & HOA', emoji: '🏡', desc: 'Streets, parks & local safety' },
   { category: 'Religious & Faith', label: 'Faith & Outreach', emoji: '🕊️', desc: 'Congregation & charity funds' },
-  { category: 'Clubs & Groups', label: 'Clubs & Groups', emoji: '👥', desc: 'Sports, hobbies & member events' },
   { category: 'Politics & Policy', label: 'Civic & Policy', emoji: '🏛️', desc: 'Budgets, zoning & bylaws' },
   { category: 'Environment & Climate', label: 'Climate & Energy', emoji: '🌱', desc: 'Solar, transit & sustainability' },
-  { category: 'Economy & Finance', label: 'Economy & Co-ops', emoji: '📈', desc: 'Treasury, grants & dividends' },
+  { category: 'Economy & Finance', label: 'Economy & Markets', emoji: '📈', desc: 'Treasury, inflation & markets' },
   { category: 'Education & Campus', label: 'Education & Campus', emoji: '🎓', desc: 'Curriculum, exams & student life' },
 ];
 
