@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, AlertCircle, Clock, Lock, Globe, 
-  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil
+  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil, FileText
 } from 'lucide-react';
-import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment } from '../types';
+import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment, IssueDraft } from '../types';
 import { moderateText, generateCivicAlias, validateIssueQuestion } from '../utils/moderation';
 import { VoiceRecorder } from './VoiceRecorder';
 import { fileToDataUrl } from '../utils/audio';
@@ -16,6 +16,7 @@ interface Props {
   editingIssue?: Issue | null;
   onOpenGuidelines: () => void;
   currentUser: UserProfile | null;
+  onSaveDraft?: (draft: IssueDraft | null) => void;
 }
 
 const CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
@@ -66,7 +67,8 @@ export const CreateIssueModal: React.FC<Props> = ({
   onUpdateIssue,
   editingIssue,
   onOpenGuidelines,
-  currentUser
+  currentUser,
+  onSaveDraft
 }) => {
   const [title, setTitle] = useState('');
   const [showDescription, setShowDescription] = useState(false);
@@ -82,6 +84,8 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [tagsInput, setTagsInput] = useState('');
   const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[5]); // 30 Days default
   const [activeTool, setActiveTool] = useState<ActiveToolPanel>(null);
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const draftDebounceTimer = useRef<number | null>(null);
 
   // Media attachments
   const [creatorVoice, setCreatorVoice] = useState<VoiceAttachment | null>(null);
@@ -115,10 +119,27 @@ export const CreateIssueModal: React.FC<Props> = ({
         setInvitedGroups(editingIssue.invitedGroups || []);
         setIsAnonymous(Boolean(editingIssue.isAnonymousAuthor));
         setAuthorName(editingIssue.author);
+        setIsDraftRestored(false);
         const matchDuration = DURATION_OPTIONS.find(d => d.label === editingIssue.durationLabel);
         if (matchDuration) {
           setDuration(matchDuration);
         }
+      } else if (currentUser?.issueDraft && (currentUser.issueDraft.title || currentUser.issueDraft.description)) {
+        // Restore saved draft across devices
+        const draft = currentUser.issueDraft;
+        setTitle(draft.title || '');
+        setDescription(draft.description || '');
+        setShowDescription(Boolean(draft.description));
+        if (draft.category) setCategory(draft.category);
+        setTagsInput(draft.tagsInput || '');
+        setImages(draft.images || []);
+        setIsAnonymous(Boolean(draft.isAnonymous));
+        if (draft.durationLabel) {
+          const matchDuration = DURATION_OPTIONS.find(d => d.label === draft.durationLabel);
+          if (matchDuration) setDuration(matchDuration);
+        }
+        if (draft.visibility) setVisibility(draft.visibility);
+        setIsDraftRestored(true);
       } else {
         setTitle('');
         setDescription('');
@@ -128,6 +149,7 @@ export const CreateIssueModal: React.FC<Props> = ({
         setDuration(DURATION_OPTIONS[5]);
         setActiveTool(null);
         setIsAnonymous(false);
+        setIsDraftRestored(false);
         if (currentUser) {
           setAuthorName(currentUser.name || '');
           if (currentUser.interests && currentUser.interests.length > 0) {
@@ -137,6 +159,45 @@ export const CreateIssueModal: React.FC<Props> = ({
       }
     }
   }, [isOpen, editingIssue, currentUser]);
+
+  // Debounced Autosave Draft to server profile (only when not editing an existing issue)
+  useEffect(() => {
+    if (!isOpen || editingIssue) return;
+    if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
+
+    draftDebounceTimer.current = window.setTimeout(() => {
+      const hasContent = Boolean(title.trim() || description.trim() || images.length > 0);
+      if (hasContent) {
+        onSaveDraft?.({
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          tagsInput: tagsInput.trim(),
+          durationLabel: duration.label,
+          durationHours: duration.hours,
+          visibility,
+          isAnonymous,
+          images,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }, 700);
+
+    return () => {
+      if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
+    };
+  }, [title, description, category, tagsInput, duration, visibility, isAnonymous, images, isOpen, editingIssue]);
+
+  const handleDiscardDraft = () => {
+    setTitle('');
+    setDescription('');
+    setShowDescription(false);
+    setImages([]);
+    setCreatorVoice(null);
+    setTagsInput('');
+    setIsDraftRestored(false);
+    onSaveDraft?.(null);
+  };
 
   if (!isOpen) return null;
 
@@ -278,6 +339,8 @@ export const CreateIssueModal: React.FC<Props> = ({
     if (onCreateIssue) {
       onCreateIssue(newIssue);
     }
+    onSaveDraft?.(null);
+    setIsDraftRestored(false);
     setTitle('');
     setDescription('');
     setShowDescription(false);
@@ -343,6 +406,23 @@ export const CreateIssueModal: React.FC<Props> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Draft Restored Banner */}
+        {isDraftRestored && (
+          <div className="mx-5 mb-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-between text-xs text-amber-900 dark:text-amber-300">
+            <span className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Draft restored across your devices</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="font-bold underline hover:no-underline text-rose-600 dark:text-rose-400 cursor-pointer ml-2 text-[11px]"
+            >
+              Discard Draft
+            </button>
+          </div>
+        )}
 
         {/* Social Composer Form */}
         <form onSubmit={handleSubmit} className="px-5 pb-4 pt-2 space-y-3 overflow-y-auto overscroll-contain flex-1">

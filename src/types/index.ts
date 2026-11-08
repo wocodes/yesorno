@@ -1,6 +1,19 @@
 export type VoteChoice = 'YES' | 'NO';
 export type DisplayPreference = 'username' | 'firstname' | 'name';
 
+export interface IssueDraft {
+  title: string;
+  description: string;
+  category: IssueCategory;
+  tagsInput?: string;
+  durationLabel?: string;
+  durationHours?: number;
+  visibility?: IssueVisibility;
+  isAnonymous?: boolean;
+  images?: string[];
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -17,6 +30,8 @@ export interface UserProfile {
   votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
   likedIssueIds?: string[];
   favoriteIssueIds?: string[];
+  issueDraft?: IssueDraft | null;
+  followersCount?: number;
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
   soundEnabled?: boolean;
@@ -177,5 +192,7 @@ export interface PublicUserProfile {
   region?: IssueRegion;
   groups?: string[];
   interests?: IssueCategory[];
+  followingCreators?: string[];
+  followersCount?: number;
   isVerified?: boolean;
 }

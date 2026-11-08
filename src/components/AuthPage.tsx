@@ -110,6 +110,8 @@ export const AuthPage: React.FC<Props> = ({
         avatar: saved.avatar || baseUser.avatar,
         interests: (saved.interests && saved.interests.length > 0) ? saved.interests : baseUser.interests,
         region: saved.region || baseUser.region,
+        followingCreators: (saved.followingCreators && saved.followingCreators.length > 0) ? saved.followingCreators : baseUser.followingCreators,
+        issueDraft: saved.issueDraft !== undefined ? saved.issueDraft : baseUser.issueDraft,
         votedIssues: saved.votedIssues || baseUser.votedIssues,
         likedIssueIds: saved.likedIssueIds || baseUser.likedIssueIds,
         favoriteIssueIds: saved.favoriteIssueIds || baseUser.favoriteIssueIds,

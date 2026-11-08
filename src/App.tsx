@@ -29,7 +29,7 @@ import {
   notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply } from './types';
+import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
 import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
@@ -244,6 +244,10 @@ export function App() {
               username: serverProf.username || prev.username,
               interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
               region: serverProf.region || prev.region,
+              followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
+              issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
+              soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
+              animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
               onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
             };
             return updated;
@@ -571,6 +575,8 @@ export function App() {
                 username: serverProf.username || prev.username,
                 interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
                 region: serverProf.region || prev.region,
+                followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
+                issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
                 soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
                 animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
                 onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
@@ -741,6 +747,17 @@ export function App() {
     setCurrentUser(updated);
     saveStoredUser(updated);
     addToast('success', 'Preferences Saved', 'Your feed priority & profile settings are updated.');
+  };
+
+  // Autosave issue draft to user profile & cloud server for cross-device resume
+  const handleSaveIssueDraft = (draft: IssueDraft | null) => {
+    if (!currentUser) return;
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      issueDraft: draft,
+    };
+    setCurrentUser(updatedUser);
+    saveStoredUser(updatedUser);
   };
 
   // Automatically build user's interest profile as they interact with issues
@@ -2180,6 +2197,7 @@ export function App() {
         editingIssue={editingIssue}
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         currentUser={currentUser}
+        onSaveDraft={handleSaveIssueDraft}
       />
 
       <CommunityGuidelinesModal
