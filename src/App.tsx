@@ -5,7 +5,7 @@ import {
   fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds,
   apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
-import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail, fetchServerProfileByEmail } from './utils/auth';
 import { 
   getInitialTheme, applyTheme, ThemeMode, 
   getInitialColorTone, applyColorTone, ColorTone 
@@ -227,6 +227,27 @@ export function App() {
   useEffect(() => {
     if (isOnboardingOpen) recordPageView('modal:onboarding');
   }, [isOnboardingOpen]);
+
+  // Multi-Device Profile Sync: ensure latest interests/region from another device update seamlessly
+  useEffect(() => {
+    if (currentUser?.email) {
+      fetchServerProfileByEmail(currentUser.email).then(serverProf => {
+        if (serverProf) {
+          setCurrentUser(prev => {
+            if (!prev) return null;
+            const updated = {
+              ...prev,
+              ...serverProf,
+              interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
+              region: serverProf.region || prev.region,
+              onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
+            };
+            return updated;
+          });
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   // Analytics: Debounced search query telemetry
   useEffect(() => {
@@ -541,7 +562,20 @@ export function App() {
       notifyAdminUserLoggedIn(user, 'Account Sign-In');
 
       if (!user.onboardingCompleted) {
-        setIsOnboardingOpen(true);
+        // Double-check server in case onboarding was already completed on another device
+        fetchServerProfileByEmail(user.email).then(serverProf => {
+          if (serverProf && (serverProf.onboardingCompleted || (serverProf.interests && serverProf.interests.length > 0))) {
+            const merged = { ...user, ...serverProf, onboardingCompleted: true };
+            setCurrentUser(merged);
+            saveStoredUser(merged);
+            setIsOnboardingOpen(false);
+            addToast('success', `Welcome back, ${merged.name}`);
+          } else {
+            setIsOnboardingOpen(true);
+          }
+        }).catch(() => {
+          setIsOnboardingOpen(true);
+        });
       } else {
         addToast('success', `Signed in as ${user.name}`);
       }
