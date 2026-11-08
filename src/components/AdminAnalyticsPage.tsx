@@ -132,7 +132,7 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
 
     return {
       totalIssues: issues.length,
-      activeIssues: issues.filter((i) => !i.isDeletedByAuthor && new Date(i.closingDate).getTime() > Date.now()).length,
+      activeIssues: issues.filter((i) => !i.isDeletedByAuthor && (!i.closingDate || new Date(i.closingDate).getTime() > Date.now())).length,
       deletedIssues: issues.filter((i) => i.isDeletedByAuthor).length,
       privateIssues: issues.filter((i) => i.visibility === 'private').length,
       totalVotes,

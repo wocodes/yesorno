@@ -3,7 +3,7 @@ import { Issue, IssueSummaryInsights, UserProfile } from '../types';
 /**
  * Calculates whether an issue is closed based on its time deadline
  */
-export function isIssueClosed(closingDate: string): boolean {
+export function isIssueClosed(closingDate?: string | null): boolean {
   if (!closingDate) return false;
   return new Date().getTime() >= new Date(closingDate).getTime();
 }
@@ -11,9 +11,13 @@ export function isIssueClosed(closingDate: string): boolean {
 /**
  * Formats time remaining until closingDate, or notes when it closed
  */
-export function getTimeRemainingText(closingDate: string): { text: string; isExpired: boolean; badgeColor: string } {
+export function getTimeRemainingText(closingDate?: string | null): { text: string; isExpired: boolean; badgeColor: string } {
   if (!closingDate) {
-    return { text: 'No deadline', isExpired: false, badgeColor: 'bg-slate-100 text-slate-700 dark:bg-ink-800 dark:text-slate-300' };
+    return { 
+      text: 'No Expiry', 
+      isExpired: false, 
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30' 
+    };
   }
 
   const now = new Date().getTime();

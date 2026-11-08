@@ -138,7 +138,7 @@ export interface Issue {
   creatorUsername?: string;
   isAnonymousAuthor?: boolean;
   createdAt: string;
-  closingDate: string; // ISO string representing exact deadline set by user
+  closingDate?: string | null; // ISO string or null/undefined if indefinite (no expiry)
   durationLabel: string; // e.g. "24 Hours", "3 Days", "7 Days", "Custom"
   visibility: IssueVisibility;
   invitedEmails: string[]; // Allowed emails if private

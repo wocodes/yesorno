@@ -41,6 +41,7 @@ interface DurationOption {
 }
 
 const DURATION_OPTIONS: DurationOption[] = [
+  { label: 'Indefinite (No Expiry)', hours: 0 },
   { label: '24 Hours', hours: 24 },
   { label: '48 Hours', hours: 48 },
   { label: '3 Days', hours: 72 },
@@ -82,7 +83,7 @@ export const CreateIssueModal: React.FC<Props> = ({
   const userRegion: IssueRegion = currentUser?.region || 'Global / Remote';
 
   const [tagsInput, setTagsInput] = useState('');
-  const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[5]); // 30 Days default
+  const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[0]); // Indefinite (No Expiry) default
   const [activeTool, setActiveTool] = useState<ActiveToolPanel>(null);
   const [isDraftRestored, setIsDraftRestored] = useState(false);
   const draftDebounceTimer = useRef<number | null>(null);
@@ -146,7 +147,7 @@ export const CreateIssueModal: React.FC<Props> = ({
         setShowDescription(false);
         setImages([]);
         setCreatorVoice(null);
-        setDuration(DURATION_OPTIONS[5]);
+        setDuration(DURATION_OPTIONS[0]);
         setActiveTool(null);
         setIsAnonymous(false);
         setIsDraftRestored(false);
@@ -280,7 +281,7 @@ export const CreateIssueModal: React.FC<Props> = ({
     if (editingIssue) {
       const durationChanged = duration.label !== editingIssue.durationLabel;
       const closingDate = durationChanged
-        ? new Date(Date.now() + duration.hours * 60 * 60 * 1000).toISOString()
+        ? (duration.hours > 0 ? new Date(Date.now() + duration.hours * 60 * 60 * 1000).toISOString() : undefined)
         : editingIssue.closingDate;
 
       const updatedIssue: Issue = {
@@ -306,7 +307,9 @@ export const CreateIssueModal: React.FC<Props> = ({
     }
 
     const now = Date.now();
-    const closingTime = new Date(now + duration.hours * 60 * 60 * 1000).toISOString();
+    const closingTime = duration.hours > 0
+      ? new Date(now + duration.hours * 60 * 60 * 1000).toISOString()
+      : undefined;
 
     const cleanUsername = currentUser?.username ? currentUser.username.replace(/^@/, '') : undefined;
 
@@ -346,7 +349,7 @@ export const CreateIssueModal: React.FC<Props> = ({
     setShowDescription(false);
     setImages([]);
     setCreatorVoice(null);
-    setDuration(DURATION_OPTIONS[5]);
+    setDuration(DURATION_OPTIONS[0]);
     setActiveTool(null);
     onClose();
   };
@@ -392,7 +395,7 @@ export const CreateIssueModal: React.FC<Props> = ({
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-zinc-500">
                 <span>{visibility === 'private' ? '🔒 Private Circle' : '🌐 Public Poll'}</span>
                 <span>•</span>
-                <span>⏳ {duration.label}</span>
+                <span>{duration.hours === 0 ? '♾️ Indefinite' : `⏳ ${duration.label}`}</span>
               </div>
             </div>
           </div>
