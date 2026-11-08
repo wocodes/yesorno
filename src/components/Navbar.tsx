@@ -31,6 +31,7 @@ interface Props {
 
 const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
   { key: 'All', shortLabel: 'All Issues', emoji: '🌐' },
+  { key: 'Counselling', shortLabel: 'Counselling', emoji: '🛋️' },
   { key: 'Business', shortLabel: 'Business', emoji: '💼' },
   { key: 'Gender', shortLabel: 'Gender', emoji: '⚧️' },
   { key: 'Entertainment', shortLabel: 'Entertainment', emoji: '🎬' },

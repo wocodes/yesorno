@@ -39,6 +39,20 @@ interface SphereShowcase {
 
 const SPHERES: SphereShowcase[] = [
   {
+    id: 'Counselling',
+    icon: '🛋️',
+    title: 'Counselling',
+    category: 'Counselling',
+    visibility: 'Public',
+    deadline: '24d left',
+    example: 'Should I confront my close friend about unpaid debt from 6 months ago?',
+    yesCount: 284,
+    noCount: 92,
+    sampleQuote: 'Address it with grace in private; true friendship can survive honesty, but festering resentment destroys it.',
+    sampleAuthor: 'Anon-Neighbor-288',
+    voiceFilter: 'Natural'
+  },
+  {
     id: 'Workplace',
     icon: '💼',
     title: 'Workplace',

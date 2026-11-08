@@ -13,6 +13,7 @@ interface Props {
 }
 
 const INTEREST_OPTIONS: { category: IssueCategory; label: string; emoji: string; desc: string }[] = [
+  { category: 'Counselling', label: 'Counselling & Advice', emoji: '🛋️', desc: 'Life decisions, personal dilemmas & shared wisdom' },
   { category: 'Business', label: 'Business & Ventures', emoji: '💼', desc: 'Startups, equity, management & strategy' },
   { category: 'Gender', label: 'Gender & Identity', emoji: '⚧️', desc: 'Representation, pay equity & inclusion' },
   { category: 'Entertainment', label: 'Entertainment & Culture', emoji: '🎬', desc: 'Media, cinema, music & pop culture' },

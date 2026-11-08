@@ -27,6 +27,7 @@ const REGIONS: { key: IssueRegion | 'All Regions'; icon: string }[] = [
 ];
 
 const SPHERE_ICONS: Record<string, string> = {
+  'Counselling': '🛋️',
   'Business': '💼',
   'Gender': '⚧️',
   'Entertainment': '🎬',

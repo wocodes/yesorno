@@ -30,6 +30,7 @@ interface Props {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
+  'Counselling': '🛋️',
   'Business': '💼',
   'Gender': '⚧️',
   'Entertainment': '🎬',
@@ -46,6 +47,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const SHORT_CATEGORIES: Record<string, string> = {
+  'Counselling': 'Counselling',
   'Business': 'Business',
   'Gender': 'Gender',
   'Entertainment': 'Entertainment',

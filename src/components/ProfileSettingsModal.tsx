@@ -27,6 +27,7 @@ interface Props {
 }
 
 const ALL_INTERESTS: { category: IssueCategory; label: string; emoji: string }[] = [
+  { category: 'Counselling', label: 'Counselling', emoji: '🛋️' },
   { category: 'Business', label: 'Business', emoji: '💼' },
   { category: 'Gender', label: 'Gender', emoji: '⚧️' },
   { category: 'Entertainment', label: 'Entertainment', emoji: '🎬' },

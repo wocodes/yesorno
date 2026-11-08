@@ -8,6 +8,7 @@ export const GEMINI_AUTHOR_AVATAR = 'https://images.unsplash.com/photo-153452874
 const STORAGE_KEY_SLOTS = 'yesorno_gemini_daily_slots_v1';
 
 export const POLARIZING_CATEGORIES: IssueCategory[] = [
+  'Counselling',
   'Business',
   'Gender',
   'Entertainment',
@@ -74,6 +75,23 @@ export function markSlotCompleted(slotKey: string): void {
  * Curated simple, polarizing everyday fallback questions by category
  */
 const CURATED_POLARIZING_QUESTIONS: Record<string, { title: string; description: string; tags: string[] }[]> = {
+  'Counselling': [
+    {
+      title: 'Should I confront a close friend who never paid back borrowed money?',
+      description: 'Many argue that direct, honest communication is essential to prevent lingering resentment. Others say bringing up unpaid money can permanently rupture a long-standing friendship.',
+      tags: ['Counselling', 'Friendship', 'LifeAdvice']
+    },
+    {
+      title: 'Should you cut off contact with toxic family members to protect your peace?',
+      description: 'Advocates say mental health and personal boundaries must come before unconditional loyalty. Traditionalists believe family ties are lifelong and require endurance and forgiveness.',
+      tags: ['Counselling', 'Family', 'MentalHealth']
+    },
+    {
+      title: 'Should I stay in a safe, comfortable job instead of pursuing my risky dream?',
+      description: 'Pragmatists emphasize financial security, predictable stability, and peace of mind. Dreamers argue that lingering regret over never trying is far more painful than temporary failure.',
+      tags: ['Counselling', 'Career', 'LifeChoices']
+    }
+  ],
   'Business': [
     {
       title: 'Should stores and restaurants be required to accept cash payments?',
