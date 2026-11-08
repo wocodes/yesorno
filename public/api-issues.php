@@ -273,6 +273,17 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $images = !empty($row['images']) ? json_decode($row['images'], true) : [];
         $creatorVoice = !empty($row['creator_voice_note']) ? json_decode($row['creator_voice_note'], true) : null;
         $summary = !empty($row['summary']) ? json_decode($row['summary'], true) : null;
+        $issueResponses = isset($responsesByIssue[$id]) ? $responsesByIssue[$id] : [];
+
+        $respYes = 0;
+        $respNo = 0;
+        foreach ($issueResponses as $r) {
+            $ch = strtoupper($r['choice'] ?? '');
+            if ($ch === 'YES') $respYes++;
+            else if ($ch === 'NO') $respNo++;
+        }
+        $calcYes = max((int)$row['yes_count'], $respYes);
+        $calcNo = max((int)$row['no_count'], $respNo);
 
         $output[] = [
             'id' => $row['id'],
@@ -290,8 +301,8 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             'visibility' => $row['visibility'] ?: 'public',
             'invitedEmails' => is_array($invitedEmails) ? $invitedEmails : [],
             'invitedGroups' => is_array($invitedGroups) ? $invitedGroups : [],
-            'yesCount' => (int)$row['yes_count'],
-            'noCount' => (int)$row['no_count'],
+            'yesCount' => $calcYes,
+            'noCount' => $calcNo,
             'likesCount' => (int)$row['likes_count'],
             'favoritesCount' => (int)$row['favorites_count'],
             'images' => is_array($images) ? $images : [],
@@ -301,7 +312,7 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             'isDeletedByAuthor' => (bool)$row['is_deleted'],
             'deletedAt' => $row['deleted_at'],
             'createdAt' => $row['created_at'],
-            'responses' => isset($responsesByIssue[$id]) ? $responsesByIssue[$id] : [],
+            'responses' => $issueResponses,
         ];
     }
 
@@ -341,10 +352,10 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
                 visibility = excluded.visibility,
                 invited_emails = excluded.invited_emails,
                 invited_groups = excluded.invited_groups,
-                yes_count = excluded.yes_count,
-                no_count = excluded.no_count,
-                likes_count = excluded.likes_count,
-                favorites_count = excluded.favorites_count,
+                yes_count = MAX(COALESCE(issues.yes_count, 0), COALESCE(excluded.yes_count, 0)),
+                no_count = MAX(COALESCE(issues.no_count, 0), COALESCE(excluded.no_count, 0)),
+                likes_count = MAX(COALESCE(issues.likes_count, 0), COALESCE(excluded.likes_count, 0)),
+                favorites_count = MAX(COALESCE(issues.favorites_count, 0), COALESCE(excluded.favorites_count, 0)),
                 images = excluded.images,
                 creator_voice_note = excluded.creator_voice_note,
                 featured = excluded.featured,
@@ -531,6 +542,27 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
 
     $pdo->beginTransaction();
     try {
+        // Ensure parent issue row exists in SQLite so foreign key constraints never fail
+        $checkStmt = $pdo->prepare("SELECT id FROM issues WHERE id = :id");
+        $checkStmt->execute([':id' => $issueId]);
+        if (!$checkStmt->fetch()) {
+            $phStmt = $pdo->prepare("
+                INSERT OR IGNORE INTO issues (
+                    id, title, description, category, region, tags, author,
+                    yes_count, no_count, is_deleted, created_at, updated_at
+                ) VALUES (
+                    :id, :title, '', 'Community & Neighborhood', 'Global / Remote', '[]', 'Community',
+                    0, 0, 0, :created_at, :updated_at
+                )
+            ");
+            $phStmt->execute([
+                ':id' => $issueId,
+                ':title' => $payload['issueTitle'] ?? 'Community Deliberation',
+                ':created_at' => $now,
+                ':updated_at' => $now,
+            ]);
+        }
+
         // 1. Insert or update the response
         $stmt = $pdo->prepare("
             INSERT INTO responses (
@@ -562,17 +594,28 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
             ':created_at' => $payload['createdAt'] ?? $now,
         ]);
 
-        // 2. Atomically update yes/no counters on issue
+        // 2. Atomically update yes/no counters on issue (guarded against NULLs)
         $isYes = strtoupper($choice) === 'YES';
         $updateSql = $isYes 
-            ? "UPDATE issues SET yes_count = yes_count + 1, updated_at = :now WHERE id = :id"
-            : "UPDATE issues SET no_count = no_count + 1, updated_at = :now WHERE id = :id";
+            ? "UPDATE issues SET yes_count = COALESCE(yes_count, 0) + 1, updated_at = :now WHERE id = :id"
+            : "UPDATE issues SET no_count = COALESCE(no_count, 0) + 1, updated_at = :now WHERE id = :id";
         
         $upStmt = $pdo->prepare($updateSql);
         $upStmt->execute([':now' => $now, ':id' => $issueId]);
 
+        // Query authoritative counts from the database
+        $cntStmt = $pdo->prepare("SELECT yes_count, no_count FROM issues WHERE id = :id");
+        $cntStmt->execute([':id' => $issueId]);
+        $countsRow = $cntStmt->fetch();
+
         $pdo->commit();
-        return ['success' => true, 'submissionId' => $submissionId, 'updatedAt' => $now];
+        return [
+            'success' => true, 
+            'submissionId' => $submissionId, 
+            'yesCount' => (int)($countsRow['yes_count'] ?? 1),
+            'noCount' => (int)($countsRow['no_count'] ?? 0),
+            'updatedAt' => $now
+        ];
     } catch (Exception $e) {
         $pdo->rollBack();
         return ['success' => false, 'error' => $e->getMessage()];

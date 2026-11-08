@@ -3,12 +3,14 @@ import {
   BarChart3, Clock, Repeat, Search, MousePointerClick, Palette,
   Sun, Moon, TrendingUp, Vote, MessageSquare, Heart, Bookmark,
   Download, RotateCcw, ArrowLeft, Eye, Activity, Layers, Globe2,
-  Mail, Check, Loader2, Sparkles
+  Mail, Check, Loader2, Sparkles, Power, Bot, Users2, Key,
+  ChevronDown, ChevronUp, RefreshCw, Play, Pause
 } from 'lucide-react';
 import { Issue, UserProfile, AppView } from '../types';
 import { ColorTone, ThemeMode } from '../utils/theme';
 import { generatePolarizingQuestionNow } from '../utils/geminiDailyGenerator';
 import { saveIssues } from '../utils/storage';
+import { SEED_PERSONAS } from '../data/seedPersonas';
 import {
   loadAnalyticsStore,
   resetAnalyticsStore,
@@ -82,6 +84,136 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
       setTimeout(() => setTestEmailStatus(null), 8000);
     }
   };
+
+  // AI Autonomous Curator & Debate Engine State
+  const [curatorData, setCuratorData] = useState<any | null>(null);
+  const [isCuratorLoading, setIsCuratorLoading] = useState(false);
+  const [isTogglingCurator, setIsTogglingCurator] = useState(false);
+  const [isGeneratingDebate, setIsGeneratingDebate] = useState(false);
+  const [isSeedingPersonas, setIsSeedingPersonas] = useState(false);
+  const [curatorFeedback, setCuratorFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showPersonasModal, setShowPersonasModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [isEditingApiKey, setIsEditingApiKey] = useState(false);
+  const [personaFilter, setPersonaFilter] = useState('');
+
+  const getCuratorEndpoint = (action: string) => {
+    const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'https://yesorno.chillon.top/ai-curator.php'
+      : '/ai-curator.php';
+    return `${base}?action=${action}`;
+  };
+
+  const fetchCuratorStatus = async () => {
+    setIsCuratorLoading(true);
+    try {
+      const res = await fetch(getCuratorEndpoint('status'));
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setCuratorData(json);
+      }
+    } catch (e) {
+      console.warn('Could not reach ai-curator status endpoint:', e);
+    } finally {
+      setIsCuratorLoading(false);
+    }
+  };
+
+  const handleToggleCurator = async () => {
+    setIsTogglingCurator(true);
+    setCuratorFeedback(null);
+    try {
+      const res = await fetch(getCuratorEndpoint('toggle'), { method: 'POST' });
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setCuratorFeedback({
+          type: 'success',
+          message: json.message || (json.isEnabled ? 'Engine resumed' : 'Engine paused')
+        });
+        await fetchCuratorStatus();
+      } else {
+        setCuratorFeedback({ type: 'error', message: 'Failed to toggle engine state' });
+      }
+    } catch (err: any) {
+      setCuratorFeedback({ type: 'error', message: err?.message || 'Network error toggling engine' });
+    } finally {
+      setIsTogglingCurator(false);
+      setTimeout(() => setCuratorFeedback(null), 8000);
+    }
+  };
+
+  const handleGenerateCuratedDebate = async () => {
+    setIsGeneratingDebate(true);
+    setCuratorFeedback(null);
+    try {
+      const res = await fetch(getCuratorEndpoint('generate_issue'), { method: 'POST' });
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setCuratorFeedback({
+          type: 'success',
+          message: json.message || 'New curated debate published successfully!'
+        });
+        await fetchCuratorStatus();
+      } else {
+        setCuratorFeedback({
+          type: 'error',
+          message: json?.message || 'Failed to generate curated debate'
+        });
+      }
+    } catch (err: any) {
+      setCuratorFeedback({ type: 'error', message: err?.message || 'Network error triggering debate' });
+    } finally {
+      setIsGeneratingDebate(false);
+      setTimeout(() => setCuratorFeedback(null), 10000);
+    }
+  };
+
+  const handleSeedPersonas = async () => {
+    setIsSeedingPersonas(true);
+    setCuratorFeedback(null);
+    try {
+      const res = await fetch(getCuratorEndpoint('seed_users'), { method: 'POST' });
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setCuratorFeedback({
+          type: 'success',
+          message: json.message || `Synchronized ${json.seededCount} personas into database.`
+        });
+        await fetchCuratorStatus();
+      } else {
+        setCuratorFeedback({ type: 'error', message: 'Failed to sync personas into database' });
+      }
+    } catch (err: any) {
+      setCuratorFeedback({ type: 'error', message: err?.message || 'Error syncing personas' });
+    } finally {
+      setIsSeedingPersonas(false);
+      setTimeout(() => setCuratorFeedback(null), 8000);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) return;
+    try {
+      const res = await fetch(getCuratorEndpoint('save_settings'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geminiApiKey: apiKeyInput.trim() })
+      });
+      const json = await res.json().catch(() => null);
+      if (json && json.success) {
+        setIsEditingApiKey(false);
+        setApiKeyInput('');
+        setCuratorFeedback({ type: 'success', message: 'Gemini API key configured successfully' });
+        await fetchCuratorStatus();
+      }
+    } catch {
+      setCuratorFeedback({ type: 'error', message: 'Failed to update Gemini API key' });
+    }
+  };
+
+  useEffect(() => {
+    fetchCuratorStatus();
+  }, []);
 
   useEffect(() => {
     const refresh = () => setStore(loadAnalyticsStore());
@@ -504,6 +636,277 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
             {platformTotals.totalReplies} replies • {platformTotals.totalVoiceNotes} audio
           </div>
         </div>
+      </section>
+
+      {/* AUTONOMOUS CURATION & SYNTHETIC DEBATE ENGINE (GEMINI AI & 51 PERSONAS) */}
+      <section className="card p-5 sm:p-6 space-y-5 border-2 border-purple-500/20 dark:border-purple-500/30 bg-gradient-to-br from-purple-500/5 via-transparent to-brand-500/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ink-100 dark:border-zinc-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                <Bot className="w-5 h-5" />
+              </span>
+              <h2 className="text-base sm:text-lg font-extrabold text-ink-950 dark:text-white">
+                Autonomous Curation &amp; Debate Engine
+              </h2>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase flex items-center gap-1.5 ${
+                curatorData?.status === 'ACTIVE'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+              }`}>
+                {isCuratorLoading ? (
+                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                ) : (
+                  <span className={`w-2 h-2 rounded-full ${curatorData?.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                )}
+                {curatorData?.status === 'ACTIVE' ? 'Active & Scheduled' : 'Paused by Admin'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-2xl">
+              Bootstraps community discussion by autonomously publishing high-friction binary questions, seeding authentic multi-perspective debates (Economists, Historians, Analysts), and ramping votes to ~120.
+            </p>
+          </div>
+
+          {/* Master Kill Switch & Key Settings */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsEditingApiKey(!isEditingApiKey)}
+              className="p-2 rounded-xl bg-ink-100 dark:bg-zinc-800 text-ink-700 dark:text-zinc-300 hover:bg-ink-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+              title="Configure Gemini API Key"
+            >
+              <Key className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleCurator}
+              disabled={isTogglingCurator}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer shadow-sm ${
+                curatorData?.status === 'ACTIVE'
+                  ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-400/40'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+              }`}
+            >
+              {isTogglingCurator ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : curatorData?.status === 'ACTIVE' ? (
+                <>
+                  <Pause className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <span>Pause Engine (Kill Switch)</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 text-white" />
+                  <span>Resume Autonomous Engine</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Optional Gemini API Key Drawer */}
+        {isEditingApiKey && (
+          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-400/30 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-fade-in">
+            <div className="text-xs font-bold text-purple-900 dark:text-purple-200 shrink-0 flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-purple-400" />
+              <span>Gemini API Key:</span>
+            </div>
+            <input
+              type="password"
+              placeholder={curatorData?.settings?.hasApiKey ? '•••••••••••••••••••• (Configured on server)' : 'Paste your Gemini API key (AIzaSy...)'}
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              className="input-brand text-xs py-1.5 px-3 flex-1"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                className="btn-brand text-xs py-1.5 px-3 whitespace-nowrap cursor-pointer"
+              >
+                Save Key
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingApiKey(false)}
+                className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Alert if any */}
+        {curatorFeedback && (
+          <div className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 animate-fade-in ${
+            curatorFeedback.type === 'success'
+              ? 'bg-emerald-500/15 border border-emerald-400/30 text-emerald-800 dark:text-emerald-200'
+              : 'bg-rose-500/15 border border-rose-400/30 text-rose-800 dark:text-rose-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              {curatorFeedback.type === 'success' ? <Check className="w-4 h-4 text-emerald-500" /> : <Power className="w-4 h-4 text-rose-500" />}
+              <span>{curatorFeedback.message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCuratorFeedback(null)}
+              className="text-[10px] underline hover:no-underline opacity-80"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Sub-grid: Engine Metrics & Control Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Box 1: Persona Library */}
+          <div className="p-4 rounded-2xl bg-white/50 dark:bg-zinc-900/60 border border-ink-100 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-bold">
+              <span>Resident Personas</span>
+              <Users2 className="w-4 h-4 text-brand-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black font-mono text-ink-950 dark:text-white">
+                {curatorData?.totalDatabaseMembers || SEED_PERSONAS.length}
+              </span>
+              <span className="text-xs text-slate-400">profiles across 12 disciplines</span>
+            </div>
+            <div className="pt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSeedPersonas}
+                disabled={isSeedingPersonas}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 hover:bg-brand-100 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                {isSeedingPersonas ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                <span>Sync to Database</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPersonasModal(!showPersonasModal)}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-ink-100 dark:bg-zinc-800 text-ink-700 dark:text-zinc-300 hover:bg-ink-200 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <span>{showPersonasModal ? 'Hide Library' : `Inspect ${curatorData?.totalPersonasLoaded || SEED_PERSONAS.length} Personas`}</span>
+                {showPersonasModal ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Box 2: Target Vote Velocity */}
+          <div className="p-4 rounded-2xl bg-white/50 dark:bg-zinc-900/60 border border-ink-100 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-bold">
+              <span>Target Vote Ramp</span>
+              <Activity className="w-4 h-4 text-purple-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black font-mono text-ink-950 dark:text-white">
+                85 – 140
+              </span>
+              <span className="text-xs text-slate-400">votes / issue (natural split)</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400 pt-1">
+              Natural arrival simulation: 4–6 perspectives + 1 threaded rebuttal.
+            </p>
+          </div>
+
+          {/* Box 3: Trigger Actions */}
+          <div className="p-4 rounded-2xl bg-white/50 dark:bg-zinc-900/60 border border-ink-100 dark:border-zinc-800 flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-bold">
+              <span>Instant Triggers</span>
+              <Sparkles className="w-4 h-4 text-amber-500" />
+            </div>
+            <button
+              type="button"
+              onClick={handleGenerateCuratedDebate}
+              disabled={isGeneratingDebate || curatorData?.status === 'PAUSED'}
+              className="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs shadow-md shadow-purple-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingDebate ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Publishing Debate...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                  <span>Publish Curated Debate Now</span>
+                </>
+              )}
+            </button>
+            <div className="text-[10px] text-slate-400 text-center">
+              {curatorData?.settings?.lastRunAt 
+                ? `Last run: ${new Date(curatorData.settings.lastRunAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+                : 'Runs every 6 hours automatically via cron'}
+            </div>
+          </div>
+        </div>
+
+        {/* Expandable Resident Personas Drawer */}
+        {showPersonasModal && (
+          <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-white/80 dark:bg-zinc-900 border border-ink-100 dark:border-zinc-800 space-y-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-100 dark:border-zinc-800">
+              <div>
+                <h3 className="text-sm font-extrabold text-ink-950 dark:text-white flex items-center gap-2">
+                  <Users2 className="w-4 h-4 text-brand-500" />
+                  Community Persona Library ({curatorData?.totalPersonasLoaded || SEED_PERSONAS.length} Profiles)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  Ordinary everyday Nigerians: Bolt drivers, nurses, NYSC corpers, POS agents, techies, artisans, teachers, and students.
+                </p>
+              </div>
+              <input
+                type="text"
+                placeholder="Filter personas by name, archetype, or role..."
+                value={personaFilter}
+                onChange={(e) => setPersonaFilter(e.target.value)}
+                className="input-brand text-xs py-1.5 px-3 w-full sm:w-64"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
+              {SEED_PERSONAS.filter((p) => {
+                if (!personaFilter.trim()) return true;
+                const q = personaFilter.toLowerCase();
+                return (
+                  p.name.toLowerCase().includes(q) ||
+                  p.role.toLowerCase().includes(q) ||
+                  p.archetype.toLowerCase().includes(q) ||
+                  p.region.toLowerCase().includes(q)
+                );
+              }).map((persona) => (
+                <div
+                  key={persona.id}
+                  className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-700/60 space-y-1.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-extrabold text-ink-950 dark:text-white">
+                        {persona.name}
+                      </div>
+                      <div className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold">
+                        @{persona.username}
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 shrink-0">
+                      {persona.archetype}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-600 dark:text-zinc-300 line-clamp-1">
+                    {persona.role}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                    {persona.bio}
+                  </p>
+                  <div className="text-[9px] text-slate-400 italic pt-1 border-t border-slate-200/40 dark:border-zinc-700/40 line-clamp-1">
+                    Tone: {persona.toneGuidelines}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* COLOR SCHEME & APPEARANCE HEAD-TO-HEAD COMPARISON */}

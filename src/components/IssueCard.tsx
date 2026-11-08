@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Issue, UserProfile, VoteChoice, VoteSubmission } from '../types';
 import { computeIssueMetrics, formatRelativeTime, getAuthorDisplay, getUserDisplayName } from '../utils/summary';
-import { canUserAccessIssue, isIssueCreator, TOP_CREATORS_AND_VOTERS } from '../utils/auth';
+import { canUserAccessIssue, isIssueCreator, isAdminUser, TOP_CREATORS_AND_VOTERS } from '../utils/auth';
 import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
@@ -82,10 +82,24 @@ export const IssueCard: React.FC<Props> = ({
   isFavorited = false,
   onOpenProfile,
 }) => {
-  const metrics = computeIssueMetrics(issue);
+  // Self-heal display counts if user has voted so they never see 0% (0) for their own vote
+  const effectiveIssue = React.useMemo(() => {
+    let yes = issue.yesCount;
+    let no = issue.noCount;
+    if (hasUserVoted && userVoteChoice === 'YES' && yes === 0) yes = 1;
+    if (hasUserVoted && userVoteChoice === 'NO' && no === 0) no = 1;
+    if (yes !== issue.yesCount || no !== issue.noCount) {
+      return { ...issue, yesCount: yes, noCount: no };
+    }
+    return issue;
+  }, [issue, hasUserVoted, userVoteChoice]);
+  const metrics = computeIssueMetrics(effectiveIssue);
   const access = canUserAccessIssue(issue, currentUser);
   const isCreator = isIssueCreator(issue, currentUser);
+  const isAdmin = isAdminUser(currentUser);
   const isDeleted = Boolean(issue.isDeletedByAuthor);
+  const canEdit = (isCreator || isAdmin) && !isDeleted;
+  const canDelete = (isCreator || isAdmin) && !isDeleted;
   const hasImages = !isDeleted && issue.images && issue.images.length > 0;
   const catEmoji = CATEGORY_ICONS[issue.category] || '🗳️';
   const shortCat = SHORT_CATEGORIES[issue.category] || issue.category;
@@ -461,11 +475,11 @@ export const IssueCard: React.FC<Props> = ({
               <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                 <ThumbsUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>YES {metrics.yesPercent}%</span>
-                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.yesCount})</span>
+                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({effectiveIssue.yesCount})</span>
               </span>
 
               <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1">
-                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({issue.noCount})</span>
+                <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({effectiveIssue.noCount})</span>
                 <span>NO {metrics.noPercent}%</span>
                 <ThumbsDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
               </span>
@@ -574,8 +588,8 @@ export const IssueCard: React.FC<Props> = ({
             </button>
           )}
 
-          {/* Creator Edit Issue Button */}
-          {isCreator && !isDeleted && onEditIssue && (
+          {/* Creator/Admin Edit Issue Button */}
+          {canEdit && onEditIssue && (
             <button
               type="button"
               onClick={() => onEditIssue(issue)}
@@ -586,8 +600,8 @@ export const IssueCard: React.FC<Props> = ({
             </button>
           )}
 
-          {/* Creator Delete Issue Button */}
-          {isCreator && !isDeleted && onDeleteIssue && (
+          {/* Creator/Admin Delete Issue Button */}
+          {canDelete && onDeleteIssue && (
             <button
               type="button"
               onClick={() => onDeleteIssue(issue.id)}
@@ -798,7 +812,7 @@ export const IssueCard: React.FC<Props> = ({
               type="text"
               value={inlineNote}
               onChange={(e) => setInlineNote(e.target.value)}
-              placeholder={`Add a quick reply to your ${inlineChoice} vote (like X / Instagram)...`}
+              placeholder={`Add a quick reply to your ${inlineChoice} vote...`}
               className="flex-1 text-xs px-3.5 py-2 bg-slate-50 dark:bg-ink-950 border border-slate-200 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 dark:text-white"
             />
 

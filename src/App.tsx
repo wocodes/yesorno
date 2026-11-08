@@ -23,10 +23,7 @@ import {
 } from './utils/analytics';
 import {
   notifyAdminUserRegistered,
-  notifyAdminUserLoggedIn,
   notifyAdminIssueCreated,
-  notifyAdminCommentAdded,
-  notifyAdminReplyAdded,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
 import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
@@ -53,7 +50,7 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
 import { resolveUserProfile } from './utils/userProfile';
 import { 
-  Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles
+  Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles, ArrowUp
 } from 'lucide-react';
 
 function getInitialView(user: UserProfile | null): AppView {
@@ -91,6 +88,8 @@ export function App() {
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
   const [isInitialLoadingIssues, setIsInitialLoadingIssues] = useState(true);
+  const isInitialMountRef = useRef(true);
+  const [pendingNewIssues, setPendingNewIssues] = useState<Issue[]>([]);
   const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
   const [userLikes, setUserLikes] = useState<Record<string, boolean>>(() => getUserLikesMap());
   const [userFavorites, setUserFavorites] = useState<Record<string, boolean>>(() => getUserFavoritesMap());
@@ -563,15 +562,63 @@ export function App() {
       fetchServerIssues().then((serverIssues) => {
         setIsInitialLoadingIssues(false);
         if (serverIssues && serverIssues.length > 0) {
+          const deletedIds = getDeletedIssueIds();
+          const validServerIssues = serverIssues.filter(
+            (i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id)
+          );
+
           setIssues((prev) => {
-            const deletedIds = getDeletedIssueIds();
+            const currentVotes = getUserVotesMap();
+            const currentIds = new Set(prev.map((i) => i.id));
+            const brandNewIssues = validServerIssues.filter((i) => !currentIds.has(i.id));
+
+            // If not initial mount and brand new issues arrived from server:
+            // Buffer them into pendingNewIssues so we don't trigger jarring scroll jumps!
+            if (!isInitialMountRef.current && brandNewIssues.length > 0) {
+              setPendingNewIssues((prevPending) => {
+                const pendingMap = new Map<string, Issue>();
+                prevPending.forEach((i) => pendingMap.set(i.id, i));
+                brandNewIssues.forEach((i) => pendingMap.set(i.id, i));
+                return Array.from(pendingMap.values());
+              });
+
+              // Still update any existing issues with latest vote counts / replies in-place:
+              const serverMap = new Map<string, Issue>();
+              validServerIssues.forEach((i) => serverMap.set(i.id, i));
+              const updatedExisting = prev.map((p) => {
+                const s = serverMap.get(p.id);
+                if (!s) return p;
+                const uv = currentVotes[p.id];
+                let yesCount = Math.max(s.yesCount, p.yesCount);
+                let noCount = Math.max(s.noCount, p.noCount);
+                if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+                if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
+                return {
+                  ...p,
+                  yesCount,
+                  noCount,
+                  likesCount: Math.max(s.likesCount || 0, p.likesCount || 0),
+                  favoritesCount: Math.max(s.favoritesCount || 0, p.favoritesCount || 0),
+                  responses: s.responses
+                };
+              });
+              saveIssues(updatedExisting);
+              return updatedExisting;
+            }
+
+            // Initial mount or initial hydration:
+            isInitialMountRef.current = false;
             const map = new Map<string, Issue>();
-            serverIssues
-              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
-              .forEach((i) => map.set(i.id, i));
+            validServerIssues.forEach((i) => {
+              const uv = currentVotes[i.id];
+              let yesCount = i.yesCount;
+              let noCount = i.noCount;
+              if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+              if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
+              map.set(i.id, { ...i, yesCount, noCount });
+            });
 
             // Only preserve locally created issues that were created within the last 60s (in-flight network sync)
-            // Any older issue not present on the server was deleted or moderated and must NOT be resurrected
             const now = Date.now();
             prev
               .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
@@ -579,7 +626,12 @@ export function App() {
                 if (!map.has(i.id)) {
                   const createdTime = new Date(i.createdAt).getTime();
                   if (!isNaN(createdTime) && now - createdTime < 60000) {
-                    map.set(i.id, i);
+                    const uv = currentVotes[i.id];
+                    let yesCount = i.yesCount;
+                    let noCount = i.noCount;
+                    if (uv?.choice === 'YES' && yesCount === 0) yesCount = 1;
+                    if (uv?.choice === 'NO' && noCount === 0) noCount = 1;
+                    map.set(i.id, { ...i, yesCount, noCount });
                   }
                 }
               });
@@ -662,11 +714,43 @@ export function App() {
 
     window.addEventListener('focus', syncFromCloud);
     document.addEventListener('visibilitychange', onVisibilityChange);
+    // Background polling for real-time new questions every 20 seconds
+    const pollInterval = window.setInterval(syncFromCloud, 20000);
+
     return () => {
+      window.clearInterval(pollInterval);
       window.removeEventListener('focus', syncFromCloud);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
+
+  // Handle clicking the X/Instagram style floating pill
+  const handleRefreshToTop = () => {
+    if (pendingNewIssues.length > 0) {
+      setIssues((prev) => {
+        const deletedIds = getDeletedIssueIds();
+        const map = new Map<string, Issue>();
+        // Put pending new issues at the top of the feed!
+        pendingNewIssues
+          .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
+          .forEach((i) => map.set(i.id, i));
+        // Followed by previous issues
+        prev
+          .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
+          .forEach((i) => {
+            if (!map.has(i.id)) {
+              map.set(i.id, i);
+            }
+          });
+        const updated = Array.from(map.values());
+        saveIssues(updated);
+        return updated;
+      });
+      setPendingNewIssues([]);
+    }
+    // Smoothly scroll to the very top of the feed
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Sync currentUser to localStorage and navigate straight to the dashboard upon sign-in
   const handleSelectUser = (user: UserProfile | null) => {
@@ -705,12 +789,11 @@ export function App() {
         });
       }
 
-      // Notify admin email on registration vs login
+      // Notify admin email on registration (login notifications suppressed per admin preference)
       const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
       if (isNewUser) {
         notifyAdminUserRegistered(user, 'Account Registration');
       }
-      notifyAdminUserLoggedIn(user, 'Account Sign-In');
 
       if (!user.onboardingCompleted) {
         // Double-check server in case onboarding was already completed on another device
@@ -852,6 +935,22 @@ export function App() {
           'Already voted',
           `You already voted ${existingVote.choice} on this issue.`
         );
+        // Self-heal: ensure local issue count is at least 1 even if previously desynced
+        setIssues(prevIssues => {
+          const nextIssues = prevIssues.map(issue => {
+            if (issue.id === submission.issueId) {
+              const isYes = submission.choice === 'YES';
+              const nextYes = isYes && issue.yesCount === 0 ? 1 : issue.yesCount;
+              const nextNo = !isYes && issue.noCount === 0 ? 1 : issue.noCount;
+              if (nextYes !== issue.yesCount || nextNo !== issue.noCount) {
+                return { ...issue, yesCount: nextYes, noCount: nextNo };
+              }
+            }
+            return issue;
+          });
+          saveIssues(nextIssues);
+          return nextIssues;
+        });
         return;
       }
     }
@@ -860,8 +959,12 @@ export function App() {
       const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
-          const nextYes = !hasExistingVote ? (isYes ? issue.yesCount + 1 : issue.yesCount) : issue.yesCount;
-          const nextNo = !hasExistingVote ? (!isYes ? issue.noCount + 1 : issue.noCount) : issue.noCount;
+          const nextYes = isYes
+            ? (issue.yesCount === 0 ? 1 : (!hasExistingVote ? issue.yesCount + 1 : issue.yesCount))
+            : issue.yesCount;
+          const nextNo = !isYes
+            ? (issue.noCount === 0 ? 1 : (!hasExistingVote ? issue.noCount + 1 : issue.noCount))
+            : issue.noCount;
 
           return {
             ...issue,
@@ -890,7 +993,25 @@ export function App() {
       }
       return nextVotes;
     });
-    apiRecordVote(submission);
+
+    apiRecordVote(submission, targetIssue?.title).then(serverResult => {
+      if (serverResult && serverResult.success && typeof serverResult.yesCount === 'number') {
+        setIssues(prev => {
+          const updated = prev.map(iss => {
+            if (iss.id === submission.issueId) {
+              return {
+                ...iss,
+                yesCount: Math.max(iss.yesCount, serverResult.yesCount as number),
+                noCount: Math.max(iss.noCount, serverResult.noCount as number)
+              };
+            }
+            return iss;
+          });
+          saveIssues(updated);
+          return updated;
+        });
+      }
+    });
 
     // Record telemetry for vote / reply / voice note
     if (!hasExistingVote) {
@@ -898,13 +1019,9 @@ export function App() {
     }
     if (submission.note) {
       recordEngagementAction('inline_reply', targetIssue?.title);
-      notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
     }
     if (submission.voiceNote) {
       recordEngagementAction('voice_note', targetIssue?.title);
-      if (!submission.note) {
-        notifyAdminCommentAdded(submission, targetIssue?.title || 'Issue Topic', currentUser);
-      }
     }
 
     // Update activeDetailIssue if open
@@ -1075,7 +1192,6 @@ export function App() {
 
   // Handle adding a direct threaded reply to a comment
   const handleAddCommentReply = (issueId: string, submissionId: string, reply: CommentReply) => {
-    let parentSubmission: VoteSubmission | undefined;
     const targetIssue = issues.find(i => i.id === issueId);
 
     setIssues(prev => {
@@ -1083,7 +1199,6 @@ export function App() {
         if (issue.id !== issueId) return issue;
         const updatedResponses = issue.responses.map(resp => {
           if (resp.id !== submissionId) return resp;
-          parentSubmission = resp;
           return {
             ...resp,
             replies: [...(resp.replies || []), reply]
@@ -1115,11 +1230,6 @@ export function App() {
     recordEngagementAction('inline_reply', targetIssue?.title || 'Issue comment reply');
     apiRecordReply(issueId, submissionId, reply);
 
-    // Notify admin
-    const foundSubmission = parentSubmission || targetIssue?.responses.find(r => r.id === submissionId);
-    if (targetIssue && foundSubmission) {
-      notifyAdminReplyAdded(reply, foundSubmission, targetIssue.title, currentUser);
-    }
   };
 
   // Handle like on a comment reply
@@ -1833,6 +1943,27 @@ export function App() {
         colorTone={colorTone}
         onToggleColorTone={handleToggleColorTone}
       />
+
+      {/* X / Instagram Style Floating New Updates Pill */}
+      {pendingNewIssues.length > 0 && currentView === 'app' && (
+        <div className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-40 animate-slide-up pointer-events-auto">
+          <button
+            type="button"
+            onClick={handleRefreshToTop}
+            className="group flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white shadow-xl shadow-brand-600/35 border border-white/25 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-md"
+            title="Click to view new updates and scroll to top"
+          >
+            <ArrowUp className="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform shrink-0" />
+            <span className="text-xs sm:text-sm font-extrabold tracking-tight">
+              {pendingNewIssues.length === 1 ? '1 new question' : `${pendingNewIssues.length} new questions`}
+            </span>
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 w-full flex-1 space-y-5">

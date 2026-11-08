@@ -67,10 +67,19 @@ export function loadIssues(): Issue[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [];
     }
+    const userVotes = getUserVotesMap();
     // Verify each issue has essential structure, filter out deleted and any old hardcoded mock issues
     const valid = parsed
       .filter(i => i && typeof i === 'object' && typeof i.id === 'string' && Array.isArray(i.responses))
-      .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id));
+      .filter(i => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
+      .map(i => {
+        const uv = userVotes[i.id];
+        let yes = typeof i.yesCount === 'number' ? i.yesCount : 0;
+        let no = typeof i.noCount === 'number' ? i.noCount : 0;
+        if (uv?.choice === 'YES' && yes === 0) yes = 1;
+        if (uv?.choice === 'NO' && no === 0) no = 1;
+        return { ...i, yesCount: yes, noCount: no };
+      });
 
     return valid;
   } catch (err) {
@@ -137,21 +146,31 @@ export async function fetchServerIssues(): Promise<Issue[] | null> {
 }
 
 /**
- * Asynchronously sends an atomic vote to SQLite backend in the background
+ * Asynchronously sends an atomic vote to SQLite backend in the background and returns updated counts
  */
-export async function apiRecordVote(submission: VoteSubmission): Promise<void> {
-  if (typeof window === 'undefined') return;
+export async function apiRecordVote(
+  submission: VoteSubmission, 
+  issueTitle?: string
+): Promise<{ success: boolean; yesCount?: number; noCount?: number; submissionId?: string } | null> {
+  if (typeof window === 'undefined') return null;
   try {
-    await fetch('/api-issues.php', {
+    const res = await fetch('/api-issues.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'vote',
+        issueTitle,
         ...submission,
       }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+    return null;
   } catch (err) {
     console.warn('Background vote sync queued/deferred:', err);
+    return null;
   }
 }
 
