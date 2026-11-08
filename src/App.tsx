@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   loadIssues, saveIssues, getUserVotesMap, recordUserVote, resetToDefaults,
   getUserLikesMap, saveUserLikesMap, getUserFavoritesMap, saveUserFavoritesMap,
-  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds,
+  fetchServerIssues, recordDeletedIssueId, getDeletedIssueIds, LEGACY_MOCK_ISSUE_IDS,
   apiRecordVote, apiRecordReply, apiRecordReaction, apiRecordDeleteIssue
 } from './utils/storage';
-import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail } from './utils/auth';
+import { getStoredUser, saveStoredUser, TOP_CREATORS_AND_VOTERS, isAdminUser, getSavedProfileByEmail, fetchServerProfileByEmail } from './utils/auth';
 import { 
   getInitialTheme, applyTheme, ThemeMode, 
   getInitialColorTone, applyColorTone, ColorTone 
@@ -90,6 +90,7 @@ export function App() {
   const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
 
   const [issues, setIssues] = useState<Issue[]>(() => loadIssues());
+  const [isInitialLoadingIssues, setIsInitialLoadingIssues] = useState(true);
   const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
   const [userLikes, setUserLikes] = useState<Record<string, boolean>>(() => getUserLikesMap());
   const [userFavorites, setUserFavorites] = useState<Record<string, boolean>>(() => getUserFavoritesMap());
@@ -227,6 +228,52 @@ export function App() {
   useEffect(() => {
     if (isOnboardingOpen) recordPageView('modal:onboarding');
   }, [isOnboardingOpen]);
+
+  // Multi-Device Profile Sync: ensure latest interests/region/votes from another device update seamlessly
+  useEffect(() => {
+    if (currentUser?.email) {
+      fetchServerProfileByEmail(currentUser.email).then(serverProf => {
+        if (serverProf) {
+          setCurrentUser(prev => {
+            if (!prev) return null;
+            const updated = {
+              ...prev,
+              ...serverProf,
+              username: serverProf.username || prev.username,
+              interests: (serverProf.interests && serverProf.interests.length > 0) ? serverProf.interests : prev.interests,
+              region: serverProf.region || prev.region,
+              onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
+            };
+            return updated;
+          });
+
+          if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
+            setUserVotes(prev => {
+              const m = { ...serverProf.votedIssues, ...prev };
+              try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+              return m;
+            });
+          }
+          if (serverProf.likedIssueIds && serverProf.likedIssueIds.length > 0) {
+            setUserLikes(prev => {
+              const m = { ...prev };
+              serverProf.likedIssueIds?.forEach(id => { m[id] = true; });
+              saveUserLikesMap(m);
+              return m;
+            });
+          }
+          if (serverProf.favoriteIssueIds && serverProf.favoriteIssueIds.length > 0) {
+            setUserFavorites(prev => {
+              const m = { ...prev };
+              serverProf.favoriteIssueIds?.forEach(id => { m[id] = true; });
+              saveUserFavoritesMap(m);
+              return m;
+            });
+          }
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   // Analytics: Debounced search query telemetry
   useEffect(() => {
@@ -487,15 +534,16 @@ export function App() {
   useEffect(() => {
     const syncFromCloud = () => {
       fetchServerIssues().then((serverIssues) => {
+        setIsInitialLoadingIssues(false);
         if (serverIssues && serverIssues.length > 0) {
           setIssues((prev) => {
             const deletedIds = getDeletedIssueIds();
             const map = new Map<string, Issue>();
             serverIssues
-              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => map.set(i.id, i));
             prev
-              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor)
+              .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => {
                 if (!map.has(i.id)) map.set(i.id, i);
               });
@@ -504,6 +552,8 @@ export function App() {
             return merged;
           });
         }
+      }).catch(() => {
+        setIsInitialLoadingIssues(false);
       });
     };
 
@@ -533,6 +583,33 @@ export function App() {
       window.location.hash = 'app';
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
+      // Hydrate user votes, likes, favorites across devices
+      if (user.votedIssues && Object.keys(user.votedIssues).length > 0) {
+        setUserVotes(prev => {
+          const merged = { ...user.votedIssues, ...prev };
+          try {
+            localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+      if (user.likedIssueIds && user.likedIssueIds.length > 0) {
+        setUserLikes(prev => {
+          const merged = { ...prev };
+          user.likedIssueIds?.forEach(id => { merged[id] = true; });
+          saveUserLikesMap(merged);
+          return merged;
+        });
+      }
+      if (user.favoriteIssueIds && user.favoriteIssueIds.length > 0) {
+        setUserFavorites(prev => {
+          const merged = { ...prev };
+          user.favoriteIssueIds?.forEach(id => { merged[id] = true; });
+          saveUserFavoritesMap(merged);
+          return merged;
+        });
+      }
+
       // Notify admin email on registration vs login
       const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
       if (isNewUser) {
@@ -541,7 +618,43 @@ export function App() {
       notifyAdminUserLoggedIn(user, 'Account Sign-In');
 
       if (!user.onboardingCompleted) {
-        setIsOnboardingOpen(true);
+        // Double-check server in case onboarding was already completed on another device
+        fetchServerProfileByEmail(user.email).then(serverProf => {
+          if (serverProf && (serverProf.onboardingCompleted || (serverProf.interests && serverProf.interests.length > 0))) {
+            const merged: UserProfile = { ...user, ...serverProf, onboardingCompleted: true };
+            setCurrentUser(merged);
+            saveStoredUser(merged);
+            setIsOnboardingOpen(false);
+            addToast('success', `Welcome back, ${merged.name}`);
+            if (serverProf.votedIssues) {
+              setUserVotes(prev => {
+                const m = { ...serverProf.votedIssues, ...prev };
+                try { localStorage.setItem('yesorno_user_votes_v1', JSON.stringify(m)); } catch {}
+                return m;
+              });
+            }
+            if (serverProf.likedIssueIds) {
+              setUserLikes(prev => {
+                const m = { ...prev };
+                serverProf.likedIssueIds?.forEach(id => { m[id] = true; });
+                saveUserLikesMap(m);
+                return m;
+              });
+            }
+            if (serverProf.favoriteIssueIds) {
+              setUserFavorites(prev => {
+                const m = { ...prev };
+                serverProf.favoriteIssueIds?.forEach(id => { m[id] = true; });
+                saveUserFavoritesMap(m);
+                return m;
+              });
+            }
+          } else {
+            setIsOnboardingOpen(true);
+          }
+        }).catch(() => {
+          setIsOnboardingOpen(true);
+        });
       } else {
         addToast('success', `Signed in as ${user.name}`);
       }
@@ -659,10 +772,18 @@ export function App() {
 
     const savedResponseId = hasContent ? submission.id : existingVote?.responseId;
     recordUserVote(submission.issueId, submission.choice, savedResponseId);
-    setUserVotes(prev => ({
-      ...prev,
-      [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
-    }));
+    setUserVotes(prev => {
+      const nextVotes = {
+        ...prev,
+        [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
+      };
+      if (currentUser) {
+        const updatedUser: UserProfile = { ...currentUser, votedIssues: nextVotes };
+        setCurrentUser(updatedUser);
+        saveStoredUser(updatedUser);
+      }
+      return nextVotes;
+    });
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
@@ -1169,6 +1290,12 @@ export function App() {
     }
     setUserLikes(nextLikes);
     saveUserLikesMap(nextLikes);
+    if (currentUser) {
+      const likedArr = Object.keys(nextLikes).filter(k => nextLikes[k]);
+      const updatedUser: UserProfile = { ...currentUser, likedIssueIds: likedArr };
+      setCurrentUser(updatedUser);
+      saveStoredUser(updatedUser);
+    }
 
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {
@@ -1209,6 +1336,12 @@ export function App() {
     }
     setUserFavorites(nextFavs);
     saveUserFavoritesMap(nextFavs);
+    if (currentUser) {
+      const favArr = Object.keys(nextFavs).filter(k => nextFavs[k]);
+      const updatedUser: UserProfile = { ...currentUser, favoriteIssueIds: favArr };
+      setCurrentUser(updatedUser);
+      saveStoredUser(updatedUser);
+    }
 
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {
@@ -1564,7 +1697,12 @@ export function App() {
 
   // Main Authenticated Issue Workspace
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 pb-20 sm:pb-12 transition-colors">
+    <div 
+      className="min-h-screen bg-slate-50 dark:bg-ink-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors"
+      style={{
+        paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
+    >
       {/* Navigation */}
       <Navbar
         selectedCategory={selectedCategory}
@@ -1771,7 +1909,12 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {issues.length === 0 ? (
+            {isInitialLoadingIssues && issues.length === 0 ? (
+              <div className="card p-10 sm:p-12 text-center space-y-3">
+                <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Loading community issues from database...</p>
+              </div>
+            ) : issues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
                 <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Vote className="w-6 h-6" />
@@ -1878,11 +2021,19 @@ export function App() {
           </>
         )}
         {/* Spacer for bottom navigation spacing */}
-        <div className="h-16 sm:h-8" />
+        <div 
+          className="sm:h-8" 
+          style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} 
+        />
       </main>
 
       {/* Mobile Sticky Bottom Bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl py-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift">
+      <div 
+        className="sm:hidden fixed bottom-0 left-0 right-0 bg-ink-950/95 backdrop-blur-xl pt-2.5 px-4 z-40 flex items-center justify-around text-[11px] font-semibold text-slate-400 shadow-lift border-t border-white/5 mobile-bottom-nav"
+        style={{
+          paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))',
+        }}
+      >
         <button
           onClick={() => handleNavigate('app')}
           className={`flex flex-col items-center gap-1 transition-colors ${

@@ -130,7 +130,11 @@ export const VoteModal: React.FC<Props> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto overscroll-contain space-y-4 flex-1">
+        <form 
+          onSubmit={handleSubmit} 
+          className="p-5 overflow-y-auto overscroll-contain space-y-4 flex-1"
+          style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           {isClosed && (
             <div className="p-3 bg-ink-900 text-white rounded-2xl text-xs flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-400 shrink-0" />

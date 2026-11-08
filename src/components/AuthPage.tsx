@@ -5,7 +5,7 @@ import {
   Sun, Moon, ShieldCheck, X, Palette
 } from 'lucide-react';
 import { UserProfile, AppView } from '../types';
-import { DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, isLocalEnvironment, decodeGoogleJwt, getSavedProfileByEmail } from '../utils/auth';
+import { DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, isLocalEnvironment, decodeGoogleJwt, getSavedProfileByEmail, fetchServerProfileByEmail, saveStoredUser } from '../utils/auth';
 import { ThemeMode, ColorTone } from '../utils/theme';
 
 interface Props {
@@ -75,32 +75,59 @@ export const AuthPage: React.FC<Props> = ({
   const [showGoogleChooser, setShowGoogleChooser] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
   const [customGoogleName, setCustomGoogleName] = useState('');
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
   const isLocal = isLocalEnvironment();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Helper to merge any previously saved profile preferences (region, interests, followingCreators)
-  const selectUserWithSavedPrefs = (baseUser: UserProfile, forceOnboarding = false) => {
-    const saved = getSavedProfileByEmail(baseUser.email);
-    const cleanUsername = baseUser.username || (baseUser.email ? baseUser.email.split('@')[0].replace(/[^a-z0-9_]/g, '_') : undefined);
+  // Cross-device sync: checks localStorage AND server database before deciding if onboarding is needed
+  const selectUserWithSavedPrefs = async (baseUser: UserProfile, forceOnboarding = false) => {
+    setIsSubmittingAuth(true);
+    let saved = getSavedProfileByEmail(baseUser.email);
+
+    // If local storage doesn't have an onboardingCompleted profile, check the server database!
+    if (!saved || !saved.onboardingCompleted) {
+      try {
+        const serverProfile = await fetchServerProfileByEmail(baseUser.email);
+        if (serverProfile) {
+          saved = serverProfile;
+        }
+      } catch (err) {
+        console.warn('Server profile fetch check error:', err);
+      }
+    }
+
+    const cleanUsername = (saved && saved.username) || baseUser.username || (baseUser.email ? baseUser.email.split('@')[0].replace(/[^a-z0-9_]/g, '_') : undefined);
     if (saved && !forceOnboarding) {
-      onSelectUser({
+      const mergedUser: UserProfile = {
         ...baseUser,
         ...saved,
-        username: saved.username || cleanUsername,
+        username: cleanUsername,
         displayPreference: saved.displayPreference || 'username',
         name: saved.name || baseUser.name,
         avatar: saved.avatar || baseUser.avatar,
-      });
+        interests: (saved.interests && saved.interests.length > 0) ? saved.interests : baseUser.interests,
+        region: saved.region || baseUser.region,
+        votedIssues: saved.votedIssues || baseUser.votedIssues,
+        likedIssueIds: saved.likedIssueIds || baseUser.likedIssueIds,
+        favoriteIssueIds: saved.favoriteIssueIds || baseUser.favoriteIssueIds,
+        onboardingCompleted: saved.onboardingCompleted ?? Boolean(saved.interests && saved.interests.length > 0),
+      };
+      saveStoredUser(mergedUser);
+      onSelectUser(mergedUser);
     } else {
-      onSelectUser({
+      const newUser: UserProfile = {
         ...baseUser,
         username: cleanUsername,
         displayPreference: baseUser.displayPreference || 'username',
         onboardingCompleted: forceOnboarding ? false : (baseUser.onboardingCompleted ?? false),
-      });
+      };
+      saveStoredUser(newUser);
+      onSelectUser(newUser);
     }
+    setIsSubmittingAuth(false);
   };
 
   // Initialize real Google Identity Services if VITE_GOOGLE_CLIENT_ID is configured
@@ -164,7 +191,7 @@ export const AuthPage: React.FC<Props> = ({
     setSelectedGroups(selectedGroups.filter(item => item !== g));
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
 
@@ -183,16 +210,16 @@ export const AuthPage: React.FC<Props> = ({
       onboardingCompleted: false
     };
 
-    selectUserWithSavedPrefs(newUser, true);
+    await selectUserWithSavedPrefs(newUser, true);
     onNavigate('app');
   };
 
-  const handleCustomGoogleSignIn = (e: React.FormEvent) => {
+  const handleCustomGoogleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customGoogleEmail.trim()) return;
     const derivedName = customGoogleName.trim() || customGoogleEmail.split('@')[0];
     const derivedUsername = customGoogleEmail.split('@')[0].replace(/[^a-z0-9_]/g, '_');
-    selectUserWithSavedPrefs({
+    await selectUserWithSavedPrefs({
       id: `google-${Date.now()}`,
       name: derivedName,
       username: derivedUsername,
@@ -209,7 +236,12 @@ export const AuthPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Top Bar */}
-      <div className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between">
+      <div 
+        className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-xs px-4 sm:px-8 py-3 flex items-center justify-between pwa-safe-top"
+        style={{
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+        }}
+      >
         <div 
           onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
           className="flex items-center gap-2 cursor-pointer"
@@ -388,14 +420,14 @@ export const AuthPage: React.FC<Props> = ({
 
           {tab === 'signin' ? (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                if (!email) return;
+                if (!email || isSubmittingAuth) return;
                 const found = DEMO_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
                 if (found) {
-                  selectUserWithSavedPrefs(found);
+                  await selectUserWithSavedPrefs(found);
                 } else {
-                  selectUserWithSavedPrefs({
+                  await selectUserWithSavedPrefs({
                     id: `user-${Date.now()}`,
                     name: email.split('@')[0],
                     email,
@@ -440,8 +472,12 @@ export const AuthPage: React.FC<Props> = ({
                 </div>
               </div>
 
-              <button type="submit" className="btn-brand w-full py-3 shadow-lift cursor-pointer">
-                Sign In &amp; Open Issues
+              <button 
+                type="submit" 
+                disabled={isSubmittingAuth}
+                className="btn-brand w-full py-3 shadow-lift cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingAuth ? 'Signing In & Loading Profile...' : 'Sign In & Open Issues'}
               </button>
             </form>
           ) : (

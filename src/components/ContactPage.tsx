@@ -140,7 +140,12 @@ export const ContactPage: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors">
       {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-40 bg-white/80 dark:bg-ink-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-white/10">
+      <nav 
+        className="sticky top-0 z-40 bg-white/80 dark:bg-ink-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-white/10 pwa-safe-top"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button

@@ -23,7 +23,7 @@ export const DEMO_USERS: UserProfile[] = import.meta.env.DEV
       {
         id: 'user-elena',
         name: 'Elena Rostova',
-        email: 'elena@civic.board',
+        email: 'elena@yesorno.chillon.top',
         role: 'District 4 Council Rep',
         avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
         groups: ['District 4 Council', 'Downtown Taskforce', 'Planning Commission']
@@ -216,6 +216,57 @@ export function getSavedProfileByEmail(email: string): UserProfile | null {
   }
 }
 
+/**
+ * Asynchronously fetch a user's saved profile from the server database (enables cross-device sync)
+ */
+export async function fetchServerProfileByEmail(email: string): Promise<UserProfile | null> {
+  if (!email || !email.trim()) return null;
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const res = await fetch(`/api-issues.php?action=get_profile&email=${encodeURIComponent(cleanEmail)}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.success && data.profile && typeof data.profile === 'object') {
+      const serverProfile = data.profile as UserProfile;
+      // Cache to local storage so subsequent offline lookups are fast
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_PROFILES_BY_EMAIL);
+        const map = raw ? JSON.parse(raw) : {};
+        map[cleanEmail] = serverProfile;
+        localStorage.setItem(STORAGE_KEY_PROFILES_BY_EMAIL, JSON.stringify(map));
+      } catch {}
+      return serverProfile;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch user profile from server:', err);
+  }
+  return null;
+}
+
+/**
+ * Asynchronously sync a user profile to the server database
+ */
+export async function saveServerProfile(profile: UserProfile): Promise<boolean> {
+  if (!profile || !profile.email) return false;
+  try {
+    await fetch('/api-issues.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_profile',
+        profile
+      })
+    });
+    return true;
+  } catch (err) {
+    console.warn('Failed to sync user profile to server:', err);
+    return false;
+  }
+}
+
 export function saveStoredUser(user: UserProfile | null): void {
   try {
     if (user) {
@@ -226,6 +277,8 @@ export function saveStoredUser(user: UserProfile | null): void {
         const map = raw ? JSON.parse(raw) : {};
         map[user.email.trim().toLowerCase()] = user;
         localStorage.setItem(STORAGE_KEY_PROFILES_BY_EMAIL, JSON.stringify(map));
+        // And asynchronously sync to server database so all devices stay in sync
+        saveServerProfile(user).catch(() => {});
       }
     } else {
       localStorage.removeItem(STORAGE_KEY_AUTH);

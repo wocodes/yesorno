@@ -24,6 +24,7 @@ if (!is_dir($dataDir)) {
 
 $dbPath = $dataDir . '/yesorno.sqlite';
 $jsonFallbackPath = $dataDir . '/issues.json';
+$profilesFallbackPath = $dataDir . '/user_profiles.json';
 
 // Initialize SQLite connection or fallback
 function get_database_connection($dbPath, $jsonFallbackPath) {
@@ -116,10 +117,17 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
                 UNIQUE(target_type, target_id, user_key, emoji)
             );
 
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                email TEXT PRIMARY KEY,
+                user_data TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_issues_updated ON issues(updated_at);
             CREATE INDEX IF NOT EXISTS idx_responses_issue ON responses(issue_id);
             CREATE INDEX IF NOT EXISTS idx_replies_sub ON replies(submission_id);
             CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(target_type, target_id);
+            CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email);
         ");
 
         // Migrate existing JSON data if SQLite database is completely fresh
@@ -695,6 +703,82 @@ function handle_atomic_reaction(PDO $pdo, array $payload) {
 }
 
 // -------------------------------------------------------------
+// USER PROFILE PERSISTENCE (Multi-Device Sync)
+// -------------------------------------------------------------
+
+function handle_get_user_profile(?PDO $pdo, string $email, string $profilesFallbackPath): ?array {
+    $emailKey = strtolower(trim($email));
+    if ($emailKey === '') return null;
+
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(email) = :email LIMIT 1");
+            $stmt->execute([':email' => $emailKey]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['user_data'])) {
+                $decoded = json_decode($row['user_data'], true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        } catch (Exception $e) {
+            error_log('Error fetching user profile from SQLite: ' . $e->getMessage());
+        }
+    }
+
+    if (file_exists($profilesFallbackPath)) {
+        $raw = @file_get_contents($profilesFallbackPath);
+        $map = $raw ? json_decode($raw, true) : null;
+        if (is_array($map) && isset($map[$emailKey]) && is_array($map[$emailKey])) {
+            return $map[$emailKey];
+        }
+    }
+
+    return null;
+}
+
+function handle_save_user_profile(?PDO $pdo, array $profile, string $profilesFallbackPath): array {
+    $emailKey = strtolower(trim($profile['email'] ?? ''));
+    if ($emailKey === '') {
+        return ['success' => false, 'error' => 'Invalid or missing email'];
+    }
+
+    $json = json_encode($profile);
+    $now = gmdate('Y-m-d\TH:i:s\Z');
+
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO user_profiles (email, user_data, updated_at) 
+                VALUES (:email, :user_data, :updated_at)
+                ON CONFLICT(email) DO UPDATE SET 
+                    user_data = :user_data,
+                    updated_at = :updated_at
+            ");
+            $stmt->execute([
+                ':email' => $emailKey,
+                ':user_data' => $json,
+                ':updated_at' => $now
+            ]);
+            return ['success' => true];
+        } catch (Exception $e) {
+            error_log('Error saving user profile to SQLite: ' . $e->getMessage());
+        }
+    }
+
+    // JSON file fallback
+    try {
+        $map = file_exists($profilesFallbackPath) ? json_decode(@file_get_contents($profilesFallbackPath), true) : [];
+        if (!is_array($map)) $map = [];
+        $map[$emailKey] = $profile;
+        @file_put_contents($profilesFallbackPath, json_encode($map, JSON_PRETTY_PRINT));
+        return ['success' => true, 'fallback' => true];
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+// -------------------------------------------------------------
 // MAIN CONTROLLER EXECUTION
 // -------------------------------------------------------------
 
@@ -705,6 +789,12 @@ $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? 
 if (!$pdo) {
     // Pure JSON file fallback mode
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (isset($_GET['action']) && $_GET['action'] === 'get_profile') {
+            $email = trim($_GET['email'] ?? '');
+            $profile = handle_get_user_profile(null, $email, $profilesFallbackPath);
+            echo json_encode(['success' => true, 'profile' => $profile]);
+            exit;
+        }
         if (file_exists($jsonFallbackPath)) {
             echo @file_get_contents($jsonFallbackPath) ?: json_encode([]);
         } else {
@@ -717,6 +807,19 @@ if (!$pdo) {
         $raw = file_get_contents('php://input');
         $payload = json_decode($raw, true);
         if ($payload) {
+            $act = $payload['action'] ?? null;
+            if ($act === 'get_profile') {
+                $email = trim($payload['email'] ?? '');
+                $profile = handle_get_user_profile(null, $email, $profilesFallbackPath);
+                echo json_encode(['success' => true, 'profile' => $profile]);
+                exit;
+            }
+            if ($act === 'save_profile') {
+                $prof = $payload['profile'] ?? null;
+                $res = handle_save_user_profile(null, is_array($prof) ? $prof : [], $profilesFallbackPath);
+                echo json_encode($res);
+                exit;
+            }
             @file_put_contents($jsonFallbackPath, json_encode($payload['issues'] ?? $payload, JSON_PRETTY_PRINT));
             echo json_encode(['success' => true, 'mode' => 'json_fallback']);
             exit;
@@ -729,6 +832,13 @@ if (!$pdo) {
 // SQLITE-POWERED API
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (isset($_GET['action']) && $_GET['action'] === 'get_profile') {
+        $email = trim($_GET['email'] ?? '');
+        $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
+        echo json_encode(['success' => true, 'profile' => $profile]);
+        exit;
+    }
+
     $since = isset($_GET['since']) ? $_GET['since'] : null;
     $data = fetch_hydrated_issues_sqlite($pdo, $since);
     echo json_encode($data);
@@ -748,6 +858,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $payload['action'] ?? ($action ?? 'batch');
 
     switch ($action) {
+        case 'get_profile':
+            $email = trim($payload['email'] ?? '');
+            $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
+            echo json_encode(['success' => true, 'profile' => $profile]);
+            exit;
+
+        case 'save_profile':
+            $userProfile = $payload['profile'] ?? null;
+            if (!is_array($userProfile) || empty($userProfile['email'])) {
+                echo json_encode(['success' => false, 'error' => 'Missing profile or email']);
+                exit;
+            }
+            $res = handle_save_user_profile($pdo, $userProfile, $profilesFallbackPath);
+            echo json_encode($res);
+            exit;
+
         case 'vote':
             $res = handle_atomic_vote($pdo, $payload);
             echo json_encode($res);
