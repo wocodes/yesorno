@@ -87,6 +87,25 @@ if ($titleParam !== '') {
     '<meta property="og:url" content="' . $canonicalUrl . '" />',
     $html
   );
+
+  // Ensure absolute OpenGraph and Twitter card image URLs
+  $defaultImage = $protocol . '://' . $host . '/og-image.png';
+  $imageUrl = isset($_GET['img']) && !empty($_GET['img']) ? htmlspecialchars($_GET['img'], ENT_QUOTES, 'UTF-8') : $defaultImage;
+  $html = preg_replace(
+    '/<meta\s+property="og:image"\s+content=".*?"\s*\/?>/i',
+    '<meta property="og:image" content="' . $imageUrl . '" />',
+    $html
+  );
+  $html = preg_replace(
+    '/<meta\s+property="og:image:secure_url"\s+content=".*?"\s*\/?>/i',
+    '<meta property="og:image:secure_url" content="' . $imageUrl . '" />',
+    $html
+  );
+  $html = preg_replace(
+    '/<meta\s+name="twitter:image"\s+content=".*?"\s*\/?>/i',
+    '<meta name="twitter:image" content="' . $imageUrl . '" />',
+    $html
+  );
 }
 
 header('Content-Type: text/html; charset=UTF-8');

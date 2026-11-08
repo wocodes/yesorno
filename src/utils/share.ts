@@ -123,4 +123,12 @@ export function updateDocumentMetaForIssue(issue: Issue | null): void {
   setMeta('meta[property="og:url"]', canonicalUrl);
   setMeta('meta[name="twitter:title"]', title);
   setMeta('meta[name="twitter:description"]', desc);
+
+  const imageUrl = issue && issue.images && issue.images.length > 0
+    ? (issue.images[0].startsWith('http') ? issue.images[0] : `${origin}${issue.images[0]}`)
+    : `${origin}/og-image.png`;
+
+  setMeta('meta[property="og:image"]', imageUrl);
+  setMeta('meta[property="og:image:secure_url"]', imageUrl);
+  setMeta('meta[name="twitter:image"]', imageUrl);
 }
