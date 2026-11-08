@@ -86,173 +86,220 @@ export function markSlotCompleted(slotKey: string): void {
 }
 
 /**
- * Curated simple, polarizing everyday fallback questions by category
+ * Curated authentic, rage-baiting Nigerian debate fallback questions by category.
+ * Crafted specifically as a Nigerian for Nigerians, strictly requiring a YES or NO answer
+ * with a balanced, punchy explanation of the heated debate on both sides.
  */
 const CURATED_POLARIZING_QUESTIONS: Record<string, { title: string; description: string; tags: string[] }[]> = {
   'Counselling': [
     {
-      title: 'Should I confront a close friend who never paid back borrowed money?',
-      description: 'Many argue that direct, honest communication is essential to prevent lingering resentment. Others say bringing up unpaid money can permanently rupture a long-standing friendship.',
-      tags: ['Counselling', 'Friendship', 'LifeAdvice']
+      title: 'Should you cancel a wedding if you discover you and your partner are both AS genotype weeks before the date?',
+      description: 'Medical realists insist that subjecting an innocent child to the lifelong agony of sickle cell disease is an avoidable tragedy. Faith-driven romantics argue that modern medicine, prenatal testing, and divine miracles will prevail over biology.',
+      tags: ['Counselling', 'Genotype', 'MarriageDilemma', 'Nigeria']
     },
     {
-      title: 'Should you cut off contact with toxic family members to protect your peace?',
-      description: 'Advocates say mental health and personal boundaries must come before unconditional loyalty. Traditionalists believe family ties are lifelong and require endurance and forgiveness.',
-      tags: ['Counselling', 'Family', 'MentalHealth']
+      title: 'Should you cut off your parents financially if their endless demands are draining your life savings?',
+      description: 'Advocates of boundaries say generational poverty will continue unless young people protect their personal financial stability. Traditionalists insist that parents sacrificed everything to raise you and cutting them off brings generational bad luck.',
+      tags: ['Counselling', 'BlackTax', 'FamilyBoundaries', 'LifeAdvice']
     },
     {
-      title: 'Should I stay in a safe, comfortable job instead of pursuing my risky dream?',
-      description: 'Pragmatists emphasize financial security, predictable stability, and peace of mind. Dreamers argue that lingering regret over never trying is far more painful than temporary failure.',
-      tags: ['Counselling', 'Career', 'LifeChoices']
-    }
-  ],
-  'Business': [
-    {
-      title: 'Should stores and restaurants be required to accept cash payments?',
-      description: 'Supporters say rejecting cash excludes the elderly, unbanked, and privacy-conscious. Business owners argue cashless checkout is faster, cleaner, and safer from theft.',
-      tags: ['Business', 'Money', 'Shopping']
-    },
-    {
-      title: 'Should tip prompts be banned at self-service takeout counters?',
-      description: 'Customers feel pressured by digital tip screens for simple grab-and-go orders. Workers argue tip pooling supplements their hourly base wage in high-cost cities.',
-      tags: ['Business', 'Tipping', 'Dining']
-    },
-    {
-      title: 'Should companies be banned from sending work messages after hours?',
-      description: 'Advocates say workers deserve protected rest to prevent burnout. Employers contend flexible hours require asynchronous communication across time zones.',
-      tags: ['Business', 'WorkLife', 'Productivity']
+      title: 'Should a woman lend her personal emergency savings to her husband if he refuses to disclose his full business finances?',
+      description: 'Supporters believe marital devotion requires standing by your spouse during financial crisis without demanding a balance sheet. Skeptics argue that blind financial rescue in the face of secrecy and poor accountability leads straight to marital regret.',
+      tags: ['Counselling', 'Marriage', 'Finances', 'Trust']
     }
   ],
   'Gender': [
     {
-      title: 'Should men and women always split the bill 50/50 on a first date?',
-      description: 'Many argue that splitting evenly establishes mutual respect and modern equality right away. Traditionalists maintain that whoever asks for the date should gladly treat.',
-      tags: ['Gender', 'Dating', 'Relationships']
+      title: 'If a lady invites three of her female friends to a first date, should the man refuse to pay for her friends?',
+      description: 'Men argue a first date is strictly an intimate get-to-know-you meeting, not a free banquet for an uninvited entourage. Defenders claim an intentional, generous gentleman should comfortably settle the entire bill without making a petty scene.',
+      tags: ['Gender', 'Dating', 'FirstDateBills', 'Entitlement']
     },
     {
-      title: 'Should paternity leave for new fathers be mandatory rather than optional?',
-      description: 'Proponents say mandatory leave supports mothers, reduces career penalties, and bonds dads with infants. Critics say families should be free to decide what works best for them.',
-      tags: ['Gender', 'Parenting', 'Family']
+      title: 'Should a married woman contribute 50/50 to house rent and family upkeep if she earns more than her husband?',
+      description: 'Modernists maintain that genuine equality means sharing household financial burdens in proportion to earnings. Cultural and religious traditionalists insist that providing shelter remains strictly the husband’s non-negotiable obligation.',
+      tags: ['Gender', '5050Rent', 'MarriageUpkeep', 'Relationships']
     },
     {
-      title: 'Should professional sports offer identical prize money for men and women?',
-      description: 'Supporters believe equal athletic dedication deserves equal financial prize money. Detractors argue tournament purses must reflect broadcast audience and ticket revenue.',
-      tags: ['Gender', 'Sports', 'EqualPay']
+      title: 'Should a man demand a full refund of bride price and wedding expenses if his wife cheats within the first year of marriage?',
+      description: 'Aggrieved husbands argue that brazen unfaithfulness breaches the sacred marital compact and demands financial restitution. Critics counter that bride price is an ancestral family covenant of honour, not a commercial insurance policy.',
+      tags: ['Gender', 'BridePrice', 'Infidelity', 'Tradition']
     }
   ],
-  'Entertainment': [
+  'Business': [
     {
-      title: 'Should concert and comedy venues lock smartphones in pouches during shows?',
-      description: 'Fans and artists say phone bans restore full immersion without bright screens blocking views. Opponents believe paying attendees should be free to capture their own memories.',
-      tags: ['Entertainment', 'LiveMusic', 'Smartphones']
+      title: 'Should landlords and businesses in Nigeria be arrested if they demand rent or payment in US Dollars?',
+      description: 'Economic patriots insist dollarization undermines the Naira, spikes inflation, and exploits citizens earning local salaries. Property investors argue that severe currency devaluations make Naira pricing a guaranteed capital loss.',
+      tags: ['Business', 'DollarRent', 'NairaCrisis', 'RealEstate']
     },
     {
-      title: 'Is movie theater culture dying because of home streaming platforms?',
-      description: 'Cinema lovers insist nothing matches the collective magic of a giant screen and auditorium audio. Others prefer the convenience, comfort, and affordability of streaming on the couch.',
-      tags: ['Entertainment', 'Movies', 'Streaming']
+      title: 'Should young professionals leave a stable ₦2.5M monthly salary in Nigeria to take a minimum-wage care assistant job abroad?',
+      description: 'Japa enthusiasts point to 24/7 electricity, physical safety, sound healthcare, and a strong foreign passport. Critics argue that swapping high executive comfort, domestic help, and dignity for grueling shift work in harsh winters is a downgrade.',
+      tags: ['Business', 'JapaDilemma', 'Careers', 'Immigration']
     },
     {
-      title: 'Should video games ban paid loot boxes and random cosmetic microtransactions?',
-      description: 'Parents and consumer advocates argue loot boxes mimic gambling and exploit younger players. Game studios argue microtransactions keep big-budget online games free to play.',
-      tags: ['Entertainment', 'Gaming', 'ConsumerProtection']
+      title: 'Is it ethical for POS operators to charge ₦400 fee on a ₦5,000 cash withdrawal when banking ATMs are deliberately kept dry?',
+      description: 'Frustrated citizens view exorbitant POS surcharges as extortionate exploitation of everyday survival. Operators argue they queue for hours and pay hefty off-the-record fees to bank staff to procure physical cash.',
+      tags: ['Business', 'POSCharges', 'BankingCrisis', 'CashEconomy']
     }
   ],
   'Workplace & Career': [
     {
-      title: 'Should remote workers be paid less if they relocate to a cheaper city?',
-      description: 'Companies argue compensation packages should match local living costs. Workers argue salary should reward the exact same output and value regardless of address.',
-      tags: ['Workplace', 'RemoteWork', 'Salary']
+      title: 'Should employees completely ignore work-related WhatsApp messages and phone calls received after 7:00 PM?',
+      description: 'Mental health advocates insist that unchecked after-hours work demands induce severe depression and workplace burnout. Employers argue that in a volatile Nigerian business climate, agility and round-the-clock responsiveness keep the company alive.',
+      tags: ['Workplace', 'WorkLifeBalance', 'ToxicBosses', 'Careers']
     },
     {
-      title: 'Should a 4-day work week (32 hours) with no pay cut become standard?',
-      description: 'Global trials show a four-day week improves worker wellness and boosts productivity. Employers worry about coverage in emergency services, healthcare, and hospitality.',
-      tags: ['Workplace', '4DayWeek', 'Careers']
+      title: 'Is it dishonest to work a remote US or UK tech job during the official office hours of your Nigerian employer?',
+      description: 'Resourceful workers argue multiple hustles are justified survival tactics against inflation as long as core performance metrics are met. Corporate leaders contend taking two concurrent salaries on company time is contract breach and theft.',
+      tags: ['Workplace', 'Overemployment', 'RemoteWork', 'TechHustle']
     },
     {
-      title: 'Should companies allow employees to talk openly about their salaries?',
-      description: 'Pay openness protects workers from unfair bias and hidden underpayment. Skeptics worry that seeing coworker pay causes jealousy and team tension.',
-      tags: ['Workplace', 'Transparency', 'Compensation']
-    }
-  ],
-  'Politics & Policy': [
-    {
-      title: 'Should voting in national elections be legally mandatory for all adult citizens?',
-      description: 'Countries with mandatory voting enjoy over 90% civic participation and broader representation. Opponents argue the right to abstain is a fundamental democratic freedom.',
-      tags: ['Policy', 'Elections', 'Democracy']
-    },
-    {
-      title: 'Should public city transit be completely free for all local residents?',
-      description: 'Supporters argue zero-fare buses and trains cut traffic congestion, pollution, and poverty. Critics worry transit systems would face severe funding shortages and quality drops.',
-      tags: ['Policy', 'Transit', 'CityLife']
-    }
-  ],
-  'Community & Neighborhood': [
-    {
-      title: 'Should residential neighborhoods ban short-term Airbnb rentals year-round?',
-      description: 'Local residents argue vacation rentals inflate neighborhood rents and bring noise. Homeowners contend they should have full freedom to earn income from their own property.',
-      tags: ['Community', 'Housing', 'Neighborhood']
-    },
-    {
-      title: 'Should residential street parking remain free for all car owners?',
-      description: 'Drivers argue public roads are paid for by taxes and parking should be free. Urban planners believe free parking encourages car dependency and wastes public space.',
-      tags: ['Community', 'Parking', 'UrbanLiving']
-    }
-  ],
-  'Education & Campus': [
-    {
-      title: 'Should smartphones be completely banned in schools from bell to bell?',
-      description: 'Educators report dramatic improvements in classroom focus, student mental health, and test scores. Parents and students argue phones are necessary for safety and coordination.',
-      tags: ['Education', 'Schools', 'Smartphones']
-    },
-    {
-      title: 'Should universities replace traditional letter grades with pass or fail ratings?',
-      description: 'Advocates say pass/fail systems lower anxiety and foster a deeper love of learning. Opponents say grades motivate effort and give employers a clear measure of academic skill.',
-      tags: ['Education', 'College', 'Grading']
-    }
-  ],
-  'Environment & Climate': [
-    {
-      title: 'Should cities ban single-use plastic water bottles in public parks and events?',
-      description: 'Environmental advocates say plastic bans cut microplastic pollution and landfill waste. Opponents argue plastic bottles provide convenient and safe hydration on hot days.',
-      tags: ['Environment', 'Plastics', 'CleanEnergy']
+      title: 'Should Nigerian companies be prohibited by law from mandating employees to work on weekends without double pay?',
+      description: 'Labour defenders say unpaid weekend labour exploits workers and destroys family life. Business owners argue project deadlines and irregular power supplies make weekend work essential for operational survival.',
+      tags: ['Workplace', 'LabourRights', 'Overtime', 'CorporateNigeria']
     }
   ],
   'Family & Home': [
     {
-      title: 'Should parents monitor their teenagers’ private text messages and social media?',
-      description: 'Proponents say digital monitoring shields children from cyberbullying and predators. Opponents argue invading privacy damages family trust and stunts emotional maturity.',
-      tags: ['Family', 'Parenting', 'Privacy']
+      title: 'Should you reveal the exact amount of your monthly salary and bonuses to your extended family?',
+      description: 'Traditionalists argue transparency builds trust and strengthens communal solidarity in times of need. Seasoned earners warn that publicizing your pay triggers entitlement, jealousy, and endless requests for urgent 2k.',
+      tags: ['Family', 'SalarySecrecy', 'BlackTax', 'Kinship']
+    },
+    {
+      title: 'Should parents have the right to veto their child’s choice of spouse based purely on tribe or ethnic background?',
+      description: 'Elders maintain that shared cultural lineage, language, and ancestral customs protect marriage durability. The younger generation insists character, mutual love, and shared life goals supersede tribal prejudice.',
+      tags: ['Family', 'Tribalism', 'MarriageBlessing', 'Tradition']
+    },
+    {
+      title: 'Should a newly married couple allow in-laws to live with them indefinitely in their first year of marriage?',
+      description: 'Family traditionalists argue accommodating parents and siblings shows African hospitality and deep respect. Relationship experts argue in-law interference in the foundational first year creates resentment and ruins marital intimacy.',
+      tags: ['Family', 'InLaws', 'MaritalPrivacy', 'HomeLife']
+    }
+  ],
+  'Religious & Faith': [
+    {
+      title: 'Should a Christian prioritize paying 10% monthly tithe over paying the urgent hospital bill of a critically ill parent?',
+      description: 'Strict believers insist God’s covenant comes first and guarantees divine protection and supernatural provision. Critics argue scriptures condemn abandoning family welfare and that God desires mercy above religious sacrifice.',
+      tags: ['Faith', 'Tithing', 'ParentCare', 'Religion']
+    },
+    {
+      title: 'Should popular religious organizations in Nigeria be taxed like corporate business enterprises?',
+      description: 'Fiscal reformers argue modern megachurches operate massive commercial universities, hotels, and fleets that should fund public infrastructure. Religious bodies contend donations are sacred charitable trusts and taxing them infringes on religious freedom.',
+      tags: ['Faith', 'ChurchTax', 'PublicRevenue', 'ReligiousInstitutions']
+    },
+    {
+      title: 'Is it wrong to stop attending your family’s traditional church because you disagree with the pastor’s political endorsements?',
+      description: 'Independent worshipers believe faith is personal and spiritual spaces should never be turned into political campaign rallies. Loyalists believe leaving your home church over politics shows spiritual immaturity and disrespect for leadership.',
+      tags: ['Faith', 'PulpitPolitics', 'ChurchBelonging', 'SpiritualFreedom']
+    }
+  ],
+  'Entertainment': [
+    {
+      title: 'Is spraying crisp Naira notes at Owambe parties an irresponsible display of vanity in a struggling economy?',
+      description: 'Critics argue public cash spraying is ostentatious, fuels currency mutilation, and mocks millions battling severe hardship. Celebrants maintain it is an indispensable, joyful cultural art form that celebrates life and honours hosts.',
+      tags: ['Entertainment', 'Owambe', 'NairaSpraying', 'Culture']
+    },
+    {
+      title: 'Should Nigerian celebrities and influencers face criminal charges for promoting unlicensed sports betting and loan apps?',
+      description: 'Public welfare advocates argue influencers use their trust to trap vulnerable youth in debt, ruin, and gambling addiction. Influencers argue they are hired promoters and adult consumers must take personal responsibility for their choices.',
+      tags: ['Entertainment', 'Influencers', 'BettingApps', 'Accountability']
+    },
+    {
+      title: 'Is Afrobeats losing its authentic African essence and soul in an effort to appeal to American pop audiences?',
+      description: 'Purists lament that international label formulas are watering down native rhythms, street slang, and raw social commentary. Commercial realists argue global evolution, sold-out arena tours, and Grammy recognition validate the current sound.',
+      tags: ['Entertainment', 'Afrobeats', 'MusicCulture', 'NigerianMusic']
+    }
+  ],
+  'Economy & Finance': [
+    {
+      title: 'Should the Federal Government completely eliminate fuel subsidies and electricity tariffs without providing immediate cash palliatives?',
+      description: 'Free-market economists argue subsidies bankrupt the national treasury and subsidize smugglers instead of the truly poor. Everyday citizens argue overnight tariff hikes push millions into extreme poverty and shutter small businesses.',
+      tags: ['Economy', 'FuelSubsidy', 'ElectricityTariff', 'CostOfLiving']
+    },
+    {
+      title: 'Should cryptocurrency trading be fully recognized and integrated into Nigeria’s official banking financial system?',
+      description: 'Young investors argue crypto provides a vital hedge against currency depreciation and connects tech youth to global wealth. Financial regulators worry decentralized tokens enable money laundering, capital flight, and volatile financial speculation.',
+      tags: ['Economy', 'CryptoNigeria', 'CBN', 'Fintech']
+    }
+  ],
+  'Politics & Policy': [
+    {
+      title: 'Should lawmakers and top political office holders in Nigeria be placed on the national minimum wage?',
+      description: 'Citizens insist capping politician remuneration would end greed-driven governance and attract genuine servant-leaders. Political analysts argue elite leaders need competitive packages to deter bribery and maintain administrative capacity.',
+      tags: ['Policy', 'PoliticianSalaries', 'GoodGovernance', 'CivicReform']
+    },
+    {
+      title: 'Should Nigerians who fail to vote on election day be banned from renewing international passports and driver’s licenses?',
+      description: 'Proponents argue civic apathy allows corrupt godfathers to rule and mandatory voter turnout would transform election outcomes. Civil libertarians argue the freedom to abstain is a democratic right that must not be penalized with state sanctions.',
+      tags: ['Policy', 'Elections', 'VoterApathy', 'CivicDuty']
+    }
+  ],
+  'Community & Neighborhood': [
+    {
+      title: 'Should estate residents be fined if their domestic dogs bark incessantly through the night and disturb neighbors?',
+      description: 'Sleep-deprived neighbors argue residential peace is a fundamental right that negligent pet owners must respect. Dog owners insist guard dogs are critical security deterrents against armed robbers in residential neighborhoods.',
+      tags: ['Community', 'EstateLiving', 'NeighborEtiquette', 'NoisePollution']
+    },
+    {
+      title: 'Should street landlords lock community gates at 10:00 PM and bar late-returning tenants from driving inside?',
+      description: 'Security committees argue strict gate curfews prevent armed robberies and protect vulnerable families. Late-shift workers and emergency commuters argue locking out fee-paying residents on public streets is tyrannical.',
+      tags: ['Community', 'GatedEstates', 'SecurityCurfew', 'LagosLiving']
+    }
+  ],
+  'Education & Campus': [
+    {
+      title: 'Is a Nigerian university degree still worth the 4 to 6 years of investment given current graduate unemployment rates?',
+      description: 'Skeptics argue university curricula are hopelessly outdated and self-taught digital skills generate far higher financial returns. Traditionalists insist formal degrees open elite institutional doors and provide structured social development.',
+      tags: ['Education', 'DegreeVsSkills', 'ASUU', 'YouthEmployment']
+    },
+    {
+      title: 'Should lecturers who force university students to buy overpriced course handouts be dismissed immediately without benefits?',
+      description: 'Victimized students argue mandatory handout extortion turns academics into petty traders and victimizes poor scholars. Defending lecturers claim inadequate university funding and poor lecturer salaries leave them with no alternative to cover printing.',
+      tags: ['Education', 'CampusHandouts', 'UniversityReform', 'AcademicGreed']
+    }
+  ],
+  'Environment & Climate': [
+    {
+      title: 'Should governments ban small portable power generators (I better pass my neighbor) in crowded residential compounds?',
+      description: 'Health advocates say noxious generator fumes kill families in their sleep and cause chronic respiratory disease. Struggling families ask how they are supposed to preserve perishable food and study without national grid electricity.',
+      tags: ['Environment', 'GeneratorFumes', 'PowerSector', 'PublicHealth']
     }
   ]
 };
 
 /**
- * Calls Gemini to generate a fresh, simple, and polarizing YES/NO question
+ * Calls Gemini to generate a fresh, unique, and rage-baiting YES/NO question as a Nigerian for Nigerians
  */
-async function fetchGeminiQuestion(category: IssueCategory, region?: IssueRegion): Promise<{ title: string; description: string; tags: string[] }> {
+async function fetchGeminiQuestion(category: IssueCategory, _region?: IssueRegion): Promise<{ title: string; description: string; tags: string[] }> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('VITE_GEMINI_API_KEY not configured');
   }
 
-  const regionPromptContext = region && region !== 'Global / Remote'
-    ? `Ground the topic in everyday cultural, civic, or lifestyle realities relevant to people living in "${region}".`
-    : `Focus on globally relatable modern lifestyle and everyday civic dilemmas.`;
+  const prompt = `You are an expert Nigerian social commentator and viral community poll creator for the YesOrNo app.
+Your task is to generate 1 unique, authentic, and rage-baiting YES/NO debate question specifically crafted as a Nigerian for Nigerians in the category "${category}".
 
-  const prompt = `You are an engaging community poll writer for the YesOrNo app.
-Generate 1 simple, relatable, and polarizing YES/NO question for the category "${category}".
-${regionPromptContext}
+Cultural Inspiration for Nigerian Realities:
+- Dating & Marriage: 50/50 rent splitting, first date food bills, bride price refund, genotype incompatibility (AS & AS), in-laws living in the house, wedding list demands.
+- Family & Survival: Black tax vs personal savings, feeding struggling parents vs sending urgent 2k to cousins, parental career pressure.
+- Career & Hustle: Japa dilemmas (leaving high Lagos salary for minimum wage abroad), remote foreign tech job during Nigerian company office hours, toxic WhatsApp boss messages after 7pm.
+- Faith & Society: Paying church tithes vs paying parent hospital bills, taxing megachurches, pulpit politics.
+- Everyday Realities: Landlords charging rent in US Dollars, POS charges during cash scarcity, generator smoke/noise, spraying Naira at Owambe parties.
 
 Rules:
-1. Simplicity: Use plain, conversational, everyday language (around 7th grade reading level). Avoid dense, academic, legalistic, or complex corporate jargon.
-2. Question Format: A short, punchy question (under 14 words) starting with "Should...?" or "Is it time to...?" ending with "?".
-3. Polarization: Both YES and NO must be natural, defensible opinions that everyday people argue about.
-4. Description: Exactly 2 brief, simple sentences (Sentence 1: What supporters say. Sentence 2: What critics say).
-5. Return strict JSON matching:
+1. Tone: Highly provocative, relatable, culturally authentic, and rage-inducing — the exact kind of question that sparks a 5,000-comment viral debate on Nigerian Twitter/X.
+2. Question Format: A short, punchy question (under 16 words) starting with "Should...", "Is it wrong to...", "Would you...", or "Must a..." ending with a single "?".
+3. Strict Yes/No: It must require a definitive YES or NO choice.
+4. Description: Exactly 2 to 3 concise, punchy sentences explaining both sides:
+   - Sentence 1: Why the YES camp passionately defends their choice.
+   - Sentence 2: Why the NO camp strongly opposes or calls it absurd.
+   - Sentence 3: The real-world dilemma behind the debate.
+5. Language: Natural Nigerian English with universally understood cultural terms (e.g. "Japa", "black tax", "urgent 2k", "bride price", "genotype", "POS", "Owambe", "in-laws"). Clean grammar, no vulgarity.
+6. Return strict JSON matching:
 {
   "title": "string",
   "description": "string",
-  "tags": ["string", "string"]
+  "tags": ["string", "string", "string"]
 }`;
 
   const res = await fetch(
@@ -294,7 +341,7 @@ export async function generateQuestionForSlot(
   userRegion?: IssueRegion
 ): Promise<Issue> {
   const category = preferredCategory || POLARIZING_CATEGORIES[Math.floor(Math.random() * POLARIZING_CATEGORIES.length)];
-  const region = userRegion || 'Global / Remote';
+  const region: IssueRegion = userRegion || 'Africa & Middle East';
 
   let questionData: { title: string; description: string; tags: string[] };
 
