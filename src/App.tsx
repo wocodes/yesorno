@@ -172,6 +172,11 @@ export function App() {
     setTheme(prev => {
       const next = prev === 'dark' ? 'light' : 'dark';
       recordThemeModeSwitch(next);
+      if (currentUser) {
+        const updated: UserProfile = { ...currentUser, theme: next };
+        setCurrentUser(updated);
+        saveStoredUser(updated);
+      }
       return next;
     });
   };
@@ -180,6 +185,11 @@ export function App() {
     setColorTone(prev => {
       const next = prev === 'vibrant' ? 'toned' : 'vibrant';
       recordColorToneSwitch(next);
+      if (currentUser) {
+        const updated: UserProfile = { ...currentUser, colorTone: next };
+        setCurrentUser(updated);
+        saveStoredUser(updated);
+      }
       return next;
     });
   };
@@ -246,12 +256,23 @@ export function App() {
               region: serverProf.region || prev.region,
               followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
               issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
+              defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+              defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
               soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
               animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
+              theme: serverProf.theme || prev.theme,
+              colorTone: serverProf.colorTone || prev.colorTone,
               onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
             };
             return updated;
           });
+
+          if (serverProf.theme) {
+            setTheme(serverProf.theme);
+          }
+          if (serverProf.colorTone) {
+            setColorTone(serverProf.colorTone);
+          }
 
           if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
             setUserVotes(prev => {
@@ -548,10 +569,19 @@ export function App() {
             serverIssues
               .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => map.set(i.id, i));
+
+            // Only preserve locally created issues that were created within the last 60s (in-flight network sync)
+            // Any older issue not present on the server was deleted or moderated and must NOT be resurrected
+            const now = Date.now();
             prev
               .filter((i) => !deletedIds.has(i.id) && !i.isDeletedByAuthor && !LEGACY_MOCK_ISSUE_IDS.has(i.id))
               .forEach((i) => {
-                if (!map.has(i.id)) map.set(i.id, i);
+                if (!map.has(i.id)) {
+                  const createdTime = new Date(i.createdAt).getTime();
+                  if (!isNaN(createdTime) && now - createdTime < 60000) {
+                    map.set(i.id, i);
+                  }
+                }
               });
             const merged = Array.from(map.values());
             saveIssues(merged);
@@ -577,11 +607,22 @@ export function App() {
                 region: serverProf.region || prev.region,
                 followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
                 issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
+                defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+                defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
                 soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
                 animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
+                theme: serverProf.theme || prev.theme,
+                colorTone: serverProf.colorTone || prev.colorTone,
                 onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
               };
             });
+
+            if (serverProf.theme) {
+              setTheme(serverProf.theme);
+            }
+            if (serverProf.colorTone) {
+              setColorTone(serverProf.colorTone);
+            }
 
             if (serverProf.votedIssues && Object.keys(serverProf.votedIssues).length > 0) {
               setUserVotes((prev) => {

@@ -36,6 +36,8 @@ export interface UserProfile {
   defaultVoiceFilter?: VoiceFilterType;
   soundEnabled?: boolean;
   animationsEnabled?: boolean;
+  theme?: 'dark' | 'light';
+  colorTone?: 'vibrant' | 'toned';
   onboardingCompleted?: boolean;
 }
 
