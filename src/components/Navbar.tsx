@@ -7,7 +7,7 @@ import { IssueCategory, AppView, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
 import { isAdminUser } from '../utils/auth';
 
-export type FeedSortOption = 'for-you' | 'active' | 'closing' | 'yes' | 'perspectives';
+export type FeedSortOption = 'for-you' | 'active' | 'newest' | 'closing' | 'yes' | 'perspectives';
 
 interface Props {
   selectedCategory: IssueCategory;
@@ -300,8 +300,9 @@ export const Navbar: React.FC<Props> = ({
               onChange={(e) => onSortChange(e.target.value as FeedSortOption)}
               className="text-xs bg-white/90 dark:bg-ink-900 rounded-xl px-2.5 py-1.5 text-ink-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="for-you">✨ For You (Priority)</option>
+              <option value="for-you">🔥 Trending &amp; New (For You)</option>
               <option value="active">Most Active</option>
+              <option value="newest">Newest First</option>
               <option value="closing">Closing Soon</option>
               <option value="yes">Highest Yes%</option>
               <option value="perspectives">Most Responses</option>

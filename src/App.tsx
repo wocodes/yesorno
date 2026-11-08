@@ -609,7 +609,7 @@ export function App() {
     setActiveVoteIssue(issue);
   };
 
-  // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies)
+  // Handle vote submission (supports both 1-tap instant votes and follow-up inline replies; votes cannot be changed once cast)
   const handleVoteSubmit = (submission: VoteSubmission) => {
     const targetIssue = issues.find(i => i.id === submission.issueId);
     recordUserInterestFromIssue(targetIssue);
@@ -617,43 +617,38 @@ export function App() {
     const hasExistingVote = Boolean(existingVote);
     const hasContent = Boolean(submission.note || submission.voiceNote);
 
-    const isStanceChange = hasExistingVote && existingVote.choice !== submission.choice;
+    // If user has already voted, switching vote/stance is strictly forbidden!
+    if (hasExistingVote) {
+      if (existingVote.choice !== submission.choice) {
+        addToast(
+          'warning',
+          'Vote is permanent',
+          `You already voted ${existingVote.choice} on this issue. Votes cannot be changed once cast.`
+        );
+        return;
+      }
+      if (!hasContent) {
+        addToast(
+          'info',
+          'Already voted',
+          `You already voted ${existingVote.choice} on this issue.`
+        );
+        return;
+      }
+    }
 
     setIssues(prevIssues => {
       const nextIssues = prevIssues.map(issue => {
         if (issue.id === submission.issueId) {
           const isYes = submission.choice === 'YES';
-          let nextYes = issue.yesCount;
-          let nextNo = issue.noCount;
-
-          if (!hasExistingVote) {
-            nextYes = isYes ? issue.yesCount + 1 : issue.yesCount;
-            nextNo = !isYes ? issue.noCount + 1 : issue.noCount;
-          } else if (isStanceChange) {
-            // User switched stance from YES->NO or NO->YES
-            nextYes = isYes ? issue.yesCount + 1 : Math.max(0, issue.yesCount - 1);
-            nextNo = !isYes ? issue.noCount + 1 : Math.max(0, issue.noCount - 1);
-          }
-
-          // If stance changed, update any existing perspective choice tag by this user
-          let updatedResponses = issue.responses;
-          if (isStanceChange) {
-            updatedResponses = updatedResponses.map(resp => {
-              if (
-                (existingVote.responseId && resp.id === existingVote.responseId) ||
-                (!resp.isAnonymous && currentUser && resp.authorUsername === currentUser.username)
-              ) {
-                return { ...resp, choice: submission.choice };
-              }
-              return resp;
-            });
-          }
+          const nextYes = !hasExistingVote ? (isYes ? issue.yesCount + 1 : issue.yesCount) : issue.yesCount;
+          const nextNo = !hasExistingVote ? (!isYes ? issue.noCount + 1 : issue.noCount) : issue.noCount;
 
           return {
             ...issue,
             yesCount: nextYes,
             noCount: nextNo,
-            responses: hasContent ? [submission, ...updatedResponses] : updatedResponses
+            responses: hasContent ? [submission, ...issue.responses] : issue.responses
           };
         }
         return issue;
@@ -671,7 +666,7 @@ export function App() {
     apiRecordVote(submission);
 
     // Record telemetry for vote / reply / voice note
-    if (!hasExistingVote || isStanceChange) {
+    if (!hasExistingVote) {
       recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
     }
     if (submission.note) {
@@ -690,52 +685,36 @@ export function App() {
       setActiveDetailIssue(prev => {
         if (!prev) return null;
         const isYes = submission.choice === 'YES';
-        let nextYes = prev.yesCount;
-        let nextNo = prev.noCount;
-        if (!hasExistingVote) {
-          nextYes = isYes ? prev.yesCount + 1 : prev.yesCount;
-          nextNo = !isYes ? prev.noCount + 1 : prev.noCount;
-        } else if (isStanceChange) {
-          nextYes = isYes ? prev.yesCount + 1 : Math.max(0, prev.yesCount - 1);
-          nextNo = !isYes ? prev.noCount + 1 : Math.max(0, prev.noCount - 1);
-        }
-
-        let updatedResponses = prev.responses;
-        if (isStanceChange) {
-          updatedResponses = updatedResponses.map(resp => {
-            if (
-              (existingVote.responseId && resp.id === existingVote.responseId) ||
-              (!resp.isAnonymous && currentUser && resp.authorUsername === currentUser.username)
-            ) {
-              return { ...resp, choice: submission.choice };
-            }
-            return resp;
-          });
-        }
+        const nextYes = !hasExistingVote ? (isYes ? prev.yesCount + 1 : prev.yesCount) : prev.yesCount;
+        const nextNo = !hasExistingVote ? (!isYes ? prev.noCount + 1 : prev.noCount) : prev.noCount;
 
         return {
           ...prev,
           yesCount: nextYes,
           noCount: nextNo,
-          responses: hasContent ? [submission, ...updatedResponses] : updatedResponses
+          responses: hasContent ? [submission, ...prev.responses] : prev.responses
         };
       });
     }
 
-    // Show toast for new votes and stance changes (skip only when posting follow-up reply without changing vote)
-    if (!hasExistingVote || isStanceChange) {
+    // Show toast for new votes or added perspectives
+    if (!hasExistingVote) {
       addToast(
         'success',
-        isStanceChange
-          ? `Vote changed to ${submission.choice}!`
-          : `Your ${submission.choice} vote was recorded`,
-        isStanceChange
-          ? `Your vote was successfully updated from ${existingVote.choice} to ${submission.choice}.`
-          : submission.voiceNote 
+        `Your ${submission.choice} vote was recorded`,
+        submission.voiceNote 
           ? 'Voice note attached.'
           : submission.note
           ? 'Perspective posted to the thread.'
           : 'Tap Reply below the card if you want to add a quick note or voice clip.'
+      );
+    } else if (hasContent) {
+      addToast(
+        'success',
+        'Perspective posted',
+        submission.voiceNote
+          ? 'Voice note attached to your perspective.'
+          : 'Your perspective has been posted to the thread.'
       );
     }
   };
@@ -1301,40 +1280,78 @@ export function App() {
     return { totalVotes, totalVoiceNotes, totalIssues: issues.length };
   }, [issues]);
 
-  // Filtered & Sorted Issues with Region + Worldwide and Interests Priority
+  // Filtered & Sorted Issues: Default ('for-you') blends Trending momentum + Newest issues,
+  // prioritized by user interests & region (without hiding posts if user hasn't selected any)
   const filteredIssues = useMemo(() => {
     const userRegion = currentUser?.region;
     const userInterests = currentUser?.interests || [];
     const followedCreatorIds = currentUser?.followingCreators || [];
 
-    // Helper: compute priority score for an issue based on user preferences
-    const computePriorityScore = (issue: Issue): number => {
-      let score = 0;
-      const issueReg = inferIssueRegion(issue);
+    // Helper: compute ranking score for the default feed ('for-you'):
+    // Blends Trending momentum + Newest freshness, boosted by user interests & region.
+    // If user has not selected/saved interests or region, all posts rank purely by trending + freshness.
+    const computeFeedScore = (issue: Issue): number => {
+      const now = Date.now();
+      const issueCreatedTime = new Date(issue.createdAt || '').getTime() || (now - 86400000 * 3);
+      const ageHours = Math.max(0, (now - issueCreatedTime) / (1000 * 60 * 60));
 
-      // 1. Region Priority:
-      // Exact region match gets highest priority (+300), Worldwide ('Global / Remote') gets mixed in (+150)
-      if (userRegion && userRegion !== 'Global / Remote') {
-        if (issueReg === userRegion) {
-          score += 300;
-        } else if (issueReg === 'Global / Remote') {
-          score += 150;
+      // 1. Trending Momentum:
+      // High weight on votes (5 pts), perspectives (10 pts), voice clips (14 pts), and likes (3 pts)
+      const totalVotes = issue.yesCount + issue.noCount;
+      const responsesCount = issue.responses?.length || 0;
+      const voiceNotesCount = issue.responses?.filter(r => !!r.voiceNote).length || 0;
+      const likesCount = issue.likesCount || 0;
+
+      // Close split debate bonus (balanced YES/NO ratios generate intense viral engagement)
+      let debateBonus = 0;
+      if (totalVotes >= 3) {
+        const splitRatio = Math.min(issue.yesCount, issue.noCount) / Math.max(issue.yesCount, issue.noCount);
+        debateBonus = splitRatio * 30; // up to +30 points for contentious 50-50 splits
+      }
+
+      // Smooth decay on engagement momentum so hot active debates outrank dormant ancient polls
+      const engagementRaw = (totalVotes * 5) + (responsesCount * 10) + (voiceNotesCount * 14) + (likesCount * 3) + debateBonus;
+      const engagementDecay = Math.max(0.18, Math.exp(-ageHours / 72));
+      const trendingScore = engagementRaw * engagementDecay;
+
+      // 2. Newest / Freshness Factor:
+      // Gives strong visibility to newly published issues alongside top trending ones
+      // An issue under 6h gets up to +140 bonus, under 24h gets +45 bonus
+      const freshnessScore = Math.max(0, 140 * Math.exp(-ageHours / 18));
+
+      // 3. Featured Editorial Bonus:
+      const featuredScore = issue.featured ? 35 : 0;
+
+      // 4. Personalized Interests Boost (only applied if user selected/saved any):
+      let interestScore = 0;
+      if (userInterests.length > 0) {
+        if (userInterests.includes(issue.category) || issue.category === 'Private & Internal') {
+          interestScore = 140;
         }
-      } else if (userRegion === 'Global / Remote' && issueReg === 'Global / Remote') {
-        score += 200;
       }
 
-      // 2. Interests Priority:
-      // Issues matching user's selected categories get boosted (+200), Private/Global issues get mixed in
-      if (userInterests.length > 0 && userInterests.includes(issue.category)) {
-        score += 200;
+      // 5. Personalized Region Boost (only applied if user selected/saved any):
+      let regionScore = 0;
+      if (userRegion && userRegion !== 'Global / Remote') {
+        const issueReg = inferIssueRegion(issue);
+        if (issueReg === userRegion) {
+          regionScore = 140;
+        } else if (issueReg === 'Global / Remote') {
+          regionScore = 45;
+        }
+      } else if (userRegion === 'Global / Remote') {
+        const issueReg = inferIssueRegion(issue);
+        if (issueReg === 'Global / Remote') {
+          regionScore = 55;
+        }
       }
 
-      // 3. Followed Creators / Voters Priority:
+      // 6. Followed Creators Boost:
+      let followedScore = 0;
       if (followedCreatorIds.length > 0) {
+        const authorLower = issue.author.toLowerCase();
         const matchesFollowed = followedCreatorIds.some(followed => {
           const fLower = followed.toLowerCase();
-          const authorLower = issue.author.toLowerCase();
           if (authorLower.includes(fLower) || fLower.includes(authorLower)) return true;
           const creator = TOP_CREATORS_AND_VOTERS.find(c => c.id === followed || c.name.toLowerCase() === fLower);
           return Boolean(
@@ -1345,11 +1362,11 @@ export function App() {
           );
         });
         if (matchesFollowed) {
-          score += 120;
+          followedScore = 80;
         }
       }
 
-      return score;
+      return trendingScore + freshnessScore + featuredScore + interestScore + regionScore + followedScore;
     };
 
     let result = issues.filter(issue => {
@@ -1364,19 +1381,8 @@ export function App() {
       if (!matchesCategory || !matchesSearch) return false;
       if (showFavoritesOnly && !userFavorites[issue.id]) return false;
 
-      // If a user hasn't selected any interests yet (and isn't actively searching, filtering by category, or viewing Favourites),
-      // show them nothing in the default homepage feed so they are encouraged to use Search or Discovery.
-      if (
-        userInterests.length === 0 &&
-        selectedCategory === 'All' &&
-        !query &&
-        !showFavoritesOnly
-      ) {
-        return false;
-      }
-
-      // Region Scope filter: When 'my-region-worldwide' is active and user selected a specific region,
-      // show issues from that region AND issues from users who selected Worldwide ('Global / Remote')
+      // Region Scope filter: When 'my-region-worldwide' is explicitly active and user selected a specific region,
+      // show issues from that region AND Worldwide ('Global / Remote')
       if (
         regionScope === 'my-region-worldwide' &&
         userRegion &&
@@ -1384,19 +1390,6 @@ export function App() {
       ) {
         const issueReg = inferIssueRegion(issue);
         if (issueReg !== userRegion && issueReg !== 'Global / Remote') {
-          return false;
-        }
-      }
-
-      // Interest Scope filter: When 'my-interests-mixed' is active and selectedCategory === 'All' and user has interests,
-      // show issues matching their selected interests (plus Private Circle issues they have access to)
-      if (
-        interestScope === 'my-interests-mixed' &&
-        selectedCategory === 'All' &&
-        userInterests.length > 0
-      ) {
-        const matchesInterest = userInterests.includes(issue.category) || issue.category === 'Private & Internal';
-        if (!matchesInterest) {
           return false;
         }
       }
@@ -1409,9 +1402,12 @@ export function App() {
       const totalB = b.yesCount + b.noCount;
 
       if (sortBy === 'for-you') {
-        const scoreDiff = computePriorityScore(b) - computePriorityScore(a);
+        const scoreDiff = computeFeedScore(b) - computeFeedScore(a);
         if (scoreDiff !== 0) return scoreDiff;
-        return totalB - totalA;
+        return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
+      }
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
       }
       if (sortBy === 'active') return totalB - totalA;
       if (sortBy === 'perspectives') return b.responses.length - a.responses.length;
@@ -1775,50 +1771,7 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {(!currentUser.interests || currentUser.interests.length === 0) &&
-            selectedCategory === 'All' &&
-            !searchQuery.trim() &&
-            !showFavoritesOnly ? (
-              <div className="card p-8 sm:p-10 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Your personalized feed starts with what matters to you
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-                  You haven&apos;t selected any interests yet. Use <strong>Search</strong> or explore <strong>Discovery</strong> to find issues — as you vote, like, or interact with issues, we&apos;ll automatically build your interests profile!
-                </p>
-                <div className="pt-2 flex flex-wrap justify-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate('discovery')}
-                    className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
-                  >
-                    <Compass className="w-4 h-4" />
-                    <span>Explore Discovery</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSearchMobile(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>Use Search</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileSettingsOpen(true)}
-                    className="btn-ghost text-xs py-2.5 px-4 cursor-pointer"
-                  >
-                    <span>Pick Interests</span>
-                  </button>
-                </div>
-              </div>
-            ) : issues.length === 0 ? (
+            {issues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
                 <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Vote className="w-6 h-6" />
@@ -1862,6 +1815,21 @@ export function App() {
               </div>
             ) : (
               <>
+                {currentUser && (!currentUser.interests || currentUser.interests.length === 0) && selectedCategory === 'All' && !searchQuery.trim() && !showFavoritesOnly && (
+                  <div className="mb-3 p-3 rounded-2xl bg-brand-50/70 dark:bg-brand-500/10 border border-brand-200/60 dark:border-brand-500/20 flex items-center justify-between gap-3 text-xs">
+                    <span className="flex items-center gap-2 text-slate-700 dark:text-zinc-300">
+                      <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
+                      <span>Showing all trending &amp; new issues. Personalize your feed anytime by picking interests.</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileSettingsOpen(true)}
+                      className="px-2.5 py-1 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold shrink-0 cursor-pointer text-[11px]"
+                    >
+                      Pick Interests
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:gap-5 max-w-2xl mx-auto w-full">
                   {visibleIssues.map((issue) => {
                     const voteRecord = userVotes[issue.id];

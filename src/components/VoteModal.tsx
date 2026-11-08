@@ -69,6 +69,7 @@ export const VoteModal: React.FC<Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !choice) return;
+    if (existingVoteChoice && choice !== existingVoteChoice) return;
 
     setIsSubmitting(true);
 
@@ -145,10 +146,10 @@ export const VoteModal: React.FC<Props> = ({
           )}
 
           {existingVoteChoice && (
-            <div className="p-3 rounded-2xl bg-brand-50/80 border border-brand-200/80 text-xs flex items-center justify-between text-brand-900">
+            <div className="p-3 rounded-2xl bg-brand-50/90 dark:bg-brand-500/10 border border-brand-200/80 dark:border-brand-500/20 text-xs flex items-center justify-between text-brand-950 dark:text-brand-200">
               <span className="flex items-center gap-1.5 font-semibold">
-                <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                <span>You previously voted <strong>{existingVoteChoice}</strong>. You can switch your stance anytime.</span>
+                <Lock className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                <span>You voted <strong>{existingVoteChoice}</strong>. Votes are permanent and cannot be changed. You can add or update your perspective below.</span>
               </span>
             </div>
           )}
@@ -157,14 +158,18 @@ export const VoteModal: React.FC<Props> = ({
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'YES')}
               onClick={() => {
+                if (existingVoteChoice) return;
                 setChoice('YES');
                 playHapticChime('yes');
               }}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all cursor-pointer ${
-                choice === 'YES'
-                  ? 'border-emerald-600 bg-emerald-50/90 text-emerald-900 shadow-glow-emerald scale-[1.01]'
-                  : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-700 bg-white'
+              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
+                existingVoteChoice && existingVoteChoice !== 'YES'
+                  ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                  : choice === 'YES'
+                  ? 'border-emerald-600 bg-emerald-50/90 text-emerald-900 shadow-glow-emerald scale-[1.01] cursor-pointer'
+                  : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-700 bg-white cursor-pointer'
               }`}
             >
               <div className={`p-1.5 rounded-xl transition-colors ${choice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -176,14 +181,18 @@ export const VoteModal: React.FC<Props> = ({
 
             <button
               type="button"
+              disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'NO')}
               onClick={() => {
+                if (existingVoteChoice) return;
                 setChoice('NO');
                 playHapticChime('no');
               }}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all cursor-pointer ${
-                choice === 'NO'
-                  ? 'border-rose-600 bg-rose-50/90 text-rose-900 shadow-glow-rose scale-[1.01]'
-                  : 'border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 text-slate-700 bg-white'
+              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
+                existingVoteChoice && existingVoteChoice !== 'NO'
+                  ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                  : choice === 'NO'
+                  ? 'border-rose-600 bg-rose-50/90 text-rose-900 shadow-glow-rose scale-[1.01] cursor-pointer'
+                  : 'border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 text-slate-700 bg-white cursor-pointer'
               }`}
             >
               <div className={`p-1.5 rounded-xl transition-colors ${choice === 'NO' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'}`}>
@@ -305,10 +314,8 @@ export const VoteModal: React.FC<Props> = ({
               ) : (
                 <>
                   <span>
-                    {existingVoteChoice && choice && choice !== existingVoteChoice
-                      ? `Switch Vote to ${choice}`
-                      : existingVoteChoice && choice && choice === existingVoteChoice && (note.trim() || voiceAttachment)
-                      ? `Add Perspective to ${choice} Vote`
+                    {existingVoteChoice
+                      ? `Add Perspective to ${existingVoteChoice} Vote`
                       : `Submit ${choice ? `${choice} Vote` : 'Vote'}`}
                   </span>
                   {choice && <span className="text-xs opacity-85 font-normal">• {isAnonymous ? generatedAlias : (authorName || 'Public')}</span>}

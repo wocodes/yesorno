@@ -122,51 +122,39 @@ export const IssueCard: React.FC<Props> = ({
       return;
     }
 
-    // If user hasn't voted yet OR is switching their stance, cast their vote immediately in 1 tap
-    if (!hasUserVoted || userVoteChoice !== choice) {
-      playHapticChime(choice === 'YES' ? 'yes' : 'no');
-      triggerVoteConfetti(choice === 'YES');
-      const submission: VoteSubmission = {
-        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        issueId: issue.id,
-        choice,
-        isAnonymous: inlineAnon,
-        authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
-        authorUsername: !inlineAnon ? currentUser.username : undefined,
-        authorEmail: !inlineAnon ? currentUser.email : undefined,
-        authorAlias: inlineAnon ? alias : undefined,
-        authorRole: !inlineAnon ? currentUser.role : undefined,
-        createdAt: new Date().toISOString(),
-        likesCount: 0,
-      };
-      onInlineSubmitVote(submission);
+    // Once voted, vote/stance CANNOT change
+    if (hasUserVoted) {
+      if (userVoteChoice === choice) {
+        setShowInlineComposer(prev => !prev);
+      }
+      return;
     }
+
+    // New vote: cast immediately in 1 tap
+    playHapticChime(choice === 'YES' ? 'yes' : 'no');
+    triggerVoteConfetti(choice === 'YES');
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice,
+      isAnonymous: inlineAnon,
+      authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !inlineAnon ? currentUser.username : undefined,
+      authorEmail: !inlineAnon ? currentUser.email : undefined,
+      authorAlias: inlineAnon ? alias : undefined,
+      authorRole: !inlineAnon ? currentUser.role : undefined,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
 
     setInlineChoice(choice);
     setShowInlineComposer(true);
   };
 
   const handleInlineChoiceChange = (choice: VoteChoice) => {
+    if (hasUserVoted) return; // Stance locked once voted
     setInlineChoice(choice);
-    if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) return;
-    if (!hasUserVoted || userVoteChoice !== choice) {
-      playHapticChime(choice === 'YES' ? 'yes' : 'no');
-      triggerVoteConfetti(choice === 'YES');
-      const submission: VoteSubmission = {
-        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        issueId: issue.id,
-        choice,
-        isAnonymous: inlineAnon,
-        authorName: inlineAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
-        authorUsername: !inlineAnon ? currentUser.username : undefined,
-        authorEmail: !inlineAnon ? currentUser.email : undefined,
-        authorAlias: inlineAnon ? alias : undefined,
-        authorRole: !inlineAnon ? currentUser.role : undefined,
-        createdAt: new Date().toISOString(),
-        likesCount: 0,
-      };
-      onInlineSubmitVote(submission);
-    }
   };
 
   const startInlineMic = async () => {
@@ -642,19 +630,20 @@ export const IssueCard: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('YES')}
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
                 title={
                   hasUserVoted
                     ? userVoteChoice === 'YES'
-                      ? 'You voted YES (tap to reply)'
-                      : 'Switch your vote to YES'
+                      ? 'You voted YES (tap to add note/audio)'
+                      : 'You already voted NO (votes cannot be changed)'
                     : 'Vote YES'
                 }
-                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
+                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
                   hasUserVoted && userVoteChoice === 'YES'
-                    ? 'bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-400'
-                    : hasUserVoted && userVoteChoice === 'NO'
-                    ? 'bg-slate-100 dark:bg-ink-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 text-slate-600 dark:text-zinc-300 hover:text-emerald-700 dark:hover:text-emerald-300'
-                    : 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-400 cursor-pointer active:scale-95'
+                    : hasUserVoted && userVoteChoice !== 'YES'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white cursor-pointer active:scale-95'
                 }`}
               >
                 {hasUserVoted && userVoteChoice === 'YES' ? (
@@ -662,25 +651,26 @@ export const IssueCard: React.FC<Props> = ({
                 ) : (
                   <ThumbsUp className="w-3 h-3 shrink-0" />
                 )}
-                <span>{hasUserVoted && userVoteChoice === 'YES' ? 'YES ✓' : hasUserVoted ? 'Switch YES' : 'YES'}</span>
+                <span>{hasUserVoted && userVoteChoice === 'YES' ? 'YES ✓' : 'YES'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleInstantTapVote('NO')}
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
                 title={
                   hasUserVoted
                     ? userVoteChoice === 'NO'
-                      ? 'You voted NO (tap to reply)'
-                      : 'Switch your vote to NO'
+                      ? 'You voted NO (tap to add note/audio)'
+                      : 'You already voted YES (votes cannot be changed)'
                     : 'Vote NO'
                 }
-                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
+                className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
                   hasUserVoted && userVoteChoice === 'NO'
-                    ? 'bg-rose-600 text-white shadow-xs ring-1 ring-rose-400'
-                    : hasUserVoted && userVoteChoice === 'YES'
-                    ? 'bg-slate-100 dark:bg-ink-800 hover:bg-rose-50 dark:hover:bg-rose-500/20 text-slate-600 dark:text-zinc-300 hover:text-rose-700 dark:hover:text-rose-300'
-                    : 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white'
+                    ? 'bg-rose-600 text-white shadow-xs ring-1 ring-rose-400 cursor-pointer active:scale-95'
+                    : hasUserVoted && userVoteChoice !== 'NO'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-600 dark:hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white cursor-pointer active:scale-95'
                 }`}
               >
                 {hasUserVoted && userVoteChoice === 'NO' ? (
@@ -688,7 +678,7 @@ export const IssueCard: React.FC<Props> = ({
                 ) : (
                   <ThumbsDown className="w-3 h-3 shrink-0" />
                 )}
-                <span>{hasUserVoted && userVoteChoice === 'NO' ? 'NO ✓' : hasUserVoted ? 'Switch NO' : 'NO'}</span>
+                <span>{hasUserVoted && userVoteChoice === 'NO' ? 'NO ✓' : 'NO'}</span>
               </button>
 
               {/* Reply toggle button when voted */}
@@ -719,31 +709,44 @@ export const IssueCard: React.FC<Props> = ({
         >
           <div className="flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-slate-500 dark:text-zinc-400">
-                {hasUserVoted ? 'Your Stance (tap to change):' : 'Your Stance:'}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleInlineChoiceChange('YES')}
-                className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
-                  inlineChoice === 'YES'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-emerald-50 hover:text-emerald-700'
-                }`}
-              >
-                👍 YES {hasUserVoted && userVoteChoice === 'YES' ? '✓' : ''}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleInlineChoiceChange('NO')}
-                className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
-                  inlineChoice === 'NO'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-rose-50 hover:text-rose-700'
-                }`}
-              >
-                👎 NO {hasUserVoted && userVoteChoice === 'NO' ? '✓' : ''}
-              </button>
+              {hasUserVoted ? (
+                <span className="inline-flex items-center gap-1.5 font-bold text-slate-600 dark:text-zinc-300">
+                  <Lock className="w-3 h-3 text-brand-500 shrink-0" />
+                  <span>Your Vote:</span>
+                  <span className={`px-2 py-0.5 rounded-md font-extrabold ${
+                    userVoteChoice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                  }`}>
+                    {userVoteChoice === 'YES' ? '👍 YES ✓' : '👎 NO ✓'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">(Final)</span>
+                </span>
+              ) : (
+                <>
+                  <span className="font-bold text-slate-500 dark:text-zinc-400">Your Stance:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineChoiceChange('YES')}
+                    className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
+                      inlineChoice === 'YES'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-emerald-50 hover:text-emerald-700'
+                    }`}
+                  >
+                    👍 YES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineChoiceChange('NO')}
+                    className={`px-2 py-0.5 rounded-md font-extrabold cursor-pointer transition-all ${
+                      inlineChoice === 'NO'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-rose-50 hover:text-rose-700'
+                    }`}
+                  >
+                    👎 NO
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

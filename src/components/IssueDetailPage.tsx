@@ -148,30 +148,30 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   }, [issue.id]);
 
   const handleInstantVoteTap = (choice: VoteChoice) => {
+    // Once voted, vote/stance CANNOT be changed
+    if (hasUserVoted) return;
+
     if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) {
       onOpenVoteModal(choice);
       return;
     }
 
-    if (!hasUserVoted || userVoteChoice !== choice) {
-      playHapticChime(choice === 'YES' ? 'yes' : 'no');
-      triggerVoteConfetti(choice === 'YES');
-      const submission: VoteSubmission = {
-        id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        issueId: issue.id,
-        choice,
-        isAnonymous: replyAnon,
-        authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
-        authorUsername: !replyAnon ? currentUser.username : undefined,
-        authorEmail: !replyAnon ? currentUser.email : undefined,
-        authorAlias: replyAnon ? alias : undefined,
-        authorRole: !replyAnon ? currentUser.role : undefined,
-        createdAt: new Date().toISOString(),
-        likesCount: 0,
-      };
-      onInlineSubmitVote(submission);
-    }
-
+    playHapticChime(choice === 'YES' ? 'yes' : 'no');
+    triggerVoteConfetti(choice === 'YES');
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice,
+      isAnonymous: replyAnon,
+      authorName: replyAnon ? 'Anonymous Neighbor' : getUserDisplayName(currentUser),
+      authorUsername: !replyAnon ? currentUser.username : undefined,
+      authorEmail: !replyAnon ? currentUser.email : undefined,
+      authorAlias: replyAnon ? alias : undefined,
+      authorRole: !replyAnon ? currentUser.role : undefined,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
     setReplyChoice(choice);
   };
 
@@ -652,16 +652,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               </button>
             </div>
 
-            {/* Changed mind helper strip */}
+            {/* Voted Stance Permanent Strip */}
             {hasUserVoted && (
-              <div className="flex items-center justify-between p-2.5 px-3.5 rounded-xl bg-brand-50/80 dark:bg-white/[0.03] border border-brand-200/60 dark:border-white/10 text-xs">
+              <div className="flex items-center justify-between p-2.5 px-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/10 text-xs">
                 <span className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300">
-                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${userVoteChoice === 'YES' ? 'text-emerald-500' : 'text-rose-500'}`} />
+                  <Lock className="w-3.5 h-3.5 text-brand-500 shrink-0" />
                   <span>
-                    You currently voted <strong>{userVoteChoice}</strong>. You can change your vote anytime by tapping{' '}
-                    <strong className={userVoteChoice === 'YES' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
-                      {userVoteChoice === 'YES' ? 'NO' : 'YES'}
-                    </strong>.
+                    You voted <strong className={userVoteChoice === 'YES' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{userVoteChoice}</strong>. Votes are permanent and cannot be changed.
                   </span>
                 </span>
               </div>
@@ -672,10 +669,15 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <button
                 type="button"
                 onClick={() => handleInstantVoteTap('YES')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
-                  replyChoice === 'YES'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01]'
-                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005]'
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
+                  hasUserVoted && userVoteChoice === 'YES'
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                    : hasUserVoted && userVoteChoice !== 'YES'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : replyChoice === 'YES'
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
+                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
                 }`}
               >
                 {hasUserVoted && userVoteChoice === 'YES' ? (
@@ -687,7 +689,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                   {hasUserVoted
                     ? userVoteChoice === 'YES'
                       ? 'VOTED YES ✓'
-                      : 'SWITCH VOTE TO YES'
+                      : 'NO (LOCKED)'
                     : 'VOTE YES'}
                 </span>
               </button>
@@ -695,10 +697,15 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <button
                 type="button"
                 onClick={() => handleInstantVoteTap('NO')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-soft ${
-                  replyChoice === 'NO'
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01]'
-                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005]'
+                disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
+                  hasUserVoted && userVoteChoice === 'NO'
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-400'
+                    : hasUserVoted && userVoteChoice !== 'NO'
+                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : replyChoice === 'NO'
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
+                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
                 }`}
               >
                 {hasUserVoted && userVoteChoice === 'NO' ? (
@@ -710,7 +717,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                   {hasUserVoted
                     ? userVoteChoice === 'NO'
                       ? 'VOTED NO ✓'
-                      : 'SWITCH VOTE TO NO'
+                      : 'YES (LOCKED)'
                     : 'VOTE NO'}
                 </span>
               </button>
