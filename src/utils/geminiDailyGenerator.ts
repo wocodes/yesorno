@@ -474,3 +474,116 @@ export async function generatePolarizingQuestionNow(
   const customSlotKey = `manual-${Date.now()}`;
   return generateQuestionForSlot(customSlotKey, category, userRegion);
 }
+
+export interface QuestionSuggestion {
+  title: string;
+  description: string;
+  category: IssueCategory;
+  tags: string[];
+  trendContext?: string;
+}
+
+export interface TrendSuggestionResult {
+  success: boolean;
+  suggestions: QuestionSuggestion[];
+  source: string;
+  grounded: boolean;
+  context?: string;
+}
+
+/**
+ * Searches current trends, news, and stories (with optional user context like
+ * "the recent Lagos governorship debate") and returns structured question suggestions for review.
+ */
+export async function fetchTrendingQuestionSuggestions(params: {
+  context?: string;
+  category?: string;
+  region?: IssueRegion;
+  apiKey?: string;
+}): Promise<TrendSuggestionResult> {
+  const endpoint = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'https://yesorno.chillon.top/ai-curator.php?action=suggest_trends'
+      : '/ai-curator.php?action=suggest_trends';
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.suggestions) && json.suggestions.length > 0) {
+        return json as TrendSuggestionResult;
+      }
+    }
+  } catch (err) {
+    console.warn('Backend suggest_trends unreachable, checking local fallback:', err);
+  }
+
+  // Fallback if network is offline
+  const contextLower = (params.context || '').toLowerCase();
+  if (contextLower.includes('lagos') || contextLower.includes('governor') || contextLower.includes('debate')) {
+    return {
+      success: true,
+      source: 'curated_trend_engine',
+      grounded: false,
+      context: params.context,
+      suggestions: [
+        {
+          title: 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
+          description: 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
+          category: 'Politics & Policy',
+          tags: ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
+          trendContext: 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
+        },
+        {
+          title: 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
+          description: 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
+          category: 'Politics & Policy',
+          tags: ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
+          trendContext: 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
+        },
+        {
+          title: 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
+          description: 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
+          category: 'Environment & Climate',
+          tags: ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
+          trendContext: 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+        }
+      ]
+    };
+  }
+
+  return {
+    success: true,
+    source: 'curated_trend_engine',
+    grounded: false,
+    context: params.context,
+    suggestions: [
+      {
+        title: 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
+        description: 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
+        category: 'Economy & Finance',
+        tags: ['ElectricityTariff', 'PowerSector', 'BandA', 'EnergyCrisis', 'ConsumerRights'],
+        trendContext: 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
+      },
+      {
+        title: 'Should remote tech workers earning in foreign currency (USD/GBP) pay a progressive domestic income tax surcharge?',
+        description: 'Proponents argue that high-earning remote professionals benefit from low local cost of living while currency depreciation widens inequality. Tech professionals insist they already pay for their own private power, solar, and satellite internet with zero public services.',
+        category: 'Economy & Finance',
+        tags: ['RemoteWork', 'Taxation', 'TechEcosystem', 'Economy', 'Forex'],
+        trendContext: 'Grounded in public reactions to proposed progressive tax brackets on foreign exchange freelance earnings.'
+      },
+      {
+        title: 'Should universities permanently ban generative AI tools in undergraduate coursework and examinations?',
+        description: 'Faculty senates insist that AI-assisted essays undermine deep critical thinking, original research, and academic rigor. Student innovators argue generative AI is the modern calculator and institutions must teach AI collaboration rather than fighting an unstoppable technological tide.',
+        category: 'Education & Campus',
+        tags: ['GenerativeAI', 'UniversityReform', 'AcademicIntegrity', 'CampusLife', 'TechInEducation'],
+        trendContext: 'Triggered by campus Senate circulars addressing AI plagiarism and curriculum redesign across tertiary institutions.'
+      }
+    ]
+  };
+}

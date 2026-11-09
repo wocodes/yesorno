@@ -247,6 +247,281 @@ function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash') {
     return is_array($json) ? $json : null;
 }
 
+// Extract JSON array or object from raw model output (handles markdown fences)
+function extract_json_from_text($text) {
+    if (empty($text)) return null;
+    $text = trim($text);
+
+    // Strip markdown code block fences ```json ... ```
+    if (preg_match('/```(?:json)?\s*(.*?)\s*```/s', $text, $matches)) {
+        $text = trim($matches[1]);
+    }
+
+    $decoded = json_decode($text, true);
+    if (is_array($decoded)) return $decoded;
+
+    // Search for array [ { ... } ]
+    if (preg_match('/\[\s*\{.*\}\s*\]/s', $text, $arrMatch)) {
+        $arrDecoded = json_decode($arrMatch[0], true);
+        if (is_array($arrDecoded)) return $arrDecoded;
+    }
+
+    // Search for single object { ... }
+    if (preg_match('/\{.*\}/s', $text, $objMatch)) {
+        $objDecoded = json_decode($objMatch[0], true);
+        if (is_array($objDecoded)) return [$objDecoded];
+    }
+
+    return null;
+}
+
+// Call Gemini API with Google Search Grounding for Live News & Trend Research
+function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-1.5-flash') {
+    if (empty($apiKey)) return null;
+
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($apiKey);
+
+    // Primary attempt: Gemini with Google Search tool enabled
+    $payloadWithSearch = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $prompt]
+                ]
+            ]
+        ],
+        'tools' => [
+            ['googleSearch' => (object)[]]
+        ],
+        'generationConfig' => [
+            'temperature' => 0.7,
+            'topP' => 0.95,
+            'maxOutputTokens' => 2048
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payloadWithSearch));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 35);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200 && $response) {
+        $resDecoded = json_decode($response, true);
+        $text = $resDecoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        if ($text) {
+            $parsed = extract_json_from_text($text);
+            if ($parsed && is_array($parsed)) {
+                return ['data' => $parsed, 'grounded' => true];
+            }
+        }
+    }
+
+    // Secondary fallback: Gemini standard generation without search tool
+    $payloadStandard = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $prompt]
+                ]
+            ]
+        ],
+        'generationConfig' => [
+            'temperature' => 0.8,
+            'topP' => 0.95,
+            'maxOutputTokens' => 2048,
+            'responseMimeType' => 'application/json'
+        ]
+    ];
+
+    $ch2 = curl_init($url);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch2, CURLOPT_POST, true);
+    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($payloadStandard));
+    curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+    $res2 = curl_exec($ch2);
+    $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+    curl_close($ch2);
+
+    if ($code2 === 200 && $res2) {
+        $dec2 = json_decode($res2, true);
+        $text2 = $dec2['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        if ($text2) {
+            $parsed2 = extract_json_from_text($text2);
+            if ($parsed2 && is_array($parsed2)) {
+                return ['data' => $parsed2, 'grounded' => false];
+            }
+        }
+    }
+
+    return null;
+}
+
+// Curated Context-Aware Trend Fallbacks
+function get_trend_fallback_suggestions($context = '', $category = '') {
+    $contextLower = strtolower($context);
+
+    // 1. Context matches Lagos / Governorship / State Governance / Elections
+    if (strpos($contextLower, 'lagos') !== false || strpos($contextLower, 'governor') !== false || strpos($contextLower, 'debate') !== false || strpos($contextLower, 'election') !== false) {
+        return [
+            [
+                'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
+                'description' => 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
+                'category' => 'Politics & Policy',
+                'tags' => ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
+                'trendContext' => 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
+            ],
+            [
+                'title' => 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
+                'description' => 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
+                'category' => 'Politics & Policy',
+                'tags' => ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
+                'trendContext' => 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
+            ],
+            [
+                'title' => 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
+                'description' => 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
+                'category' => 'Environment & Climate',
+                'tags' => ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
+                'trendContext' => 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+            ]
+        ];
+    }
+
+    // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
+    if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
+        return [
+            [
+                'title' => 'Should remote tech workers and freelancers earning in USD or GBP pay a progressive foreign currency income surcharge?',
+                'description' => 'Proponents claim high-earning remote professionals benefit from low domestic living expenses while local currency volatility deepens local wealth inequality. Remote tech workers respond that they already pay for their own power, security, and satellite internet without government support.',
+                'category' => 'Economy & Finance',
+                'tags' => ['RemoteWork', 'Taxation', 'TechEcosystem', 'Economy', 'Forex'],
+                'trendContext' => 'Grounded in ongoing public reactions to proposed progressive tax brackets on foreign exchange freelance earnings.'
+            ],
+            [
+                'title' => 'Should the central bank fully legitimize and license peer-to-peer cryptocurrency exchanges for domestic settlements?',
+                'description' => 'Tech advocates assert that crypto liquidity provides vital capital channels for young entrepreneurs and hedges against currency depreciation. Traditional central bankers caution that unregulated digital assets exacerbate exchange rate volatility and facilitate untraceable capital flight.',
+                'category' => 'Economy & Finance',
+                'tags' => ['CryptoRegulation', 'Fintech', 'CentralBank', 'P2PTrading', 'NairaStability'],
+                'trendContext' => 'In response to recent SEC guidelines and central bank policy updates regarding virtual asset service providers.'
+            ]
+        ];
+    }
+
+    // 3. Context matches AI / Universities / Education / Campus
+    if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
+        return [
+            [
+                'title' => 'Should universities permanently ban generative AI tools for undergraduate coursework and essays?',
+                'description' => 'Faculty senates insist that AI-assisted essays undermine deep critical thinking, original research, and the integrity of academic degrees. Student innovators argue generative AI is the modern calculator and institutions must teach AI collaboration rather than fighting an unstoppable technological tide.',
+                'category' => 'Education & Campus',
+                'tags' => ['GenerativeAI', 'UniversityReform', 'AcademicIntegrity', 'CampusLife', 'TechInEducation'],
+                'trendContext' => 'Triggered by campus Senate circulars addressing AI plagiarism and curriculum redesign across tertiary institutions.'
+            ],
+            [
+                'title' => 'Should public universities be allowed to increase tuition by 200% to fund competitive lecturer salaries and modern laboratories?',
+                'description' => 'University administrators state that chronic underfunding and strike actions will only cease when institutions achieve financial sustainability. Student associations and labor unions declare education is a fundamental public good that must remain accessible to low-income households.',
+                'category' => 'Education & Campus',
+                'tags' => ['TuitionHike', 'UniversityFunding', 'ASUU', 'StudentLoans', 'PublicEducation'],
+                'trendContext' => 'Prompted by recent federal student loan scheme rollouts and student union protests over tertiary fee revisions.'
+            ]
+        ];
+    }
+
+    // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security)
+    return [
+        [
+            'title' => 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
+            'description' => 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
+            'category' => 'Economy & Finance',
+            'tags' => ['ElectricityTariff', 'PowerSector', 'BandA', 'EnergyCrisis', 'ConsumerRights'],
+            'trendContext' => 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
+        ],
+        [
+            'title' => 'Should private food commodity hoarders face immediate criminal asset forfeiture during severe national food price spikes?',
+            'description' => 'Civic rights defenders argue artificial hoarding of essential grains in warehouses for speculative profit starves vulnerable citizens. Agricultural merchants argue bulk storage is normal market inventory management against inflation and government price controls always collapse supply.',
+            'category' => 'Business',
+            'tags' => ['FoodInflation', 'MarketEnforcement', 'Agriculture', 'CostOfLiving', 'EconomicSecurity'],
+            'trendContext' => 'Grounded in consumer protection taskforce warehouse inspections and nationwide food affordability concerns.'
+        ],
+        [
+            'title' => 'Should public transport fares on commuter rail and rapid bus systems be subsidized by 50% using state oil revenues?',
+            'description' => 'Urban sociologists point out that accessible public transit is the single fastest way to ease post-subsidy cost of living pressures. Fiscal conservatives argue open-ended transport subsidies drain public treasuries and starve funding for essential hospitals and schools.',
+            'category' => 'Politics & Policy',
+            'tags' => ['MassTransit', 'TransportSubsidy', 'UrbanMobility', 'FuelSubsidy', 'PublicSpending'],
+            'trendContext' => 'Prompted by rising inter-city and metropolitan transit costs following fuel subsidy adjustments.'
+        ]
+    ];
+}
+
+// Generate Trend Questions using Gemini + Live Google Search Grounding
+function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-1.5-flash') {
+    $context = trim($context);
+    $category = trim($category);
+
+    if (!empty($apiKey)) {
+        $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n\n"
+            . "Task:\n"
+            . (!empty($context) 
+                ? "Research and ground your questions in the latest real-time trends, news stories, and public debates regarding: \"{$context}\".\n"
+                : "Research the top trending news stories, viral civic discussions, policy disputes, and cultural dilemmas in Nigeria, Africa, and global tech/politics today.\n")
+            . (!empty($category) ? "Target Category: {$category}\n" : "")
+            . "Target Region: {$region}\n\n"
+            . "Identify the core point of controversy, tension, or policy dilemma where thoughtful citizens, experts, and community members are divided roughly 50/50.\n\n"
+            . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts.\n\n"
+            . "For each suggestion, provide:\n"
+            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (under 16 words) starting with 'Should...', 'Is it wrong to...', 'Would you...', or 'Must...'. It must end with a single '?'.\n"
+            . "2. \"description\": 2 to 3 punchy sentences explaining the core dilemma:\n"
+            . "   - Sentence 1: Why the YES camp passionately defends their position with real-world arguments.\n"
+            . "   - Sentence 2: Why the NO camp firmly objects or warns of negative fallout.\n"
+            . "   - Sentence 3: The broader stakes for the community, economy, or citizens.\n"
+            . "3. \"category\": Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].\n"
+            . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['LagosState', 'Tolls', 'CommuterRights']).\n"
+            . "5. \"trendContext\": A 1-2 sentence summary of the recent news, event, or trend that sparked this debate.\n\n"
+            . "Return pure JSON matching this exact structure:\n"
+            . "[\n"
+            . "  {\n"
+            . "    \"title\": \"...\",\n"
+            . "    \"description\": \"...\",\n"
+            . "    \"category\": \"...\",\n"
+            . "    \"tags\": [\"...\"],\n"
+            . "    \"trendContext\": \"...\"\n"
+            . "  }\n"
+            . "]";
+
+        $result = call_gemini_with_search($prompt, $apiKey, $model);
+        if ($result && !empty($result['data']) && is_array($result['data'])) {
+            $suggestions = $result['data'];
+            // Normalize suggestions if single object wrapped in array
+            if (isset($suggestions['title'])) {
+                $suggestions = [$suggestions];
+            }
+            return [
+                'success' => true,
+                'source' => $result['grounded'] ? 'gemini_google_search' : 'gemini_generative',
+                'grounded' => $result['grounded'],
+                'context' => $context,
+                'suggestions' => $suggestions
+            ];
+        }
+    }
+
+    // Dynamic Curated Context Fallback
+    $fallbackList = get_trend_fallback_suggestions($context, $category);
+    return [
+        'success' => true,
+        'source' => 'curated_trend_engine',
+        'grounded' => false,
+        'context' => $context,
+        'suggestions' => $fallbackList
+    ];
+}
+
 // Curated Fallback Debate Templates (Natural Nigerian Context, Semi-Formal/Informal Tone)
 function get_curated_fallback_debates() {
     return [
@@ -1232,6 +1507,24 @@ if ($action === 'seed_users') {
     exit;
 }
 
+// Suggest Questions Grounded in Live Trends, News & Stories
+if ($action === 'suggest_trends') {
+    $raw = file_get_contents('php://input');
+    $payload = json_decode($raw, true) ?: [];
+
+    $context = isset($_GET['context']) ? trim($_GET['context']) : (isset($payload['context']) ? trim($payload['context']) : '');
+    $category = isset($_GET['category']) ? trim($_GET['category']) : (isset($payload['category']) ? trim($payload['category']) : '');
+    $region = isset($_GET['region']) ? trim($_GET['region']) : (isset($payload['region']) ? trim($payload['region']) : 'Africa & Middle East');
+    $customApiKey = isset($_GET['apiKey']) ? trim($_GET['apiKey']) : (isset($payload['apiKey']) ? trim($payload['apiKey']) : '');
+
+    $apiKey = !empty($customApiKey) ? $customApiKey : ($settings['geminiApiKey'] ?? '');
+    $model = !empty($payload['model']) ? trim($payload['model']) : ($settings['model'] ?? 'gemini-1.5-flash');
+
+    $result = generate_trend_question_suggestions($context, $category, $region, $apiKey, $model);
+    echo json_encode($result);
+    exit;
+}
+
 // Incremental User Debate Incubation (Periodic Heartbeat / Webhook)
 if ($action === 'incubate' || $action === 'incubate_heartbeat') {
     if (!$pdo) {
@@ -1301,5 +1594,5 @@ if ($action === 'generate_issue' || $isCron) {
 echo json_encode([
     'success' => false,
     'error' => 'Unknown action requested',
-    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue', 'incubate', 'incubate_heartbeat']
+    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue', 'incubate', 'incubate_heartbeat', 'suggest_trends']
 ]);
