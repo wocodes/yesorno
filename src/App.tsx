@@ -572,9 +572,10 @@ export function App() {
             const currentIds = new Set(prev.map((i) => i.id));
             const brandNewIssues = validServerIssues.filter((i) => !currentIds.has(i.id));
 
-            // If not initial mount and brand new issues arrived from server:
-            // Buffer them into pendingNewIssues so we don't trigger jarring scroll jumps!
-            if (!isInitialMountRef.current && brandNewIssues.length > 0) {
+            const isScrolledDown = typeof window !== 'undefined' && window.scrollY >= 80;
+
+            // If user is scrolled down reading content, buffer new questions into the pill so we don't jump their scroll position
+            if (!isInitialMountRef.current && brandNewIssues.length > 0 && isScrolledDown) {
               setPendingNewIssues((prevPending) => {
                 const pendingMap = new Map<string, Issue>();
                 prevPending.forEach((i) => pendingMap.set(i.id, i));
@@ -606,8 +607,9 @@ export function App() {
               return updatedExisting;
             }
 
-            // Initial mount or initial hydration:
+            // At the top of the feed or on initial hydration: immediately merge latest questions!
             isInitialMountRef.current = false;
+            setPendingNewIssues([]);
             const map = new Map<string, Issue>();
             validServerIssues.forEach((i) => {
               const uv = currentVotes[i.id];
@@ -713,13 +715,18 @@ export function App() {
     };
 
     window.addEventListener('focus', syncFromCloud);
+    window.addEventListener('pageshow', syncFromCloud);
+    window.addEventListener('online', syncFromCloud);
     document.addEventListener('visibilitychange', onVisibilityChange);
-    // Background polling for real-time new questions every 20 seconds
-    const pollInterval = window.setInterval(syncFromCloud, 20000);
+
+    // Responsive background polling for real-time questions & votes across devices
+    const pollInterval = window.setInterval(syncFromCloud, 10000);
 
     return () => {
       window.clearInterval(pollInterval);
       window.removeEventListener('focus', syncFromCloud);
+      window.removeEventListener('pageshow', syncFromCloud);
+      window.removeEventListener('online', syncFromCloud);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
