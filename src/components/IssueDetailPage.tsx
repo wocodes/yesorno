@@ -16,6 +16,7 @@ import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl } from '../utils/audio';
 import { ReportIssueModal } from './ReportIssueModal';
 import { ShareCommentModal } from './ShareCommentModal';
+import { notifyAuthorCommentAdded, notifyAuthorReplyAdded, notifyAuthorReactionAdded } from '../utils/emailNotifier';
 
 export const AVAILABLE_REACTIONS = [
   { emoji: '👍', label: 'Agree' },
@@ -293,6 +294,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     };
 
     onInlineSubmitVote(submission);
+    notifyAuthorCommentAdded(issue, submission, currentUser);
     playHapticChime('yes');
     triggerVoteConfetti(replyChoice === 'YES');
     setReplyNote('');
@@ -324,7 +326,11 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       replyToName: replyToAuthor,
     };
 
+    const parentSub = issue.responses.find((r) => r.id === submissionId);
     onAddCommentReply(issue.id, submissionId, newReply);
+    if (parentSub) {
+      notifyAuthorReplyAdded(issue, parentSub, newReply, currentUser);
+    }
     playHapticChime('yes');
     setReplyText('');
     setActiveReplySubmissionId(null);
@@ -1018,6 +1024,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                   if (onToggleCommentReaction) {
                                     onToggleCommentReaction(issue.id, resp.id, emoji);
                                   }
+                                  notifyAuthorReactionAdded(issue, emoji, currentUser);
                                   playHapticChime('yes');
                                 }}
                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${hasReacted
@@ -1072,6 +1079,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                         if (onToggleCommentReaction) {
                                           onToggleCommentReaction(issue.id, resp.id, emoji);
                                         }
+                                        notifyAuthorReactionAdded(issue, emoji, currentUser);
                                         playHapticChime('yes');
                                         setActiveReactionPickerId(null);
                                       }}

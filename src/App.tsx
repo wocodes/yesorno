@@ -256,6 +256,7 @@ export function App() {
               followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
               issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
               defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+              notificationsEnabled: serverProf.notificationsEnabled !== undefined ? serverProf.notificationsEnabled : prev.notificationsEnabled,
               defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
               soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
               animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
@@ -662,6 +663,7 @@ export function App() {
                 followingCreators: (serverProf.followingCreators && serverProf.followingCreators.length > 0) ? serverProf.followingCreators : prev.followingCreators,
                 issueDraft: serverProf.issueDraft !== undefined ? serverProf.issueDraft : prev.issueDraft,
                 defaultAnonymous: serverProf.defaultAnonymous !== undefined ? serverProf.defaultAnonymous : prev.defaultAnonymous,
+                notificationsEnabled: serverProf.notificationsEnabled !== undefined ? serverProf.notificationsEnabled : prev.notificationsEnabled,
                 defaultVoiceFilter: serverProf.defaultVoiceFilter || prev.defaultVoiceFilter,
                 soundEnabled: serverProf.soundEnabled !== undefined ? serverProf.soundEnabled : prev.soundEnabled,
                 animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
@@ -728,6 +730,30 @@ export function App() {
       window.removeEventListener('pageshow', syncFromCloud);
       window.removeEventListener('online', syncFromCloud);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  // Autonomous AI debate incubation heartbeat (nurtures user-created debates with paced replies & organic votes)
+  useEffect(() => {
+    const runIncubationHeartbeat = async () => {
+      if (typeof window === 'undefined' || document.visibilityState !== 'visible') return;
+      try {
+        const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'https://yesorno.chillon.top/ai-curator.php?action=incubate_heartbeat'
+          : '/ai-curator.php?action=incubate_heartbeat';
+        await fetch(endpoint, { method: 'GET', keepalive: true });
+      } catch {
+        // Silent background heartbeat
+      }
+    };
+
+    // Run first check after 10s of opening the app, then every 90 seconds while active
+    const initialTimer = window.setTimeout(runIncubationHeartbeat, 10000);
+    const heartbeatTimer = window.setInterval(runIncubationHeartbeat, 90000);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(heartbeatTimer);
     };
   }, []);
 

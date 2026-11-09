@@ -12,6 +12,7 @@ import { moderateText, generateCivicAlias } from '../utils/moderation';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
 import { transformAudioVoice, blobToDataUrl, formatAudioDuration } from '../utils/audio';
 import { ReportIssueModal } from './ReportIssueModal';
+import { notifyAuthorCommentAdded } from '../utils/emailNotifier';
 
 interface Props {
   issue: Issue;
@@ -257,6 +258,9 @@ export const IssueCard: React.FC<Props> = ({
     };
 
     onInlineSubmitVote(submission);
+    if (submission.note) {
+      notifyAuthorCommentAdded(issue, submission, currentUser);
+    }
     setInlineNote('');
     setInlineVoiceDataUrl(null);
     setShowInlineComposer(false);

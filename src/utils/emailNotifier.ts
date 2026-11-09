@@ -162,6 +162,113 @@ export function notifyAdminIssueCreated(
 }
 
 /**
+ * Triggered whenever a community member or persona adds a perspective/comment to an author's issue
+ */
+export function notifyAuthorCommentAdded(
+  issue: Issue,
+  submission: VoteSubmission,
+  user?: UserProfile | null
+): void {
+  if (!issue.creatorEmail || !submission.note) return;
+  if (user?.email && user.email.toLowerCase() === issue.creatorEmail.toLowerCase()) return;
+
+  const throttleKey = `author_comment:${issue.id}:${submission.id}`;
+  if (shouldThrottle(throttleKey, 5000)) return;
+
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://yesorno.chillon.top';
+  const issueUrl = `${origin}/${buildIssueSlug(issue)}`;
+
+  sendAdminNotification({
+    event: 'author_comment' as NotificationEvent,
+    user: {
+      name: user?.name || submission.authorName || 'Community Member',
+      email: user?.email || submission.authorEmail,
+      role: user?.role,
+    },
+    data: {
+      recipientEmail: issue.creatorEmail,
+      issueTitle: issue.title,
+      choice: submission.choice,
+      note: submission.note,
+      url: issueUrl,
+    },
+  });
+}
+
+/**
+ * Triggered whenever a community member posts a direct reply to an author's comment
+ */
+export function notifyAuthorReplyAdded(
+  issue: Issue,
+  parentSubmission: VoteSubmission,
+  reply: CommentReply,
+  user?: UserProfile | null
+): void {
+  const recipientEmail = parentSubmission.authorEmail || issue.creatorEmail;
+  if (!recipientEmail || !reply.content) return;
+  if (user?.email && user.email.toLowerCase() === recipientEmail.toLowerCase()) return;
+
+  const throttleKey = `author_reply:${issue.id}:${reply.id}`;
+  if (shouldThrottle(throttleKey, 5000)) return;
+
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://yesorno.chillon.top';
+  const issueUrl = `${origin}/${buildIssueSlug(issue)}`;
+
+  sendAdminNotification({
+    event: 'author_reply' as NotificationEvent,
+    user: {
+      name: user?.name || reply.authorName || 'Community Member',
+      email: user?.email || reply.authorEmail,
+      role: user?.role,
+    },
+    data: {
+      recipientEmail,
+      issueTitle: issue.title,
+      content: reply.content,
+      url: issueUrl,
+    },
+  });
+}
+
+/**
+ * Triggered whenever a user reacts with an emoji to an author's debate
+ */
+export function notifyAuthorReactionAdded(
+  issue: Issue,
+  emoji: string,
+  user?: UserProfile | null
+): void {
+  if (!issue.creatorEmail) return;
+  if (user?.email && user.email.toLowerCase() === issue.creatorEmail.toLowerCase()) return;
+
+  const throttleKey = `author_reaction:${issue.id}:${emoji}`;
+  if (shouldThrottle(throttleKey, 8000)) return;
+
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://yesorno.chillon.top';
+  const issueUrl = `${origin}/${buildIssueSlug(issue)}`;
+
+  sendAdminNotification({
+    event: 'author_reaction' as NotificationEvent,
+    user: {
+      name: user?.name || 'Community Member',
+      email: user?.email,
+    },
+    data: {
+      recipientEmail: issue.creatorEmail,
+      issueTitle: issue.title,
+      emoji,
+      url: issueUrl,
+    },
+  });
+}
+
+/**
  * Triggered whenever a user comments or attaches a perspective/voice note to an issue (Silenced per admin preference)
  */
 export function notifyAdminCommentAdded(
@@ -169,7 +276,7 @@ export function notifyAdminCommentAdded(
   _issueTitle: string,
   _user?: UserProfile | null
 ): void {
-  // Silenced: issue comment alerts disabled per admin preference
+  // Silenced: admin issue comment alerts disabled per admin preference
 }
 
 /**
@@ -181,7 +288,7 @@ export function notifyAdminReplyAdded(
   _issueTitle: string,
   _user?: UserProfile | null
 ): void {
-  // Silenced: reply alerts disabled per admin preference
+  // Silenced: admin reply alerts disabled per admin preference
 }
 
 /**

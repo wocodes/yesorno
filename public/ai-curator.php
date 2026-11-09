@@ -858,6 +858,279 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
 }
 
 // -------------------------------------------------------------
+// Incremental User Debate Incubation Engine
+// Nurtures user-created debates with realistic personas & votes
+// -------------------------------------------------------------
+
+function build_curator_issue_slug($title, $id) {
+    $slug = strtolower($title);
+    $slug = preg_replace('/[^a-z0-9]+/i', '-', $slug);
+    $slug = trim($slug, '-');
+    $slug = substr($slug, 0, 70);
+    $slug = rtrim($slug, '-');
+    return $slug ? $slug . '-' . $id : $id;
+}
+
+function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSlug, $persona, $choice, $note) {
+    if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) return false;
+    
+    $payload = [
+        'event' => 'author_comment',
+        'user' => [
+            'name' => $persona['name'],
+            'email' => $persona['email'],
+            'role' => $persona['role']
+        ],
+        'data' => [
+            'recipientEmail' => $recipientEmail,
+            'issueTitle' => $issueTitle,
+            'choice' => $choice,
+            'note' => $note,
+            'url' => 'https://yesorno.chillon.top/' . $issueSlug
+        ]
+    ];
+
+    $ch = curl_init('https://yesorno.chillon.top/notify.php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+    @curl_exec($ch);
+    @curl_close($ch);
+    return true;
+}
+
+function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash') {
+    if (!empty($apiKey)) {
+        $prompt = "You are {$persona['name']}, a {$persona['role']}. Bio: {$persona['bio']}.\n"
+            . "Provide a realistic, concise 2 to 3 sentence community perspective (maximum 50 words) on this deliberation question:\n"
+            . "Question: \"{$issue['title']}\"\n"
+            . "Context: \"{$issue['description']}\"\n"
+            . "Your stance: {$choice} (You must clearly support this viewpoint).\n\n"
+            . "Guidelines:\n"
+            . "- Speak conversationally as a real person living in {$persona['region']}.\n"
+            . "- Never say 'As an AI' or 'As a {$persona['role']}'.\n"
+            . "- Give a crisp, practical argument.\n"
+            . "Return pure JSON: {\"note\": \"...\"}";
+
+        $res = call_gemini_api($prompt, $apiKey, $model);
+        if ($res && !empty($res['note'])) {
+            return trim($res['note']);
+        }
+    }
+
+    // Dynamic Curated Fallbacks
+    $yesTemplates = [
+        "From a practical standpoint, this is long overdue. When you look at the ripple effects on local productivity and accountability, the potential upside clearly outweighs the initial friction.",
+        "I lean Yes on this. We've seen similar frameworks succeed when clear guardrails are put in place from day one. It's about setting the standard early rather than reacting later.",
+        "Support this direction. The current status quo simply isn't sustainable for the broader public interest. Taking decisive action now saves us bigger headaches down the road.",
+        "Agree with this move. Transparent standards and predictable execution are what build lasting community confidence. It's definitely time to test it in practice.",
+        "This makes strategic sense. If we delay addressing this, the systemic cost of inaction will multiply. A measured rollout is the right call."
+    ];
+
+    $noTemplates = [
+        "I'm skeptical of this approach. While the intention might be sound, the operational overhead and unintended bottlenecks could end up hurting the very people it aims to help.",
+        "Vote No. Before introducing blanket measures like this, we need far stronger data and consultation. Rushing this without robust infrastructure will create more problems than it solves.",
+        "Respectfully disagree with the proposal. The core issue isn't lack of new rules, but inconsistent enforcement of existing structures. Let's fix the fundamentals first.",
+        "Not convinced this is the right priority right now. In practice, similar initiatives have ended up concentrating friction rather than opening up opportunity. Better to hold off.",
+        "I have reservations. Without clearer accountability and funding mechanisms, this risks becoming another well-intentioned policy that stalls out in execution."
+    ];
+
+    $pool = ($choice === 'YES') ? $yesTemplates : $noTemplates;
+    return $pool[array_rand($pool)];
+}
+
+function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
+    if (empty($settings['isEnabled'])) {
+        return ['success' => false, 'reason' => 'Engine is paused'];
+    }
+
+    // Fetch candidate issues that have < 6 responses
+    $stmt = $pdo->prepare("
+        SELECT i.id, i.title, i.description, i.category, i.region, i.creator_email, i.author, i.created_at,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id) as response_count,
+               (SELECT MAX(created_at) FROM responses WHERE issue_id = i.id) as latest_response_at,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id AND choice = 'YES') as yes_responses,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id AND choice = 'NO') as no_responses
+        FROM issues i
+        WHERE (SELECT COUNT(*) FROM responses WHERE issue_id = i.id) < 6
+        ORDER BY i.created_at DESC
+        LIMIT 15
+    ");
+    $stmt->execute();
+    $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($candidates)) {
+        return ['success' => true, 'action' => 'none', 'message' => 'No active issues currently require incubation'];
+    }
+
+    $incubated = [];
+    $nowTime = time();
+
+    foreach ($candidates as $cand) {
+        $respCount = (int)$cand['response_count'];
+
+        // Determine reference time: issue creation or last response timestamp
+        $refTime = $respCount === 0 
+            ? strtotime($cand['created_at'])
+            : strtotime($cand['latest_response_at'] ?: $cand['created_at']);
+
+        // Cooldown schedule:
+        // Response 0 -> 1: 120s (2m)
+        // Response 1 -> 2: 240s (4m)
+        // Response 2 -> 3: 360s (6m)
+        // Response 3+:     480s (8m)
+        $requiredCooldown = 480;
+        if ($respCount === 0) {
+            $requiredCooldown = 120;
+        } else if ($respCount === 1) {
+            $requiredCooldown = 240;
+        } else if ($respCount === 2) {
+            $requiredCooldown = 360;
+        }
+
+        if (($nowTime - $refTime) < $requiredCooldown) {
+            continue; // Cooldown hasn't elapsed yet
+        }
+
+        // Ready for next incremental response
+        $existStmt = $pdo->prepare("SELECT author_email FROM responses WHERE issue_id = :issue_id");
+        $existStmt->execute([':issue_id' => $cand['id']]);
+        $existingEmails = $existStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $existingEmails = array_map('strtolower', $existingEmails);
+
+        if (!empty($cand['creator_email'])) {
+            $existingEmails[] = strtolower($cand['creator_email']);
+        }
+
+        $availablePersonas = array_filter($personas, function($p) use ($existingEmails) {
+            return !in_array(strtolower($p['email']), $existingEmails);
+        });
+
+        if (empty($availablePersonas)) {
+            $availablePersonas = $personas;
+        }
+
+        // Select persona (prefer category match if available)
+        $categoryLower = strtolower($cand['category'] ?? '');
+        $categoryPersonas = array_filter($availablePersonas, function($p) use ($categoryLower) {
+            $pRole = strtolower($p['role'] ?? '');
+            $pBio = strtolower($p['bio'] ?? '');
+            if (strpos($categoryLower, 'econ') !== false || strpos($categoryLower, 'fin') !== false) {
+                return strpos($pRole, 'econom') !== false || strpos($pRole, 'finan') !== false || strpos($pBio, 'market') !== false;
+            }
+            if (strpos($categoryLower, 'tech') !== false) {
+                return strpos($pRole, 'tech') !== false || strpos($pRole, 'engine') !== false || strpos($pBio, 'ai') !== false;
+            }
+            if (strpos($categoryLower, 'gov') !== false || strpos($categoryLower, 'polit') !== false) {
+                return strpos($pRole, 'policy') !== false || strpos($pRole, 'civic') !== false || strpos($pRole, 'analyst') !== false;
+            }
+            return true;
+        });
+
+        $chosenPersona = !empty($categoryPersonas)
+            ? $categoryPersonas[array_rand($categoryPersonas)]
+            : $availablePersonas[array_rand($availablePersonas)];
+
+        // Balance stance (YES vs NO)
+        $yesResp = (int)$cand['yes_responses'];
+        $noResp = (int)$cand['no_responses'];
+        if ($yesResp > $noResp) {
+            $stance = 'NO';
+        } else if ($noResp > $yesResp) {
+            $stance = 'YES';
+        } else {
+            $stance = (rand(0, 1) === 1) ? 'YES' : 'NO';
+        }
+
+        // Generate note
+        $note = generate_incubated_perspective($cand, $chosenPersona, $stance, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash');
+
+        $nowIso = gmdate('Y-m-d\TH:i:s\Z');
+        $subId = 'sub-' . bin2hex(random_bytes(6));
+        $respLikes = rand(3, 14);
+
+        // Insert response
+        $insResp = $pdo->prepare("
+            INSERT INTO responses (
+                id, issue_id, choice, author_name, author_email,
+                author_role, is_anonymous, note, voice_note, likes_count,
+                is_reported, created_at
+            ) VALUES (
+                :id, :issue_id, :choice, :author_name, :author_email,
+                :author_role, 0, :note, NULL, :likes_count,
+                0, :created_at
+            )
+        ");
+        $insResp->execute([
+            ':id' => $subId,
+            ':issue_id' => $cand['id'],
+            ':choice' => $stance,
+            ':author_name' => $chosenPersona['name'],
+            ':author_email' => $chosenPersona['email'],
+            ':author_role' => $chosenPersona['role'],
+            ':note' => $note,
+            ':likes_count' => $respLikes,
+            ':created_at' => $nowIso
+        ]);
+
+        // Drip 2 to 4 organic votes to the issue
+        $addStanceVotes = rand(2, 4);
+        $addOppositeVotes = rand(0, 1);
+        $addYes = ($stance === 'YES') ? $addStanceVotes : $addOppositeVotes;
+        $addNo = ($stance === 'NO') ? $addStanceVotes : $addOppositeVotes;
+
+        $updateIssue = $pdo->prepare("
+            UPDATE issues 
+            SET yes_count = yes_count + :add_yes,
+                no_count = no_count + :add_no,
+                likes_count = likes_count + 1,
+                updated_at = :now
+            WHERE id = :id
+        ");
+        $updateIssue->execute([
+            ':add_yes' => $addYes,
+            ':add_no' => $addNo,
+            ':now' => $nowIso,
+            ':id' => $cand['id']
+        ]);
+
+        // Build slug for notifications
+        $slug = build_curator_issue_slug($cand['title'], $cand['id']);
+
+        // Dispatch author notification
+        if (!empty($cand['creator_email'])) {
+            dispatch_incubation_notification($cand['creator_email'], $cand['title'], $slug, $chosenPersona, $stance, $note);
+        }
+
+        $incubated[] = [
+            'issueId' => $cand['id'],
+            'issueTitle' => $cand['title'],
+            'persona' => $chosenPersona['name'],
+            'role' => $chosenPersona['role'],
+            'stance' => $stance,
+            'note' => $note,
+            'votesAdded' => ['yes' => $addYes, 'no' => $addNo],
+            'newTotalResponses' => $respCount + 1,
+            'timestamp' => $nowIso
+        ];
+
+        // Process up to 1-2 per cycle to maintain paced progression
+        if (count($incubated) >= 2) {
+            break;
+        }
+    }
+
+    return [
+        'success' => true,
+        'action' => 'incubate',
+        'count' => count($incubated),
+        'incubated' => $incubated
+    ];
+}
+
+// -------------------------------------------------------------
 // Router / Action Handlers
 // -------------------------------------------------------------
 $settings = get_curator_settings($settingsPath);
@@ -868,7 +1141,7 @@ $action = isset($_GET['action']) ? trim($_GET['action']) : (isset($_POST['action
 $isCron = isset($_GET['cron']) && ($_GET['cron'] === '1' || $_GET['cron'] === 'true');
 
 // Support GET ?action=status
-if ($action === 'status' || ($_SERVER['REQUEST_METHOD'] === 'GET' && !$isCron && empty($action))) {
+if ($action === 'status' || ((isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'GET') && !$isCron && empty($action))) {
     $totalCurated = 0;
     $totalMembersInDb = 0;
     if ($pdo) {
@@ -959,6 +1232,19 @@ if ($action === 'seed_users') {
     exit;
 }
 
+// Incremental User Debate Incubation (Periodic Heartbeat / Webhook)
+if ($action === 'incubate' || $action === 'incubate_heartbeat') {
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Database offline']);
+        exit;
+    }
+
+    $incubationResult = incubate_user_debates($pdo, $personas, $settings);
+    echo json_encode($incubationResult);
+    exit;
+}
+
 // Generate New Issue & Debate Now (or via Cron)
 if ($action === 'generate_issue' || $isCron) {
     // Check master kill switch
@@ -976,6 +1262,9 @@ if ($action === 'generate_issue' || $isCron) {
         echo json_encode(['success' => false, 'error' => 'Database offline']);
         exit;
     }
+
+    // Also run incremental incubation on any waiting user debates during cron run
+    $incubatedDebates = incubate_user_debates($pdo, $personas, $settings);
 
     // Generate debate
     $result = generate_curated_debate($personas, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash');
@@ -1001,6 +1290,7 @@ if ($action === 'generate_issue' || $isCron) {
         'success' => true,
         'engine' => $result['source'],
         'issue' => $persisted,
+        'incubated' => $incubatedDebates,
         'lastRunAt' => $nowIso,
         'message' => "Successfully generated and published: \"{$persisted['title']}\" with {$persisted['totalVotes']} initial votes."
     ]);
@@ -1011,5 +1301,5 @@ if ($action === 'generate_issue' || $isCron) {
 echo json_encode([
     'success' => false,
     'error' => 'Unknown action requested',
-    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue']
+    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue', 'incubate', 'incubate_heartbeat']
 ]);
