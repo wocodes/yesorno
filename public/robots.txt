@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Direct crawlers to dynamic XML sitemap
+Sitemap: https://yesorno.chillon.top/sitemap.xml
