@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Sparkles, TrendingUp, Check, Loader2, RefreshCw,
-  Globe2, Newspaper, Tag, ShieldCheck, Edit3
+  Globe2, Newspaper, Tag, ShieldCheck, Edit3, Key, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { IssueCategory, IssueRegion, UserProfile } from '../types';
 import {
@@ -57,9 +57,23 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
   const [topicContext, setTopicContext] = useState(initialContext);
   const [selectedCategory, setSelectedCategory] = useState<string>('auto');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [cycle, setCycle] = useState(1);
   const [suggestions, setSuggestions] = useState<QuestionSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [trendSourceMeta, setTrendSourceMeta] = useState<{ source: string; grounded: boolean } | null>(null);
+  const [regenerateSuccess, setRegenerateSuccess] = useState(false);
+
+  // Gemini API Key in-modal management
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('yesorno_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+    }
+    return '';
+  });
+  const [showApiKeyDrawer, setShowApiKeyDrawer] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keySavedMessage, setKeySavedMessage] = useState<string | null>(null);
 
   // Editable Form for the Selected Suggestion
   const [editTitle, setEditTitle] = useState('');
@@ -88,14 +102,26 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const handleGenerate = async (overrideContext?: string) => {
+  const handleGenerate = async (overrideContext?: string, isRegenerate = false) => {
     const ctx = overrideContext !== undefined ? overrideContext : topicContext;
     setIsGenerating(true);
+    setRegenerateSuccess(false);
+
+    const nextCycle = isRegenerate ? cycle + 1 : 1;
+    if (isRegenerate) {
+      setCycle(nextCycle);
+    }
+
+    const previousTitles = isRegenerate ? suggestions.map((s) => s.title) : [];
+
     try {
       const res = await fetchTrendingQuestionSuggestions({
         context: ctx.trim(),
         category: selectedCategory === 'auto' ? undefined : selectedCategory,
         region: currentUser?.region || 'Africa & Middle East',
+        apiKey: apiKey.trim() || undefined,
+        cycle: nextCycle,
+        excludeTitles: previousTitles,
       });
 
       if (res && res.suggestions && res.suggestions.length > 0) {
@@ -105,6 +131,11 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
           source: res.source,
           grounded: Boolean(res.grounded),
         });
+
+        if (isRegenerate) {
+          setRegenerateSuccess(true);
+          setTimeout(() => setRegenerateSuccess(false), 3500);
+        }
       }
     } catch (err) {
       console.error('Failed to generate trend questions:', err);
@@ -115,7 +146,42 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
 
   const handleSelectPill = (context: string) => {
     setTopicContext(context);
-    handleGenerate(context);
+    handleGenerate(context, false);
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!tempApiKey.trim()) return;
+    setIsSavingKey(true);
+    const cleanKey = tempApiKey.trim();
+
+    try {
+      localStorage.setItem('yesorno_gemini_api_key', cleanKey);
+      setApiKey(cleanKey);
+
+      // Also persist to server backend settings so cron and incubation use it too
+      const endpoint = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? 'https://yesorno.chillon.top/ai-curator.php?action=save_settings'
+          : '/ai-curator.php?action=save_settings';
+
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geminiApiKey: cleanKey }),
+      });
+
+      setKeySavedMessage('Gemini API key connected! Live search is now active.');
+      setShowApiKeyDrawer(false);
+      setTempApiKey('');
+
+      // Immediately regenerate using the newly configured live key
+      handleGenerate(topicContext, false);
+    } catch {
+      setKeySavedMessage('Saved locally for this browser.');
+    } finally {
+      setIsSavingKey(false);
+      setTimeout(() => setKeySavedMessage(null), 5000);
+    }
   };
 
   const handleConfirm = () => {
@@ -152,7 +218,7 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
                   AI Trend Deliberation Studio
                 </h3>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30">
-                  Gemini + Google Trends
+                  {apiKey ? '🟢 Live Gemini Search' : 'Curated Trend Engine'}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
@@ -171,7 +237,59 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+          {/* Optional Gemini API Key Drawer Toggle */}
+          <div className="flex items-center justify-between text-xs px-1">
+            <button
+              type="button"
+              onClick={() => setShowApiKeyDrawer(!showApiKeyDrawer)}
+              className="inline-flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors cursor-pointer"
+            >
+              <Key className="w-3.5 h-3.5 text-purple-500" />
+              <span>
+                {apiKey
+                  ? 'Gemini API Key: Connected (Live Web Search)'
+                  : 'Connect Gemini API Key (Optional — enables live Google Search)'}
+              </span>
+              {showApiKeyDrawer ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {keySavedMessage && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 animate-fade-in">
+                {keySavedMessage}
+              </span>
+            )}
+          </div>
+
+          {/* API Key Drawer */}
+          {showApiKeyDrawer && (
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-400/30 space-y-2 animate-fade-in">
+              <div className="text-xs font-bold text-purple-900 dark:text-purple-200">
+                Google Gemini API Key:
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  value={tempApiKey}
+                  onChange={(e) => setTempApiKey(e.target.value)}
+                  placeholder={apiKey ? '•••••••••••••••••••• (Connected)' : 'Paste Gemini API Key (AIzaSy...)'}
+                  className="flex-1 px-3 py-2 text-xs rounded-xl bg-white dark:bg-ink-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveApiKey}
+                  disabled={!tempApiKey.trim() || isSavingKey}
+                  className="btn-brand py-2 px-4 text-xs font-bold whitespace-nowrap cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingKey ? 'Saving...' : 'Save & Connect'}
+                </button>
+              </div>
+              <p className="text-[11px] text-purple-700 dark:text-purple-300">
+                A free API key from Google AI Studio allows Gemini to browse the live web and generate infinite real-time debate topics.
+              </p>
+            </div>
+          )}
+
           {/* Context & Options Box */}
           <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-ink-950 border border-slate-200/80 dark:border-white/10 space-y-3.5">
             <div>
@@ -189,7 +307,7 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleGenerate();
+                      handleGenerate(undefined, false);
                     }
                   }}
                   placeholder="e.g., 'the recent Lagos governorship debate', 'Nigeria crypto tax bill', 'tuition hike'..."
@@ -247,14 +365,14 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
 
               <button
                 type="button"
-                onClick={() => handleGenerate()}
+                onClick={() => handleGenerate(undefined, false)}
                 disabled={isGenerating}
                 className="btn-brand py-2.5 px-5 text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Searching News &amp; Trends with Gemini...</span>
+                    <span>Searching News &amp; Trends...</span>
                   </>
                 ) : (
                   <>
@@ -265,6 +383,19 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
               </button>
             </div>
           </div>
+
+          {/* Regeneration Success Banner */}
+          {regenerateSuccess && (
+            <div className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between animate-fade-in">
+              <span className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-500" />
+                <span>Generated 3 fresh alternative debate angles! (Cycle #{cycle})</span>
+              </span>
+              <span className="text-[11px] font-normal text-emerald-600 dark:text-emerald-400">
+                Previous angles excluded
+              </span>
+            </div>
+          )}
 
           {/* Suggestions List Section */}
           {suggestions.length > 0 && (
@@ -452,7 +583,7 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => handleGenerate()}
+                  onClick={() => handleGenerate(undefined, false)}
                   className="btn-brand py-2 px-5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-soft"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -477,13 +608,13 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
             {suggestions.length > 0 && (
               <button
                 type="button"
-                onClick={() => handleGenerate()}
+                onClick={() => handleGenerate(undefined, true)}
                 disabled={isGenerating}
                 className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Regenerate alternative debate angles on this topic"
+                title="Generate fresh, alternative debate angles on this topic"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-                <span>Regenerate Ideas</span>
+                <span>{isGenerating ? 'Generating...' : 'Regenerate Ideas'}</span>
               </button>
             )}
 
@@ -511,3 +642,4 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
     </div>
   );
 };
+
