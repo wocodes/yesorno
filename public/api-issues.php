@@ -204,6 +204,69 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $userReactionsByTarget[$tid][$emoji] = $users;
     }
 
+    // Build user profiles map for avatar & username hydration
+    $profilesMap = [];
+    try {
+        $profStmt = $pdo->query("SELECT email, user_data FROM user_profiles");
+        while ($pRow = $profStmt->fetch(PDO::FETCH_ASSOC)) {
+            $uData = json_decode($pRow['user_data'], true);
+            if ($uData && !empty($pRow['email'])) {
+                $profilesMap[strtolower($pRow['email'])] = $uData;
+                if (!empty($uData['name'])) {
+                    $profilesMap['name:' . strtolower(trim($uData['name']))] = $uData;
+                }
+                if (!empty($uData['username'])) {
+                    $cleanU = ltrim(strtolower(trim($uData['username'])), '@');
+                    $profilesMap['user:' . $cleanU] = $uData;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // user_profiles table might be empty or missing
+    }
+
+    // Also load seed_personas.json as base/fallback
+    $seedFile = __DIR__ . '/data/seed_personas.json';
+    if (file_exists($seedFile)) {
+        $seedPersonas = json_decode(file_get_contents($seedFile), true);
+        if (is_array($seedPersonas)) {
+            foreach ($seedPersonas as $sp) {
+                $eKey = strtolower($sp['email'] ?? '');
+                if ($eKey && !isset($profilesMap[$eKey])) {
+                    $profilesMap[$eKey] = $sp;
+                }
+                if (!empty($sp['name'])) {
+                    $nKey = 'name:' . strtolower(trim($sp['name']));
+                    if (!isset($profilesMap[$nKey])) {
+                        $profilesMap[$nKey] = $sp;
+                    }
+                }
+                if (!empty($sp['username'])) {
+                    $cleanU = ltrim(strtolower(trim($sp['username'])), '@');
+                    if (!isset($profilesMap['user:' . $cleanU])) {
+                        $profilesMap['user:' . $cleanU] = $sp;
+                    }
+                }
+            }
+        }
+    }
+
+    $lookupProfile = function($email, $name = null, $alias = null) use (&$profilesMap) {
+        if (!empty($email)) {
+            $eKey = strtolower(trim($email));
+            if (isset($profilesMap[$eKey])) return $profilesMap[$eKey];
+        }
+        if (!empty($name)) {
+            $nKey = 'name:' . strtolower(trim($name));
+            if (isset($profilesMap[$nKey])) return $profilesMap[$nKey];
+        }
+        if (!empty($alias)) {
+            $uKey = 'user:' . ltrim(strtolower(trim($alias)), '@');
+            if (isset($profilesMap[$uKey])) return $profilesMap[$uKey];
+        }
+        return null;
+    };
+
     // Group replies by submission_id
     $repliesBySubmission = [];
     foreach ($allReplies as $rep) {
@@ -212,13 +275,21 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             $repliesBySubmission[$subId] = [];
         }
         $rid = $rep['id'];
+        $repProf = $lookupProfile($rep['author_email'], $rep['author_name'], $rep['author_alias']);
+        $repAvatar = $repProf['avatar'] ?? null;
+        $repUsername = $repProf['username'] ?? null;
+        $repPref = $repProf['displayPreference'] ?? null;
+
         $repliesBySubmission[$subId][] = [
             'id' => $rep['id'],
             'submissionId' => $rep['submission_id'],
             'authorName' => $rep['author_name'],
+            'authorUsername' => $repUsername,
+            'authorAvatar' => $repAvatar,
             'authorEmail' => $rep['author_email'],
             'authorAlias' => $rep['author_alias'],
             'authorRole' => $rep['author_role'],
+            'displayPreference' => $repPref,
             'isAnonymous' => (bool)$rep['is_anonymous'],
             'content' => $rep['content'],
             'replyToName' => $rep['reply_to_name'],
@@ -243,14 +314,22 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             $voiceNote = json_decode($resp['voice_note'], true);
         }
 
+        $respProf = $lookupProfile($resp['author_email'], $resp['author_name'], $resp['author_alias']);
+        $respAvatar = $respProf['avatar'] ?? null;
+        $respUsername = $respProf['username'] ?? null;
+        $respPref = $respProf['displayPreference'] ?? null;
+
         $responsesByIssue[$issId][] = [
             'id' => $resp['id'],
             'issueId' => $resp['issue_id'],
             'choice' => $resp['choice'],
             'authorName' => $resp['author_name'],
+            'authorUsername' => $respUsername,
+            'authorAvatar' => $respAvatar,
             'authorEmail' => $resp['author_email'],
             'authorAlias' => $resp['author_alias'],
             'authorRole' => $resp['author_role'],
+            'displayPreference' => $respPref,
             'isAnonymous' => (bool)$resp['is_anonymous'],
             'note' => $resp['note'],
             'voiceNote' => $voiceNote,
@@ -285,16 +364,29 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $calcYes = max((int)$row['yes_count'], $respYes);
         $calcNo = max((int)$row['no_count'], $respNo);
 
+        $issueProf = $lookupProfile($row['creator_email'], $row['author'], null);
+        $creatorAvatar = $issueProf['avatar'] ?? null;
+        $creatorUsername = $issueProf['username'] ?? null;
+        $creatorPref = $issueProf['displayPreference'] ?? null;
+
+        $rawRegion = $row['region'] ?: 'Africa & Middle East';
+        if ($rawRegion === 'West Africa') {
+            $rawRegion = 'Africa & Middle East';
+        }
+
         $output[] = [
             'id' => $row['id'],
             'title' => $row['title'],
             'description' => $row['description'] ?: '',
             'category' => $row['category'],
-            'region' => $row['region'] ?: 'Global / Remote',
+            'region' => $rawRegion,
             'tags' => is_array($tags) ? $tags : [],
             'author' => $row['author'],
             'creatorId' => $row['creator_id'],
             'creatorEmail' => $row['creator_email'],
+            'creatorAvatar' => $creatorAvatar,
+            'creatorUsername' => $creatorUsername,
+            'creatorDisplayPreference' => $creatorPref,
             'isAnonymousAuthor' => (bool)$row['is_anonymous_author'],
             'closingDate' => $row['closing_date'],
             'durationLabel' => $row['duration_label'] ?: '24 Hours',
@@ -412,7 +504,7 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
                 ':title' => $iss['title'] ?? 'Untitled Issue',
                 ':description' => $iss['description'] ?? '',
                 ':category' => $iss['category'] ?? 'Community & Neighborhood',
-                ':region' => $iss['region'] ?? 'Global / Remote',
+                ':region' => (!empty($iss['region']) && $iss['region'] !== 'West Africa') ? $iss['region'] : 'Africa & Middle East',
                 ':tags' => json_encode($iss['tags'] ?? []),
                 ':author' => $iss['author'] ?? 'Anonymous',
                 ':creator_id' => $iss['creatorId'] ?? null,

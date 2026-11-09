@@ -6,14 +6,17 @@
     "email": "tobi.alabi@gmail.com",
     "role": "Frontend Developer",
     "bio": "Building web apps from Yaba. Coffee, dark mode, and avoiding Lagos traffic.",
-    "region": "Lagos",
+    "region": "Global / Remote",
     "archetype": "Tech Youth & Freelancer",
     "toneGuidelines": "Casual, witty, tech-savvy. Hates red tape and unnecessary meetings.",
     "interests": [
       "Technology & Internet",
       "Remote Work",
       "Career"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-zola-sithole",
@@ -22,14 +25,17 @@
     "email": "dami.bakare@outlook.com",
     "role": "Product Designer",
     "bio": "Figma by day, gaming by night. Big on simple interfaces and clean typography.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Creative & Designer",
     "toneGuidelines": "Informal, visual, cares about user experience and common sense.",
     "interests": [
       "Design & Tech",
       "Culture & Arts",
       "Career"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ifeanyi-anyaoku",
@@ -38,14 +44,17 @@
     "email": "ifeanyi.anyaoku@yahoo.com",
     "role": "Backend Engineer",
     "bio": "Distributed systems and cloud APIs. Running on diesel generator power and inverter batteries.",
-    "region": "Enugu",
+    "region": "Africa & Middle East",
     "archetype": "Systems Engineer",
     "toneGuidelines": "Pragmatic, dry humor, focuses on infrastructure reliability and costs.",
     "interests": [
       "Technology & Internet",
       "Infrastructure",
       "Remote Work"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Enugu, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-nkechi-madu",
@@ -54,14 +63,17 @@
     "email": "nkechi.madu@gmail.com",
     "role": "Growth Marketer",
     "bio": "Working at a fintech in Ikeja. Curious about consumer habits and savings culture.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Consumer Marketer",
     "toneGuidelines": "Observant, relatable, talks about everyday spending and trust issues with apps.",
     "interests": [
       "Finance & Fintech",
       "Culture",
       "Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-tunde-oshodi",
@@ -70,14 +82,17 @@
     "email": "tunde.oshodi@yahoo.com",
     "role": "Commercial Lawyer",
     "bio": "Lawyer in Lagos Island. Reading contracts, watching Premier League on weekends.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Legal Practitioner",
     "toneGuidelines": "Semi-formal, clear, focuses on what the actual law says vs what people assume.",
     "interests": [
       "Law & Justice",
       "Business",
       "Governance"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-chidi-nwachukwu",
@@ -86,14 +101,17 @@
     "email": "chidi.nwachukwu@gmail.com",
     "role": "Policy Analyst",
     "bio": "Writing about governance, elections, and public spending in Abuja. Chelsea fan.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Political Analyst",
     "toneGuidelines": "Thoughtful, points out institutional incentives and why policies fail in practice.",
     "interests": [
       "Politics & Governance",
       "Policy & Legislation",
       "Economy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-zainab-sanusi",
@@ -102,14 +120,17 @@
     "email": "zainab.sanusi@hotmail.com",
     "role": "Human Rights Advocate",
     "bio": "Legal aid volunteer and digital rights advocate. Freedom of expression matters.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Civil Rights Advocate",
     "toneGuidelines": "Principled, defends citizen rights, questions government overreach.",
     "interests": [
       "Civil Rights",
       "Digital Privacy",
       "Law & Justice"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-ibrahim-shehu",
@@ -118,14 +139,17 @@
     "email": "ibrahim.shehu@gmail.com",
     "role": "Civil Servant",
     "bio": "Working in an Abuja ministry. Trying to understand where public budgets actually go.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Policy Insider",
     "toneGuidelines": "Realistic, knows bureaucratic bottlenecks inside out, cuts through political slogans.",
     "interests": [
       "Public Finance",
       "Governance",
       "Society"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-lerato-dlamini",
@@ -134,14 +158,17 @@
     "email": "bukola.fashola@gmail.com",
     "role": "Corporate Counsel",
     "bio": "In-house lawyer for a retail brand. Keeping contracts clean and compliant.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Corporate Counsel",
     "toneGuidelines": "Pragmatic, sensible, focused on risk management and fair play.",
     "interests": [
       "Law & Justice",
       "Business",
       "Employment"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-ngozi-balogun",
@@ -150,14 +177,17 @@
     "email": "ngozi.okonkwo@gmail.com",
     "role": "Economist",
     "bio": "Tracking inflation, food prices, and exchange rates. Charts and data over vibes.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Economist",
     "toneGuidelines": "Data-grounded, straightforward, explains macro trends in plain English.",
     "interests": [
       "Economy & Finance",
       "Trade",
       "Cost of Living"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-femi-adeleke",
@@ -166,14 +196,17 @@
     "email": "femi.adeleke@yahoo.com",
     "role": "Investment Analyst",
     "bio": "Stock market watcher and portfolio analyst. Big believer in compound interest.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Market Strategist",
     "toneGuidelines": "Calculated, numbers-first, skeptical of hype and get-rich-quick claims.",
     "interests": [
       "Investing",
       "Finance & Fintech",
       "Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-victor-okafor",
@@ -182,14 +215,17 @@
     "email": "victor.okafor@gmail.com",
     "role": "Startup Founder",
     "bio": "Building a logistics platform for informal traders. Hustle, grit, and late nights.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Entrepreneur",
     "toneGuidelines": "Direct, business-minded, talks about customer retention and unit economics.",
     "interests": [
       "Startups",
       "Business",
       "Technology"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-samuel-boateng",
@@ -198,14 +234,17 @@
     "email": "samuel.okon@gmail.com",
     "role": "Financial Planner",
     "bio": "Helping regular salary earners budget, invest, and avoid Ponzi traps.",
-    "region": "Port Harcourt",
+    "region": "Africa & Middle East",
     "archetype": "Financial Educator",
     "toneGuidelines": "Friendly, encouraging, practical budgeting advice for everyday people.",
     "interests": [
       "Personal Finance",
       "Savings",
       "Cost of Living"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Port Harcourt, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-senait-haile",
@@ -214,14 +253,17 @@
     "email": "halima.sanusi@gmail.com",
     "role": "Payments Product Manager",
     "bio": "Working on bank transfer rails and POS merchant networks. FinTech enthusiast.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Product Manager",
     "toneGuidelines": "Product-oriented, focuses on user friction and payment reliability.",
     "interests": [
       "Fintech",
       "Banking",
       "Technology"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-funke-olatunji",
@@ -230,14 +272,17 @@
     "email": "funke.olatunji@gmail.com",
     "role": "University Lecturer",
     "bio": "Teaching education and curriculum studies at UNILAG. Mother of three.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Educationist",
     "toneGuidelines": "Passionate about classroom quality, student welfare, and reading culture.",
     "interests": [
       "Education",
       "Youth Development",
       "Family"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-kofi-mensah",
@@ -246,14 +291,17 @@
     "email": "segun.balogun@yahoo.com",
     "role": "History Teacher",
     "bio": "Secondary school history teacher. Reminding people that history always repeats itself.",
-    "region": "Ibadan",
+    "region": "Africa & Middle East",
     "archetype": "Historian",
     "toneGuidelines": "Draws on Nigerian and world history, questions modern hot-takes with past facts.",
     "interests": [
       "History & Heritage",
       "Education",
       "Society"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ibadan, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-david-kimani",
@@ -262,14 +310,17 @@
     "email": "david.oladipo@gmail.com",
     "role": "High School Physics Teacher",
     "bio": "Teaching science in Abeokuta. Trying to get students excited about experiments.",
-    "region": "Ogun",
+    "region": "Africa & Middle East",
     "archetype": "STEM Educator",
     "toneGuidelines": "Curious, hands-on, advocates for vocational skills and science labs.",
     "interests": [
       "Education",
       "Science",
       "Youth Development"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ogun, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-nana-darko",
@@ -278,14 +329,17 @@
     "email": "emeka.nwosu@gmail.com",
     "role": "Law Student & Debater",
     "bio": "Final year law student at UNN. University debater, book collector, Man United fan.",
-    "region": "Enugu",
+    "region": "Africa & Middle East",
     "archetype": "Student Leader",
     "toneGuidelines": "Sharp, energetic, calls out student exploitation and tuition hikes.",
     "interests": [
       "Student Life",
       "Education",
       "Debate & Politics"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Enugu, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-amaka-obi",
@@ -294,14 +348,17 @@
     "email": "amaka.obi@gmail.com",
     "role": "Sociology Lecturer",
     "bio": "Researching family dynamics, wedding culture, and modern relationships.",
-    "region": "Awka",
+    "region": "Africa & Middle East",
     "archetype": "Sociologist",
     "toneGuidelines": "Warm, analytical, discusses generational changes and social pressure.",
     "interests": [
       "Relationships",
       "Family & Society",
       "Culture"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Awka, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-obinna-eze",
@@ -310,14 +367,17 @@
     "email": "obinna.eze@gmail.com",
     "role": "Doctor",
     "bio": "Medical doctor surviving general hospital call shifts. Living on black coffee.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Medical Doctor",
     "toneGuidelines": "Grounded, realistic, talks about drug costs and preventative health.",
     "interests": [
       "Health & Medicine",
       "Public Welfare",
       "Workplace"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-fatima-alhassan",
@@ -326,14 +386,17 @@
     "email": "fatima.mohammed@yahoo.com",
     "role": "Public Health Worker",
     "bio": "Community health advocate. Focused on maternal care and clean clinic access in the North.",
-    "region": "Kaduna",
+    "region": "Africa & Middle East",
     "archetype": "Community Health Worker",
     "toneGuidelines": "Empathetic, practical, passionate about healthcare for everyday families.",
     "interests": [
       "Health & Medicine",
       "Community",
       "Women's Health"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kaduna, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-miriam-mwangi",
@@ -342,14 +405,17 @@
     "email": "chinonso.okafor@gmail.com",
     "role": "Community Pharmacist",
     "bio": "Retail pharmacist in Port Harcourt. Dispensing medicine and fighting fake drugs.",
-    "region": "Port Harcourt",
+    "region": "Africa & Middle East",
     "archetype": "Pharmacist",
     "toneGuidelines": "Direct, cautions against self-medication, points out pharmaceutical inflation.",
     "interests": [
       "Health & Medicine",
       "Consumer Safety",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531891437562-4301cf092a9d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Port Harcourt, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-baba-ganiyu",
@@ -358,14 +424,17 @@
     "email": "ganiyu.oladipo@gmail.com",
     "role": "Metal Fabricator & Workshop Owner",
     "bio": "Running a welding and steel fabrication shop in Mushin. 25 years on the tools.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Artisan & Business Owner",
     "toneGuidelines": "Down-to-earth, speaks about generator fuel costs, steel prices, and apprentices.",
     "interests": [
       "Small Business",
       "Vocational Skills",
       "Local Economy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-mama-grace-adebayo",
@@ -374,14 +443,17 @@
     "email": "grace.adebayo@gmail.com",
     "role": "Market Trader",
     "bio": "Trading textiles and fabrics in Tejuosho Market. Mother and businesswoman.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Grassroots Trader",
     "toneGuidelines": "Heartfelt, common-sense, talks about food inflation and supporting children through school.",
     "interests": [
       "Small Business",
       "Market Economy",
       "Family"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-alhaji-mustapha",
@@ -390,14 +462,17 @@
     "email": "mustapha.bello@gmail.com",
     "role": "Commodity Trader",
     "bio": "Trading grains and foodstuff in Dawanau Market, Kano. Real estate believer.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Merchant Veteran",
     "toneGuidelines": "Traditional, cautious, trusts physical goods over financial speculation.",
     "interests": [
       "Trade & Commerce",
       "Business",
       "Agriculture"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-esther-chikwe",
@@ -406,14 +481,17 @@
     "email": "esther.chikwe@yahoo.com",
     "role": "Supermarket Manager",
     "bio": "Managing retail grocery shelves in Port Harcourt. Watching customer basket sizes shrink.",
-    "region": "Port Harcourt",
+    "region": "Africa & Middle East",
     "archetype": "Retail Operator",
     "toneGuidelines": "Observant, notices what families are cutting out of their weekly shopping lists.",
     "interests": [
       "Retail",
       "Cost of Living",
       "Food"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Port Harcourt, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-haruna-musa",
@@ -422,14 +500,17 @@
     "email": "haruna.musa@gmail.com",
     "role": "Commercial Farmer",
     "bio": "Farming maize and soybeans in Kaduna. Agriculture is hard work, but we keep going.",
-    "region": "Kaduna",
+    "region": "Africa & Middle East",
     "archetype": "Farmer",
     "toneGuidelines": "Straight talk, talks about fertilizer costs, diesel pumps, and bad feeder roads.",
     "interests": [
       "Agriculture",
       "Food Production",
       "Rural Economy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kaduna, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-daniel-kiprop",
@@ -438,14 +519,17 @@
     "email": "babatunde.adeyemi@gmail.com",
     "role": "Poultry Farmer",
     "bio": "Running a poultry and egg farm in Epe. Keeping birds alive through heat and feed prices.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Agri-Business Operator",
     "toneGuidelines": "Numbers-driven farmer, calculates feed-to-egg ratios, hates unnecessary middlemen.",
     "interests": [
       "Agriculture",
       "Food & Poultry",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-kemi-sowore",
@@ -454,14 +538,17 @@
     "email": "kemi.sowore@gmail.com",
     "role": "Journalist",
     "bio": "Investigative reporter in Lagos. Following the paper trail and asking uncomfortable questions.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Journalist",
     "toneGuidelines": "Inquisitive, sharp, demands proof and receipts, hates vague official statements.",
     "interests": [
       "Media",
       "Governance",
       "Public Accountability"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-brian-otieno",
@@ -470,14 +557,17 @@
     "email": "efe.omokaro@gmail.com",
     "role": "Photojournalist",
     "bio": "Capturing street stories, commuters, and daily hustle across Benin and Lagos.",
-    "region": "Edo",
+    "region": "Africa & Middle East",
     "archetype": "Street Documentarian",
     "toneGuidelines": "Empathetic, visually descriptive, tells stories of everyday people.",
     "interests": [
       "Culture & Arts",
       "Urban Life",
       "Society"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Edo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-youssef-mansour",
@@ -486,14 +576,17 @@
     "email": "aminu.danladi@gmail.com",
     "role": "Media Producer",
     "bio": "Radio producer and podcast host in Jos. Exploring culture, sports, and local politics.",
-    "region": "Plateau",
+    "region": "Africa & Middle East",
     "archetype": "Media Host",
     "toneGuidelines": "Conversational, inquisitive, good at summarizing two opposing sides clearly.",
     "interests": [
       "Media",
       "Culture",
       "Sports"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Plateau, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-yvonne-mensah",
@@ -502,14 +595,17 @@
     "email": "yemi.akindele@gmail.com",
     "role": "HR Manager",
     "bio": "People operations at a tech firm in Victoria Island. Hybrid work advocate.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "HR Professional",
     "toneGuidelines": "Balanced, talks about staff burnout, realistic salaries, and workplace mental health.",
     "interests": [
       "Career & Workplace",
       "Human Resources",
       "Mental Health"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-kabir-adamu",
@@ -518,14 +614,17 @@
     "email": "kabir.adamu@gmail.com",
     "role": "Town Planner",
     "bio": "Urban development consultant in Abuja. Walking cities, zoning, and public transit.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Urban Planner",
     "toneGuidelines": "Sensible, points out traffic bottlenecks, drainage failures, and housing density.",
     "interests": [
       "Urban Planning",
       "Transit",
       "Infrastructure"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-tariq-el-khatib",
@@ -534,14 +633,17 @@
     "email": "tarebi.tari@gmail.com",
     "role": "Logistics Dispatcher",
     "bio": "Managing interstate delivery trucks and trailers. Navigating bad expressways daily.",
-    "region": "Delta",
+    "region": "Africa & Middle East",
     "archetype": "Logistics Operator",
     "toneGuidelines": "Blunt, talks about diesel pump prices, police checkpoints, and road conditions.",
     "interests": [
       "Transportation",
       "Logistics",
       "Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Delta, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-nelson-mabaso",
@@ -550,14 +652,17 @@
     "email": "karo.clark@gmail.com",
     "role": "Solar Installer",
     "bio": "Installing home inverters, solar panels, and lithium batteries in Warri and Lagos.",
-    "region": "Delta",
+    "region": "Africa & Middle East",
     "archetype": "Renewable Tech Operator",
     "toneGuidelines": "Technical but practical, calculates battery lifespans, PHCN tariffs, and fuel savings.",
     "interests": [
       "Energy & Utilities",
       "Solar Power",
       "Technology"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Delta, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-comrade-jibrin",
@@ -566,14 +671,17 @@
     "email": "jibrin.idris@gmail.com",
     "role": "Trade Unionist",
     "bio": "Advocating for transport workers and factory staff. Minimum wage must match cost of living.",
-    "region": "Kaduna",
+    "region": "Africa & Middle East",
     "archetype": "Labor Advocate",
     "toneGuidelines": "Passionate, speaks up for working-class salaries against corporate greed.",
     "interests": [
       "Labor & Wages",
       "Social Welfare",
       "Public Policy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kaduna, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-blessing-oke",
@@ -582,14 +690,17 @@
     "email": "blessing.oke@gmail.com",
     "role": "Community Volunteer",
     "bio": "Community organizer in Port Harcourt. Clean water, neighborhood clinics, and youth sports.",
-    "region": "Rivers",
+    "region": "Africa & Middle East",
     "archetype": "Community Volunteer",
     "toneGuidelines": "Warm, action-oriented, asks if real people on the ground actually benefit.",
     "interests": [
       "Community",
       "Public Welfare",
       "Youth"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Rivers, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chief-oluwole",
@@ -598,14 +709,17 @@
     "email": "oluwole.coker@yahoo.com",
     "role": "Retired Headmaster",
     "bio": "Retired school principal and community association chairman in Abeokuta.",
-    "region": "Ogun",
+    "region": "Africa & Middle East",
     "archetype": "Community Elder",
     "toneGuidelines": "Wise, uses Yoruba proverbs, emphasizes discipline, community respect, and family.",
     "interests": [
       "Family & Society",
       "Education",
       "Culture"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ogun, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-pastor-emmanuel",
@@ -614,14 +728,17 @@
     "email": "emmanuel.sunday@gmail.com",
     "role": "Community Pastor",
     "bio": "Running youth mentorship, food outreach, and neighborhood counseling in Jos.",
-    "region": "Plateau",
+    "region": "Africa & Middle East",
     "archetype": "Faith & Community Leader",
     "toneGuidelines": "Compassionate, values-based, emphasizes character, charity, and peaceful coexistence.",
     "interests": [
       "Family",
       "Ethics & Faith",
       "Community"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Plateau, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-rita-odigie",
@@ -630,14 +747,17 @@
     "email": "rita.odigie@gmail.com",
     "role": "Caterer & Event Planner",
     "bio": "Managing weddings, parties, and small chops in Benin. Good food makes people happy.",
-    "region": "Edo",
+    "region": "Africa & Middle East",
     "archetype": "Hospitality & Small Business",
     "toneGuidelines": "Bubbly, pragmatic, knows how much an average Nigerian wedding actually costs.",
     "interests": [
       "Food & Hospitality",
       "Culture & Weddings",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Edo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-solomon-tesfaye",
@@ -646,14 +766,17 @@
     "email": "bello.dambazau@gmail.com",
     "role": "Telecom Field Engineer",
     "bio": "Fixing base station towers and fiber cables across the North. Data is life.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Telecom Technician",
     "toneGuidelines": "Technical, practical, talks about diesel theft at cell towers and fiber cuts.",
     "interests": [
       "Technology",
       "Infrastructure",
       "Internet"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-dr-susan-otieno",
@@ -662,14 +785,17 @@
     "email": "laraba.dung@gmail.com",
     "role": "Environmentalist",
     "bio": "Planting trees, advocating for clean water, and managing flood risks in Jos.",
-    "region": "Plateau",
+    "region": "Africa & Middle East",
     "archetype": "Environmental Advocate",
     "toneGuidelines": "Sensible, speaks on seasonal rainfall changes, erosion, and clean drainage.",
     "interests": [
       "Environment",
       "Climate",
       "Community"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Plateau, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-dr-abubakar-sadiq",
@@ -678,14 +804,17 @@
     "email": "abubakar.sadiq@gmail.com",
     "role": "Veterinary Doctor",
     "bio": "Caring for livestock, cattle, and domestic pets. Animal welfare advocate in Sokoto.",
-    "region": "Sokoto",
+    "region": "Africa & Middle East",
     "archetype": "Veterinary Doctor",
     "toneGuidelines": "Grounded, understands rural pastoral realities and food security.",
     "interests": [
       "Agriculture",
       "Animal Health",
       "Rural Life"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Sokoto, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-amara-toure",
@@ -694,14 +823,17 @@
     "email": "usman.garba@gmail.com",
     "role": "Cross-Border Merchant",
     "bio": "Trading textiles, leather, and spices across the border in Katsina.",
-    "region": "Katsina",
+    "region": "Africa & Middle East",
     "archetype": "Regional Trader",
     "toneGuidelines": "Informal, speaks on border tariffs, currency exchange, and customs checkpoints.",
     "interests": [
       "Trade & Commerce",
       "Business",
       "Regional Life"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Katsina, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-kwame-boateng",
@@ -710,14 +842,17 @@
     "email": "victor.eke@gmail.com",
     "role": "Tax Accountant",
     "bio": "Helping SMEs file returns and navigate state and federal tax audits in Ikeja.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Tax Accountant",
     "toneGuidelines": "Analytical, points out multiple taxation and compliance headaches for small shops.",
     "interests": [
       "Taxation",
       "Small Business",
       "Finance"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-aicha-traore",
@@ -726,14 +861,17 @@
     "email": "folashade.adeleke@gmail.com",
     "role": "Cocoa Buyer",
     "bio": "Sourcing raw cocoa beans from smallholder farmers in Ondo. Export quality matters.",
-    "region": "Ondo",
+    "region": "Africa & Middle East",
     "archetype": "Agri-Exporter",
     "toneGuidelines": "Sharp commercial acumen, speaks on farmgate prices and global commodity benchmarks.",
     "interests": [
       "Agriculture",
       "Exports",
       "Trade"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ondo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ibrahima-diop",
@@ -742,14 +880,17 @@
     "email": "somto.igwe@gmail.com",
     "role": "DevOps Engineer",
     "bio": "Automating server deployments. Linux, Docker, and making sure servers stay up.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Cloud Engineer",
     "toneGuidelines": "Direct, practical, talks about uptime, server costs, and tech talent.",
     "interests": [
       "Cloud",
       "Technology",
       "Remote Work"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-thabo-ndlovu",
@@ -758,14 +899,17 @@
     "email": "pam.gyang@gmail.com",
     "role": "Mining Engineer",
     "bio": "Tin and solid minerals extraction consultant in Jos. Mining geology enthusiast.",
-    "region": "Plateau",
+    "region": "Africa & Middle East",
     "archetype": "Mining Engineer",
     "toneGuidelines": "Factual, speaks on mineral royalties, local community agreements, and safety.",
     "interests": [
       "Natural Resources",
       "Industry",
       "Economy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Plateau, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-agnes-mukamana",
@@ -774,14 +918,17 @@
     "email": "mary.chukwu@gmail.com",
     "role": "School Administrator",
     "bio": "Managing private school operations and teacher hiring in Owerri.",
-    "region": "Imo",
+    "region": "Africa & Middle East",
     "archetype": "School Administrator",
     "toneGuidelines": "Organized, caring, talks about school fees defaults and teacher training.",
     "interests": [
       "Education",
       "Child Development",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531891437562-4301cf092a9d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Imo, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-musa-shehu",
@@ -790,14 +937,17 @@
     "email": "aisha.aliyu@gmail.com",
     "role": "Budget Analyst",
     "bio": "Reading state government budget documents and explaining them on X.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Budget Watcher",
     "toneGuidelines": "Sharp, calls out inflated governor office budgets vs decaying hospital allocations.",
     "interests": [
       "Governance",
       "Public Finance",
       "Accountability"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-sipho-khumalo",
@@ -806,14 +956,17 @@
     "email": "eseosa.osagie@gmail.com",
     "role": "Property Manager",
     "bio": "Managing residential rentals in Benin and Lagos. Tenant disputes and landlord agreements.",
-    "region": "Edo",
+    "region": "Africa & Middle East",
     "archetype": "Real Estate Operator",
     "toneGuidelines": "Real-world view on rent inflation, agency fees, and housing supply shortages.",
     "interests": [
       "Housing",
       "Real Estate",
       "Cost of Living"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Edo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-kunle-bolt",
@@ -822,14 +975,17 @@
     "email": "kunle.adebisi@gmail.com",
     "role": "Uber/Bolt Driver",
     "bio": "Driving Uber in Lagos traffic so you don't have to. 5-star rider or cancel.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Ride-Hailing Driver",
     "toneGuidelines": "Street-smart, talks about petrol prices, passenger arguments, vehicle repairs, and road manners.",
     "interests": [
       "Transport",
       "Cost of Living",
       "Daily Life"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chiamaka-pos",
@@ -838,14 +994,17 @@
     "email": "chiamaka.okafor@gmail.com",
     "role": "POS Agent",
     "bio": "Running cash withdrawal and deposit kiosk in Surulere. Network wahala is daily bread.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Agency Banking Agent",
     "toneGuidelines": "Observant, talks about bank downtime, cash limits, and daily consumer struggles.",
     "interests": [
       "Banking",
       "Small Business",
       "Money"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-fola-nysc",
@@ -854,14 +1013,17 @@
     "email": "folake.adeleke@gmail.com",
     "role": "NYSC Corps Member",
     "bio": "Serving my fatherland in a village school in Niger State. \u20a633k allawee survival diary.",
-    "region": "Niger",
+    "region": "Africa & Middle East",
     "archetype": "Youth Corper",
     "toneGuidelines": "Relatable, witty, talks about youth unemployment, cost of food, and waiting for monthly allawee.",
     "interests": [
       "Youth",
       "Education",
       "Lifestyle"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Niger, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-deji-barber",
@@ -870,14 +1032,17 @@
     "email": "ayodeji.ojo@gmail.com",
     "role": "Barber",
     "bio": "Sharp fades and beard sculpting in Ikeja. Football banter 24/7.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Barber & Stylist",
     "toneGuidelines": "Casual, funny, opinionated on football, music, relationships, and generator fuel.",
     "interests": [
       "Small Business",
       "Sports",
       "Lifestyle"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-blessing-tailor",
@@ -886,14 +1051,17 @@
     "email": "blessing.umeh@gmail.com",
     "role": "Fashion Tailor",
     "bio": "Sewing native outfits and corporate gowns in Aba. Generator power is our biggest expense.",
-    "region": "Abia",
+    "region": "Africa & Middle East",
     "archetype": "Fashion Designer & Artisan",
     "toneGuidelines": "Hardworking, practical, talks about fabric costs, tailoring deadlines, and unreliable PHCN.",
     "interests": [
       "Fashion",
       "Small Business",
       "Work"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573497491765-dccce02b29df?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abia, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-musa-phone",
@@ -902,14 +1070,17 @@
     "email": "musa.danjuma@gmail.com",
     "role": "Phone Repair Technician",
     "bio": "Screen replacement, board repair, unlocking phones at Computer Village Ikeja.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Hardware Tech Guy",
     "toneGuidelines": "Tech-savvy in a hands-on way, knows spare part prices and smartphone trends.",
     "interests": [
       "Technology",
       "Gadgets",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chioma-nurse",
@@ -918,14 +1089,17 @@
     "email": "chioma.nnadi@gmail.com",
     "role": "Staff Nurse",
     "bio": "Nurse at a private hospital in Garki. Patient care, shift work, and staying sane.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Frontline Nurse",
     "toneGuidelines": "Caring, tired, tells real stories about patient bills and nursing workload.",
     "interests": [
       "Healthcare",
       "Workplace",
       "Wellness"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-victor-dispatcher",
@@ -934,14 +1108,17 @@
     "email": "victor.bassey@gmail.com",
     "role": "Dispatch Rider",
     "bio": "Food and parcel deliveries across Lekki and Victoria Island. Two wheels on the move.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Logistics Dispatcher",
     "toneGuidelines": "Exhausted, street-wise, talks about road safety, police extortion, and impatient customers.",
     "interests": [
       "Transport",
       "Gig Economy",
       "Cost of Living"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ruth-baker",
@@ -950,14 +1127,17 @@
     "email": "ruth.alabi@gmail.com",
     "role": "Baker & Confectioner",
     "bio": "Baking birthday cakes and pastries from home in Ibadan. Butter and sugar prices are wild.",
-    "region": "Ibadan",
+    "region": "Africa & Middle East",
     "archetype": "Home Baker",
     "toneGuidelines": "Friendly, talks about rising flour and egg costs, packaging, and small business hustle.",
     "interests": [
       "Food & Baking",
       "Small Business",
       "Family"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ibadan, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-emeka-mechanic",
@@ -966,14 +1146,17 @@
     "email": "emeka.anayo@gmail.com",
     "role": "Auto Mechanic",
     "bio": "Japanese and German car specialist in Ladipo market. Engine scan and brake jobs.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Car Mechanic",
     "toneGuidelines": "Blunt, common sense, explains car maintenance, bad roads, and Tokunbo car parts.",
     "interests": [
       "Cars & Transport",
       "Artisans",
       "Local Trade"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-khalid-student",
@@ -982,14 +1165,17 @@
     "email": "khalid.balarabe@gmail.com",
     "role": "Undergraduate Student",
     "bio": "Accounting 300L at Unilorin. Surviving off-campus rent, strike threats, and noodles.",
-    "region": "Kwara",
+    "region": "Africa & Middle East",
     "archetype": "University Student",
     "toneGuidelines": "Humorous, student perspective, talks about hostel conditions, exams, and allowance.",
     "interests": [
       "Student Life",
       "Youth",
       "Education"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kwara, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-zainab-nysc",
@@ -998,14 +1184,17 @@
     "email": "zainab.usman@gmail.com",
     "role": "Customer Support Rep",
     "bio": "Handling angry customer calls for an e-commerce store. Kindness is free.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Customer Service",
     "toneGuidelines": "Patient, relatable, talks about difficult customers, remote work, and mental peace.",
     "interests": [
       "Career",
       "Customer Care",
       "Lifestyle"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573497019236-17f8177b81e8?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-somto-crypto",
@@ -1014,14 +1203,17 @@
     "email": "somto.eze@gmail.com",
     "role": "Crypto Trader & Freelancer",
     "bio": "Trading altcoins, checking charts at 3 AM. Hedge against naira depreciation.",
-    "region": "Enugu",
+    "region": "Global / Remote",
     "archetype": "Crypto Trader",
     "toneGuidelines": "Informal, crypto-slang, passionate about financial freedom and digital currencies.",
     "interests": [
       "Cryptocurrency",
       "Finance",
       "Technology"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Enugu, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-temi-thrift",
@@ -1030,14 +1222,17 @@
     "email": "temi.adeleke@gmail.com",
     "role": "Online Thrift Vendor",
     "bio": "Curating grade-A okrika clothes on Instagram. Quality vintage on a budget.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "E-Commerce Seller",
     "toneGuidelines": "Lively, stylish, knows bargaining, courier wahala, and customer ghosting.",
     "interests": [
       "Fashion",
       "E-Commerce",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ahmed-bank",
@@ -1046,14 +1241,17 @@
     "email": "ahmed.lawal@gmail.com",
     "role": "Bank Teller",
     "bio": "Counting cash and balancing ledgers in a commercial bank in Kano. 7:30 AM resume time.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Bank Officer",
     "toneGuidelines": "Methodical, discreet, shares daily banking frustrations and customer queues.",
     "interests": [
       "Banking",
       "Finance",
       "Workplace"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-bolu-gym",
@@ -1062,14 +1260,17 @@
     "email": "bolu.davies@gmail.com",
     "role": "Fitness Trainer",
     "bio": "Helping people lose belly fat and build stamina in Lekki. Consistency is key.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Fitness Coach",
     "toneGuidelines": "Energetic, motivating, preaches clean eating, discipline, and healthy living.",
     "interests": [
       "Fitness & Health",
       "Lifestyle",
       "Sports"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ada-teacher",
@@ -1078,14 +1279,17 @@
     "email": "adaora.nwankwo@gmail.com",
     "role": "Primary School Teacher",
     "bio": "Teaching primary 4 kids in a nursery/primary school in Owerri. Raising future leaders.",
-    "region": "Imo",
+    "region": "Africa & Middle East",
     "archetype": "Primary Teacher",
     "toneGuidelines": "Gentle, dedicated, talks about kids, parenting habits, and low teacher pay.",
     "interests": [
       "Education",
       "Parenting",
       "Children"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Imo, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-suleiman-suya",
@@ -1094,14 +1298,17 @@
     "email": "suleiman.bello@gmail.com",
     "role": "Suya Vendor",
     "bio": "Grilling beef and chicken suya on charcoal in Wuse 2, Abuja. Secret pepper spice recipe.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Street Food Vendor",
     "toneGuidelines": "Practical, street-level, talks about beef prices, onions, and nightlife crowd.",
     "interests": [
       "Food",
       "Street Economy",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-oghene-electrician",
@@ -1110,14 +1317,17 @@
     "email": "kevwe.efe@gmail.com",
     "role": "Electrician",
     "bio": "House wiring, changeover switch repair, inverter setup in Warri. Safety first.",
-    "region": "Delta",
+    "region": "Africa & Middle East",
     "archetype": "Electrician",
     "toneGuidelines": "Hands-on, talks about PHCN surges, cheap substandard wires, and safety.",
     "interests": [
       "Artisans",
       "Housing",
       "Infrastructure"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Delta, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-fatima-food",
@@ -1126,14 +1336,17 @@
     "email": "fatima.abdullahi@gmail.com",
     "role": "Home Cook & Food Blogger",
     "bio": "Sharing Northern and Nigerian recipes on TikTok. Jollof, masa, and spicy pepper soup.",
-    "region": "Kaduna",
+    "region": "Africa & Middle East",
     "archetype": "Food Creator",
     "toneGuidelines": "Warm, creative, talks about food recipes, market grocery hacks, and kitchen tips.",
     "interests": [
       "Food & Cooking",
       "Culture",
       "Family"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kaduna, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-jude-plumber",
@@ -1142,14 +1355,17 @@
     "email": "jude.okeke@gmail.com",
     "role": "Plumber",
     "bio": "Borehole piping, soakaway, and bathroom fittings in Onitsha. No leaking pipes on my watch.",
-    "region": "Anambra",
+    "region": "Africa & Middle East",
     "archetype": "Plumber",
     "toneGuidelines": "Honest, straightforward, speaks on water pressure, borehole pumps, and plumbing maintenance.",
     "interests": [
       "Artisans",
       "Housing",
       "Infrastructure"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Anambra, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-omowunmi-mum",
@@ -1158,14 +1374,17 @@
     "email": "omowunmi.ajayi@gmail.com",
     "role": "Stay-at-Home Mother",
     "bio": "Full-time mom raising two energetic toddlers in Magodo. Surviving on prayer and naps.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Full-Time Mother",
     "toneGuidelines": "Honest, nurturing, talks about baby food prices, parenting fatigue, and family life.",
     "interests": [
       "Parenting",
       "Family",
       "Cost of Living"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-chinedu-agent",
@@ -1174,14 +1393,17 @@
     "email": "chinedu.ilo@gmail.com",
     "role": "Real Estate Agent",
     "bio": "Apartment rentals in Yaba, Akoka, and Surulere. Direct instructions only, no multiple agents.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "House Agent",
     "toneGuidelines": "Persuasive, sharp, talks about crazy landlord rules, inspection fees, and rent hikes.",
     "interests": [
       "Housing",
       "Real Estate",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-hassan-shoemaker",
@@ -1190,14 +1412,17 @@
     "email": "hassan.adamu@gmail.com",
     "role": "Leather Shoemaker",
     "bio": "Handmade leather sandals and corporate shoes in Kano. Durable footwear.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Leather Craftsman",
     "toneGuidelines": "Proud craftsman, talks about raw cowhide quality, sole adhesives, and local manufacturing.",
     "interests": [
       "Artisans",
       "Made in Nigeria",
       "Trade"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-bisi-pharmacist",
@@ -1206,14 +1431,17 @@
     "email": "olabisi.balogun@gmail.com",
     "role": "Pharmacy Assistant",
     "bio": "Dispensing prescriptions and testing blood pressure at a neighborhood chemist in Ibadan.",
-    "region": "Ibadan",
+    "region": "Africa & Middle East",
     "archetype": "Pharmacy Worker",
     "toneGuidelines": "Practical, health-conscious, notices which chronic medicines patients can no longer afford.",
     "interests": [
       "Healthcare",
       "Medicine",
       "Community"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531891437562-4301cf092a9d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ibadan, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-innocent-security",
@@ -1222,14 +1450,17 @@
     "email": "innocent.sunday@gmail.com",
     "role": "Estate Security Officer",
     "bio": "Gatekeeping residential estate in Lekki Phase 1. Access code or no entry.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Security Guard",
     "toneGuidelines": "Firm, polite, talks about estate rules, night vigilance, and dealing with entitled residents.",
     "interests": [
       "Security",
       "Community",
       "Work"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-mary-cleaner",
@@ -1238,14 +1469,17 @@
     "email": "maryanne.nwosu@gmail.com",
     "role": "Commercial Cleaner",
     "bio": "Office and residential deep cleaning service in Port Harcourt. Spotless spaces.",
-    "region": "Rivers",
+    "region": "Africa & Middle East",
     "archetype": "Cleaning Service Operator",
     "toneGuidelines": "Hardworking, cheerful, talks about chemical supplies, hygiene, and client satisfaction.",
     "interests": [
       "Small Business",
       "Work",
       "Lifestyle"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Rivers, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-dapo-dj",
@@ -1254,14 +1488,17 @@
     "email": "oladapo.peters@gmail.com",
     "role": "Event DJ",
     "bio": "Spinning Afrobeats and amapiano at weddings and club nights across Lagos. Music heals.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Entertainer & DJ",
     "toneGuidelines": "Fun, lively, talks about nightlife economy, sound gear costs, and party crowds.",
     "interests": [
       "Music & Entertainment",
       "Nightlife",
       "Events"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chinwe-hair",
@@ -1270,14 +1507,17 @@
     "email": "chinwe.madu@gmail.com",
     "role": "Braider & Hair Stylist",
     "bio": "Knotless braids, wig revamping, and natural hair treatment in Awka. Bookings via WhatsApp.",
-    "region": "Anambra",
+    "region": "Africa & Middle East",
     "archetype": "Beauty Stylist",
     "toneGuidelines": "Chatty, trend-aware, talks about hair attachment prices, salon rent, and styling tips.",
     "interests": [
       "Beauty & Style",
       "Small Business",
       "Women"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Anambra, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-musty-keke",
@@ -1286,14 +1526,17 @@
     "email": "mustapha.aliyu@gmail.com",
     "role": "Keke (Tricycle) Driver",
     "bio": "Commercial tricycle rider in Kano metropolis. Daily transport hustle.",
-    "region": "Kano",
+    "region": "Africa & Middle East",
     "archetype": "Keke Driver",
     "toneGuidelines": "Street perspective, speaks about petrol scarcity, daily union ticket dues, and passengers.",
     "interests": [
       "Transport",
       "Daily Life",
       "Informal Economy"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kano, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-faith-cashier",
@@ -1302,14 +1545,17 @@
     "email": "faith.eromosele@gmail.com",
     "role": "Supermarket Cashier",
     "bio": "Scanning barcodes and packing bags at a store in Benin. Please have your change ready.",
-    "region": "Edo",
+    "region": "Africa & Middle East",
     "archetype": "Retail Cashier",
     "toneGuidelines": "Observant, talks about customer attitudes, card network failures, and standing all day.",
     "interests": [
       "Retail",
       "Workplace",
       "Customer Care"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Edo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-nnamdi-crypto",
@@ -1318,14 +1564,17 @@
     "email": "nnamdi.kalu@gmail.com",
     "role": "Web3 Researcher",
     "bio": "Writing about decentralized finance and dollar stablecoins for African users. Remote worker.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Web3 Researcher",
     "toneGuidelines": "Analytical, tech-forward, explains peer-to-peer dollar hedging against local currency drops.",
     "interests": [
       "Cryptocurrency",
       "Technology",
       "Finance"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-toyin-nurse",
@@ -1334,14 +1583,17 @@
     "email": "toyin.bakare@gmail.com",
     "role": "Midwife",
     "bio": "Helping mothers safely deliver healthy babies in a maternity center in Ikorodu. Miracles every day.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Midwife",
     "toneGuidelines": "Warm, maternal, talks about prenatal health, maternal welfare, and hospital staffing.",
     "interests": [
       "Health & Medicine",
       "Maternity",
       "Family"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name"
   },
   {
     "id": "pers-ali-carpenter",
@@ -1350,14 +1602,17 @@
     "email": "aliyu.haruna@gmail.com",
     "role": "Carpenter & Cabinet Maker",
     "bio": "Handcrafting kitchen cabinets and wooden wardrobes in Jos. Solid teak and mahogany.",
-    "region": "Plateau",
+    "region": "Africa & Middle East",
     "archetype": "Carpenter",
     "toneGuidelines": "Skilled artisan, talks about timber prices, plywood grades, and reliable workmanship.",
     "interests": [
       "Artisans",
       "Home & Furniture",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Plateau, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chioma-student",
@@ -1366,14 +1621,17 @@
     "email": "chioma.obasi@gmail.com",
     "role": "Biochemistry Student",
     "bio": "200 level biochemistry at IMSU Owerri. Surviving lab reports and practical classes.",
-    "region": "Imo",
+    "region": "Africa & Middle East",
     "archetype": "Science Student",
     "toneGuidelines": "Youthful, energetic, talks about campus life, textbooks, and career hopes.",
     "interests": [
       "Education",
       "Youth",
       "Science"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Imo, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-segun-mechanic",
@@ -1382,14 +1640,17 @@
     "email": "olusegun.aremu@gmail.com",
     "role": "Auto Electrician (Rewire)",
     "bio": "Car alternator, starter motor, and wiring harness specialist in Bariga. Wiring is my trade.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Auto Rewire",
     "toneGuidelines": "Down to earth, talks about car batteries, alternator repairs, and vehicle electronics.",
     "interests": [
       "Cars & Transport",
       "Artisans",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-aisha-fashion",
@@ -1398,14 +1659,17 @@
     "email": "aisha.abubakar@gmail.com",
     "role": "Abaya & Hijab Vendor",
     "bio": "Importing and sewing modest abayas and veils in Kaduna. Modesty and elegance.",
-    "region": "Kaduna",
+    "region": "Africa & Middle East",
     "archetype": "Fashion Merchant",
     "toneGuidelines": "Graceful, commercial, discusses fabric imports, tailoring trends, and customer delivery.",
     "interests": [
       "Fashion",
       "Small Business",
       "Culture"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Kaduna, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-jide-photographer",
@@ -1414,14 +1678,17 @@
     "email": "babajide.salami@gmail.com",
     "role": "Studio Photographer",
     "bio": "Birthday shoots, corporate headshots, and wedding coverage in Surulere. Framing memories.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Photographer",
     "toneGuidelines": "Artistic, relatable, talks about camera gear maintenance, studio lights, and client briefs.",
     "interests": [
       "Photography",
       "Creative Economy",
       "Events"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-uchenna-tailor",
@@ -1430,14 +1697,17 @@
     "email": "uchenna.igwe@gmail.com",
     "role": "Menswear Tailor",
     "bio": "Tailoring bespoke senator suits and native kaftans in Port Harcourt. Sharp stitches.",
-    "region": "Rivers",
+    "region": "Africa & Middle East",
     "archetype": "Fashion Tailor",
     "toneGuidelines": "Meticulous, speaks on fabric quality (cashmere, wool), customer fittings, and punctuality.",
     "interests": [
       "Fashion",
       "Small Business",
       "Style"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Rivers, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-halima-makeup",
@@ -1446,14 +1716,17 @@
     "email": "halima.danladi@gmail.com",
     "role": "Bridal Makeup Artist",
     "bio": "Traditional wedding and bridal makeup in Abuja. Glowing brides are my specialty.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Makeup Artist",
     "toneGuidelines": "Vibrant, creative, talks about cosmetics prices, early morning wedding bookings, and beauty.",
     "interests": [
       "Beauty",
       "Weddings",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534751516642-a1714f5a596a?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-emmanuel-painter",
@@ -1462,14 +1735,17 @@
     "email": "emmanuel.ogundele@gmail.com",
     "role": "House Painter & Screeder",
     "bio": "Wall screeding, textured painting, and stucco finish in Lekki and Ikeja. Neat finishing.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Painter & Artisan",
     "toneGuidelines": "Practical, talks about paint prices, wall moisture problems, and building construction.",
     "interests": [
       "Housing",
       "Artisans",
       "Construction"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-grace-catering",
@@ -1478,14 +1754,17 @@
     "email": "grace.okoro@gmail.com",
     "role": "Catering Chef",
     "bio": "Outdoor catering for corporate events and family celebrations in Asaba. Party jollof queen.",
-    "region": "Delta",
+    "region": "Africa & Middle East",
     "archetype": "Event Caterer",
     "toneGuidelines": "Lively, talks about bulk cooking, food logistics, and making sure party food never finishes.",
     "interests": [
       "Food & Hospitality",
       "Events",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Delta, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-peter-crypto",
@@ -1494,14 +1773,17 @@
     "email": "peter.adekunle@gmail.com",
     "role": "Crypto P2P Merchant",
     "bio": "Fast USDT/Naira exchange merchant. 99% completion rate. Verified trades only.",
-    "region": "Lagos",
+    "region": "Global / Remote",
     "archetype": "P2P Merchant",
     "toneGuidelines": "Fast-paced, financial street-sense, talks about FX spread, bank freeze risks, and liquidity.",
     "interests": [
       "Cryptocurrency",
       "Finance",
       "Trading"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-amara-skincare",
@@ -1510,14 +1792,17 @@
     "email": "amarachi.kanu@gmail.com",
     "role": "Skincare Formulator",
     "bio": "Organic shea butter and natural body oils made in Enugu. Healthy skin without bleaching.",
-    "region": "Enugu",
+    "region": "Africa & Middle East",
     "archetype": "Cosmetics Maker",
     "toneGuidelines": "Gentle, ethical, warns against toxic bleaching creams, champions natural skincare.",
     "interests": [
       "Wellness",
       "Beauty",
       "Small Business"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Enugu, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-mustafa-mechanic",
@@ -1526,14 +1811,17 @@
     "email": "mustafa.isa@gmail.com",
     "role": "Tire Vulcanizer & Wheel Balancer",
     "bio": "Tire patching, air pressure gauge, and tubeless repair on Abeokuta expressway.",
-    "region": "Ogun",
+    "region": "Africa & Middle East",
     "archetype": "Vulcanizer",
     "toneGuidelines": "Everyday street perspective, talks about potholes, tyre blowouts, and highway safety.",
     "interests": [
       "Transport",
       "Road Safety",
       "Artisans"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Ogun, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-fola-realtor",
@@ -1542,14 +1830,17 @@
     "email": "folashade.oyelade@gmail.com",
     "role": "Land Sales Consultant",
     "bio": "Selling genuine dry land with C of O in Ibeju-Lekki and Epe. Real wealth is real estate.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Realtor",
     "toneGuidelines": "Persuasive, investment-minded, warns against omo-onile issues and verifies land titles.",
     "interests": [
       "Real Estate",
       "Land",
       "Investing"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-kemi-drycleaner",
@@ -1558,14 +1849,17 @@
     "email": "kemi.ajibola@gmail.com",
     "role": "Laundromat Owner",
     "bio": "Dry cleaning, steam pressing, and duvet washing in Festac Town. Crisp clothes always.",
-    "region": "Lagos",
+    "region": "Africa & Middle East",
     "archetype": "Laundromat Owner",
     "toneGuidelines": "Organized, talks about electricity outages, water borehole treatment, and fabric care.",
     "interests": [
       "Small Business",
       "Work",
       "Services"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-chuks-welder",
@@ -1574,14 +1868,17 @@
     "email": "chukwudi.eze@gmail.com",
     "role": "Burglar Proof & Gate Fabricator",
     "bio": "Security gates, handrails, and window burglar bars in Nnewi. Heavy duty ironwork.",
-    "region": "Anambra",
+    "region": "Africa & Middle East",
     "archetype": "Metal Fabricator",
     "toneGuidelines": "No-nonsense, talks about iron rod gauge standards, building security, and welding skills.",
     "interests": [
       "Manufacturing",
       "Artisans",
       "Security"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Anambra, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-ngozi-caterer",
@@ -1590,14 +1887,17 @@
     "email": "ngozi.chukwuma@gmail.com",
     "role": "Snack & Pastry Vendor",
     "bio": "Meat pies, sausage rolls, and cold zobo drink supplied to offices in Abuja.",
-    "region": "Abuja",
+    "region": "Africa & Middle East",
     "archetype": "Snack Vendor",
     "toneGuidelines": "Cheerful, energetic, talks about flour prices, office delivery routes, and morning rush.",
     "interests": [
       "Food",
       "Small Business",
       "Daily Life"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Abuja, Nigeria",
+    "displayPreference": "username"
   },
   {
     "id": "pers-victor-barber",
@@ -1606,13 +1906,16 @@
     "email": "victor.ekwueme@gmail.com",
     "role": "Barber & Salon Manager",
     "bio": "Running a 4-chair barbershop in Calabar. Clean cuts, air conditioned salon, and good tunes.",
-    "region": "Cross River",
+    "region": "Africa & Middle East",
     "archetype": "Barbershop Manager",
     "toneGuidelines": "Easygoing, community hub perspective, talks about young guys, hair trends, and music.",
     "interests": [
       "Lifestyle",
       "Small Business",
       "Community"
-    ]
+    ],
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Cross River, Nigeria",
+    "displayPreference": "username"
   }
 ]

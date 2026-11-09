@@ -322,7 +322,20 @@ export function getAuthorDisplay(issue: Issue, currentUser?: UserProfile | null)
   const rawCreatorUsername = issue.creatorUsername ? issue.creatorUsername.replace(/^@/, '') : '';
   const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Member';
   const fullName = issue.author || 'Civic Member';
-  const displayName = rawCreatorUsername ? `@${rawCreatorUsername}` : (issue.creatorEmail === 'william.odiomonafe@gmail.com' ? '@william' : firstName);
+  
+  // Respect creatorDisplayPreference if explicitly set ('name' vs 'username')
+  let displayName = fullName;
+  if (issue.creatorDisplayPreference === 'name') {
+    displayName = fullName;
+  } else if (issue.creatorDisplayPreference === 'username' && rawCreatorUsername) {
+    displayName = `@${rawCreatorUsername}`;
+  } else if (rawCreatorUsername) {
+    displayName = `@${rawCreatorUsername}`;
+  } else if (issue.creatorEmail === 'william.odiomonafe@gmail.com') {
+    displayName = '@william';
+  } else {
+    displayName = fullName;
+  }
 
   let avatarUrl = issue.creatorAvatar;
   if (!avatarUrl) {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
-  Heart, User, Lock, Globe, Clock,
+  Heart, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
   Smile, ChevronLeft, ChevronRight, Flag, Pencil,
   CheckCircle2
@@ -916,8 +916,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
                               {resp.isAnonymous ? (
                                 <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                              ) : resp.authorAvatar ? (
+                                <img
+                                  src={resp.authorAvatar}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover border border-black/10 dark:border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || 'Member')}`;
+                                  }}
+                                />
                               ) : (
-                                <User className="w-3.5 h-3.5 text-zinc-500" />
+                                <img
+                                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || resp.authorEmail || 'Member')}`}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
                               )}
                             </div>
                           ) : (
@@ -926,13 +939,28 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                               onClick={() => onOpenProfile({
                                 username: resp.authorUsername,
                                 name: resp.authorName,
+                                avatar: resp.authorAvatar,
                                 email: resp.authorEmail,
-                                role: resp.authorRole,
                               })}
-                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer"
+                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer overflow-hidden"
                               title={`View ${resp.authorName}'s profile`}
                             >
-                              <User className="w-3.5 h-3.5 text-zinc-500" />
+                              {resp.authorAvatar ? (
+                                <img
+                                  src={resp.authorAvatar}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover border border-black/10 dark:border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || 'Member')}`;
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || resp.authorEmail || 'Member')}`}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              )}
                             </button>
                           )}
                           <div>
@@ -947,17 +975,16 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                   onClick={() => onOpenProfile({
                                     username: resp.authorUsername,
                                     name: resp.authorName,
+                                    avatar: resp.authorAvatar,
                                     email: resp.authorEmail,
-                                    role: resp.authorRole,
                                   })}
                                   className="text-xs font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
                                   title={`View ${resp.authorName}'s profile`}
                                 >
-                                  {resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member')}
+                                  {resp.displayPreference === 'name'
+                                    ? resp.authorName
+                                    : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
                                 </button>
-                              )}
-                              {resp.authorRole && (
-                                <span className="text-[11px] text-slate-400">• {resp.authorRole}</span>
                               )}
                             </div>
                           </div>
@@ -1120,25 +1147,47 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             return (
                               <div key={reply.id} className="text-xs space-y-1 bg-slate-50 dark:bg-white/[0.02] p-2.5 rounded-xl">
                                 <div className="flex items-center justify-between">
-                                  {reply.isAnonymous || !onOpenProfile ? (
-                                    <span className="font-bold text-ink-950 dark:text-white">
-                                      {reply.authorAlias || 'Anonymous'}
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => onOpenProfile({
-                                        username: reply.authorUsername,
-                                        name: reply.authorName,
-                                        email: reply.authorEmail,
-                                        role: reply.authorRole,
-                                      })}
-                                      className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
-                                      title={`View ${reply.authorName}'s profile`}
-                                    >
-                                      {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
-                                    </button>
-                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    {reply.isAnonymous ? (
+                                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
+                                        <ShieldCheck className="w-2.5 h-2.5 text-brand-600 dark:text-brand-400" />
+                                      </div>
+                                    ) : reply.authorAvatar ? (
+                                      <img
+                                        src={reply.authorAvatar}
+                                        alt={reply.authorName}
+                                        className="w-4 h-4 rounded-full object-cover border border-black/10 dark:border-white/10 shrink-0"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || 'Member')}`;
+                                        }}
+                                      />
+                                    ) : (
+                                      <img
+                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || reply.authorEmail || 'Member')}`}
+                                        alt={reply.authorName}
+                                        className="w-4 h-4 rounded-full object-cover shrink-0"
+                                      />
+                                    )}
+                                    {reply.isAnonymous || !onOpenProfile ? (
+                                      <span className="font-bold text-ink-950 dark:text-white">
+                                        {reply.authorAlias || 'Anonymous'}
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenProfile({
+                                          username: reply.authorUsername,
+                                          name: reply.authorName,
+                                          avatar: reply.authorAvatar,
+                                          email: reply.authorEmail,
+                                        })}
+                                        className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                        title={`View ${reply.authorName}'s profile`}
+                                      >
+                                        {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
+                                      </button>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] text-slate-400">
                                       {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
