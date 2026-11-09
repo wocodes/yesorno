@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
-  Flag, Heart, Tag, User, Lock, Globe, Clock,
+  Flag, Heart, Tag, Lock, Globe, Clock,
   UserPlus, Sparkles, FileText, Share2, Trash2, Send, Square, Bookmark,
   Smile
 } from 'lucide-react';
@@ -569,21 +569,35 @@ export const IssueDetailModal: React.FC<Props> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-ink-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                            <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-ink-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 overflow-hidden">
                               {resp.isAnonymous ? (
                                 <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                              ) : resp.authorAvatar ? (
+                                <img
+                                  src={resp.authorAvatar}
+                                  alt={resp.authorName}
+                                  className="w-full h-full object-cover border border-black/10 dark:border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || 'Member')}`;
+                                  }}
+                                />
                               ) : (
-                                <User className="w-3.5 h-3.5 text-zinc-500" />
+                                <img
+                                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || resp.authorEmail || 'Member')}`}
+                                  alt={resp.authorName}
+                                  className="w-full h-full object-cover"
+                                />
                               )}
                             </div>
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-bold text-ink-950 dark:text-white">
-                                  {resp.isAnonymous ? (resp.authorAlias || 'Anonymous') : resp.authorName}
+                                  {resp.isAnonymous
+                                    ? (resp.authorAlias || 'Anonymous')
+                                    : (resp.displayPreference === 'name'
+                                        ? resp.authorName
+                                        : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : resp.authorName))}
                                 </span>
-                                {resp.authorRole && (
-                                  <span className="text-[11px] text-zinc-400">• {resp.authorRole}</span>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -783,19 +797,31 @@ export const IssueDetailModal: React.FC<Props> = ({
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-ink-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                                      <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-ink-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 overflow-hidden">
                                         {reply.isAnonymous ? (
                                           <ShieldCheck className="w-3 h-3 text-brand-600 dark:text-brand-400" />
+                                        ) : reply.authorAvatar ? (
+                                          <img
+                                            src={reply.authorAvatar}
+                                            alt={reply.authorName}
+                                            className="w-full h-full object-cover border border-black/10 dark:border-white/10"
+                                            onError={(e) => {
+                                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || 'Member')}`;
+                                            }}
+                                          />
                                         ) : (
-                                          <User className="w-3 h-3 text-zinc-500" />
+                                          <img
+                                            src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || reply.authorEmail || 'Member')}`}
+                                            alt={reply.authorName}
+                                            className="w-full h-full object-cover"
+                                          />
                                         )}
                                       </div>
                                       <span className="font-bold text-ink-950 dark:text-white text-[11px]">
-                                        {replyAuthor}
+                                        {reply.isAnonymous
+                                          ? (reply.authorAlias || 'Anonymous')
+                                          : (reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member'))}
                                       </span>
-                                      {reply.authorRole && (
-                                        <span className="text-[10px] text-zinc-400">• {reply.authorRole}</span>
-                                      )}
                                       {reply.replyToName && (
                                         <span className="text-[10px] text-brand-600 dark:text-brand-400 font-medium bg-brand-50 dark:bg-brand-500/10 px-1.5 py-0.5 rounded">
                                           @{reply.replyToName}

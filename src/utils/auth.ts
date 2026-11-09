@@ -224,8 +224,13 @@ export async function fetchServerProfileByEmail(email: string): Promise<UserProf
   const cleanEmail = email.trim().toLowerCase();
 
   try {
-    const res = await fetch(`/api-issues.php?action=get_profile&email=${encodeURIComponent(cleanEmail)}`, {
-      headers: { 'Accept': 'application/json' }
+    const res = await fetch(`/api-issues.php?action=get_profile&email=${encodeURIComponent(cleanEmail)}&_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      }
     });
     if (!res.ok) return null;
     const data = await res.json();

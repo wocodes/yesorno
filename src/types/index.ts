@@ -57,6 +57,7 @@ export interface CommentReply {
   submissionId: string;
   authorName: string;
   authorUsername?: string;
+  authorAvatar?: string;
   authorEmail?: string;
   authorAlias?: string;
   authorRole?: string;
@@ -76,9 +77,11 @@ export interface VoteSubmission {
   isAnonymous: boolean;
   authorName: string;
   authorUsername?: string;
+  authorAvatar?: string;
   authorEmail?: string;
   authorAlias?: string; // e.g. "Neighbor #319"
   authorRole?: string; // e.g. "Resident (5 yrs)", "Small Business Owner"
+  displayPreference?: 'username' | 'name' | 'firstname';
   note?: string;
   voiceNote?: VoiceAttachment;
   createdAt: string;
@@ -136,6 +139,7 @@ export interface Issue {
   creatorEmail?: string;
   creatorAvatar?: string;
   creatorUsername?: string;
+  creatorDisplayPreference?: 'username' | 'name' | 'firstname';
   isAnonymousAuthor?: boolean;
   createdAt: string;
   closingDate?: string | null; // ISO string or null/undefined if indefinite (no expiry)

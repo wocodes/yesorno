@@ -15,6 +15,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
 header('Content-Type: application/json; charset=UTF-8');
+header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -176,10 +179,13 @@ function seed_personas_into_db(PDO $pdo, $personas) {
             'id' => $p['id'],
             'name' => $p['name'],
             'username' => $p['username'],
+            'avatar' => $p['avatar'] ?? null,
             'email' => $p['email'],
             'role' => $p['role'],
             'bio' => $p['bio'],
-            'region' => $p['region'] ?? 'West Africa',
+            'city' => $p['city'] ?? null,
+            'region' => $p['region'] ?? 'Africa & Middle East',
+            'displayPreference' => $p['displayPreference'] ?? 'username',
             'interests' => $p['interests'] ?? [],
             'groups' => [],
             'onboardingCompleted' => true
@@ -248,7 +254,7 @@ function get_curated_fallback_debates() {
             'title' => 'Should remote workers earning in foreign currency (USD/GBP) pay higher domestic income taxes?',
             'description' => 'With the rise of international remote tech workers and freelancers earning in strong currencies amidst local currency volatility, some argue for a specialized progressive tax bracket. Tech professionals argue they already provide their own power, internet, and security.',
             'category' => 'Economy & Finance',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Remote Work', 'Taxation', 'Tech', 'Economy', 'Cost of Living'],
             'perspectives' => [
                 [
@@ -284,7 +290,7 @@ function get_curated_fallback_debates() {
             'title' => 'Is spending over ₦3 Million on traditional and white weddings a financial mistake for young couples in 2026?',
             'description' => 'With high inflation, soaring house rents, and rising living costs, more young people are debating whether elaborate wedding ceremonies are worth the financial strain, or if families should embrace intimate court weddings.',
             'category' => 'Family & Home',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Weddings', 'Family', 'Personal Finance', 'Culture', 'Relationships'],
             'perspectives' => [
                 [
@@ -320,7 +326,7 @@ function get_curated_fallback_debates() {
             'title' => 'Should commercial motorcycles and tricycles (Okada & Keke) be banned from major highway expressways?',
             'description' => 'Megacity transport regulators argue that bikes and tricycles cause catastrophic highway accidents and traffic anarchy on high-speed corridors. Commuters and transport unions argue formal buses cannot handle daily demand.',
             'category' => 'Infrastructure',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Transportation', 'Urban Planning', 'Public Safety', 'Labor', 'Commuting'],
             'perspectives' => [
                 [
@@ -356,7 +362,7 @@ function get_curated_fallback_debates() {
             'title' => 'Should universities permanently ban students from using generative AI tools for essays and assignments?',
             'description' => 'With the explosion of AI writing tools, university departments are divided. Some want strict bans and return to handwritten exams, while others argue AI is a workplace reality that students must master.',
             'category' => 'Education',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Artificial Intelligence', 'Education', 'Students', 'Technology', 'Career'],
             'perspectives' => [
                 [
@@ -393,7 +399,7 @@ function get_curated_fallback_debates() {
             'title' => 'If you earn under ₦800,000 monthly, is dating in Lagos pure financial recklessness?',
             'description' => 'With the average casual dinner date costing upwards of ₦45,000 plus surge Bolt rides and drinks, financial pragmatists argue that dating on a modest salary is fiscal suicide, while romantics argue that companionship should not be reserved for high earners.',
             'category' => 'Relationships & Dating',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Dating', 'Relationships', 'Personal Finance', 'Lagos Life', 'Cost of Living'],
             'perspectives' => [
                 [
@@ -429,7 +435,7 @@ function get_curated_fallback_debates() {
             'title' => 'If you sleep more than 4 hours a night in your twenties, are you quietly planning for poverty?',
             'description' => 'Self-proclaimed hustle gurus argue that your twenties are for extreme sleepless sacrifice, side projects, and continuous compounding, while medical professionals warn that glorifying chronic sleep deprivation causes early organ breakdown and mental ruin.',
             'category' => 'Workplace & Career',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Hustle Culture', 'Sleep', 'Health', 'Productivity', 'Youth'],
             'perspectives' => [
                 [
@@ -465,7 +471,7 @@ function get_curated_fallback_debates() {
             'title' => 'Should a woman immediately block a man who suggests splitting the bill on a first date?',
             'description' => 'A fiery battle between traditional romantic courtship and modern progressive partnership. Traditionalists argue that the person initiating the date must provide, while modernists argue that equal adults should share expenses without entitlement.',
             'category' => 'Relationships & Dating',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Dating', 'Chivalry', 'Gender Roles', 'Modern Life', 'Etiquette'],
             'perspectives' => [
                 [
@@ -501,7 +507,7 @@ function get_curated_fallback_debates() {
             'title' => 'Is working from bed in your pajamas \'real work\' compared to doctors, mechanics, and teachers?',
             'description' => 'A battle between traditional physical labor and modern remote knowledge work. Traditional trade artisans argue that physical presence and grit are the true markers of productivity, while remote workers argue value is purely cognitive.',
             'category' => 'Workplace & Career',
-            'region' => 'West Africa',
+            'region' => 'Africa & Middle East',
             'tags' => ['Remote Work', 'Blue Collar', 'Future of Work', 'Tech', 'Career'],
             'perspectives' => [
                 [
@@ -578,7 +584,7 @@ Output strict JSON with this exact schema:
   \"title\": \"Clear, high-stakes binary question (e.g. 'Should remote workers earning in USD pay higher local taxes?')\",
   \"description\": \"2-3 sentences of sharp context explaining why this debate is burning right now.\",
   \"category\": \"Economy & Finance | Politics & Governance | Technology & Internet | Education | Infrastructure | Health & Medicine | Family & Home\",
-  \"region\": \"West Africa\",
+  \"region\": \"Africa & Middle East\",
   \"tags\": [\"Tag1\", \"Tag2\", \"Tag3\", \"Tag4\"],
   \"perspectives\": [
     {
@@ -721,7 +727,7 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
         ':title' => $debateData['title'],
         ':description' => $debateData['description'],
         ':category' => $debateData['category'] ?? 'Politics & Governance',
-        ':region' => $debateData['region'] ?? 'West Africa',
+        ':region' => $debateData['region'] ?? 'Africa & Middle East',
         ':tags' => json_encode($debateData['tags'] ?? ['Deliberation', 'Civic']),
         ':author' => $authorPersona['name'],
         ':creator_id' => $authorPersona['id'],

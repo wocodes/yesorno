@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck, 
-  Heart, User, Lock, Globe, Clock,
+import {
+  ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Mic, ShieldCheck,
+  Heart, Lock, Globe, Clock,
   Sparkles, Share2, Trash2, Send, Square, Bookmark,
   Smile, ChevronLeft, ChevronRight, Flag, Pencil,
   CheckCircle2
@@ -280,13 +280,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       note: replyNote.trim() || undefined,
       voiceNote: voiceUrl
         ? {
-            audioUrl: voiceUrl,
-            durationSeconds: voiceDur || 3,
-            mimeType: 'audio/wav',
-            createdAt: new Date().toISOString(),
-            voiceFilter: replyAnon ? currentUser?.defaultVoiceFilter || 'deep' : 'none',
-            isVoiceMasked: replyAnon,
-          }
+          audioUrl: voiceUrl,
+          durationSeconds: voiceDur || 3,
+          mimeType: 'audio/wav',
+          createdAt: new Date().toISOString(),
+          voiceFilter: replyAnon ? currentUser?.defaultVoiceFilter || 'deep' : 'none',
+          isVoiceMasked: replyAnon,
+        }
         : undefined,
       createdAt: new Date().toISOString(),
       likesCount: 0,
@@ -476,11 +476,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <button
                 type="button"
                 onClick={() => onToggleLikeIssue(issue.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isLiked
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isLiked
                     ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200/60 dark:border-rose-400/30'
                     : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 hover:text-rose-600 hover:bg-rose-50 border border-transparent'
-                }`}
+                  }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
                 <span>{issue.likesCount || 0} Likes</span>
@@ -492,11 +491,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <button
                 type="button"
                 onClick={() => onToggleFavoriteIssue(issue.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isFavorited
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isFavorited
                     ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200/60 dark:border-amber-400/30'
                     : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300 hover:text-amber-600 hover:bg-amber-50 border border-transparent'
-                }`}
+                  }`}
               >
                 <Bookmark className={`w-4 h-4 ${isFavorited ? 'fill-current text-amber-500' : ''}`} />
                 <span>{isFavorited ? 'Saved' : 'Save'}</span>
@@ -621,13 +619,13 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 </span>
               </div>
               <div className="h-3 w-full bg-slate-200 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
-                <div 
-                  className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500" 
-                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }} 
+                <div
+                  className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }}
                 />
-                <div 
-                  className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 ml-0.5" 
-                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }} 
+                <div
+                  className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 ml-0.5"
+                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }}
                 />
               </div>
             </div>
@@ -656,11 +654,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
               <button
                 type="button"
                 onClick={() => setReplyAnon(!replyAnon)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                  replyAnon
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${replyAnon
                     ? 'bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-500/30'
                     : 'text-slate-500 hover:text-ink-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{replyAnon ? `Anon (${alias})` : currentUser?.name || 'Identified'}</span>
@@ -685,15 +682,14 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 type="button"
                 onClick={() => handleInstantVoteTap('YES')}
                 disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
-                  hasUserVoted && userVoteChoice === 'YES'
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'YES'
                     ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
                     : hasUserVoted && userVoteChoice !== 'YES'
-                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                    : replyChoice === 'YES'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
-                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
-                }`}
+                      ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                      : replyChoice === 'YES'
+                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
+                        : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
+                  }`}
               >
                 {hasUserVoted && userVoteChoice === 'YES' ? (
                   <CheckCircle2 className="w-4 h-4 text-white" />
@@ -713,15 +709,14 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 type="button"
                 onClick={() => handleInstantVoteTap('NO')}
                 disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${
-                  hasUserVoted && userVoteChoice === 'NO'
+                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'NO'
                     ? 'bg-rose-600 text-white ring-2 ring-rose-400'
                     : hasUserVoted && userVoteChoice !== 'NO'
-                    ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                    : replyChoice === 'NO'
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
-                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
-                }`}
+                      ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                      : replyChoice === 'NO'
+                        ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
+                        : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
+                  }`}
               >
                 {hasUserVoted && userVoteChoice === 'NO' ? (
                   <CheckCircle2 className="w-4 h-4 text-white" />
@@ -808,11 +803,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
           <button
             type="button"
             onClick={() => setActiveTab('perspectives')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'perspectives'
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${activeTab === 'perspectives'
                 ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-soft'
                 : 'text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
-            }`}
+              }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Perspectives ({totalConversationCount})</span>
@@ -821,11 +815,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
           <button
             type="button"
             onClick={() => setActiveTab('digest')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'digest'
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${activeTab === 'digest'
                 ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-soft'
                 : 'text-slate-500 dark:text-zinc-400 hover:text-ink-950 dark:hover:text-white'
-            }`}
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-purple-500" />
             <span>AI Synthesis</span>
@@ -841,44 +834,40 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 <button
                   type="button"
                   onClick={() => setFilter('ALL')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filter === 'ALL'
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${filter === 'ALL'
                       ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400'
-                  }`}
+                    }`}
                 >
                   All ({issue.responses.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilter('YES')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filter === 'YES'
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${filter === 'YES'
                       ? 'bg-white dark:bg-ink-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400'
-                  }`}
+                    }`}
                 >
                   Yes ({issue.responses.filter((r) => r.choice === 'YES').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilter('NO')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filter === 'NO'
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${filter === 'NO'
                       ? 'bg-white dark:bg-ink-800 text-rose-600 dark:text-rose-400 shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400'
-                  }`}
+                    }`}
                 >
                   No ({issue.responses.filter((r) => r.choice === 'NO').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilter('VOICE')}
-                  className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                    filter === 'VOICE'
+                  className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${filter === 'VOICE'
                       ? 'bg-white dark:bg-ink-800 text-amber-600 dark:text-amber-400 shadow-2xs'
                       : 'text-slate-500 dark:text-zinc-400'
-                  }`}
+                    }`}
                 >
                   <Mic className="w-3 h-3" />
                   <span>Audio ({metrics.voiceNotesCount})</span>
@@ -904,11 +893,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                     <div
                       key={resp.id}
                       id={`comment-${resp.id}`}
-                      className={`card p-4 space-y-2.5 border border-slate-200/60 dark:border-white/10 shadow-2xs transition-all ${
-                        highlightedCommentId === resp.id
+                      className={`card p-4 space-y-2.5 border border-slate-200/60 dark:border-white/10 shadow-2xs transition-all ${highlightedCommentId === resp.id
                           ? 'ring-2 ring-brand-500 bg-brand-50/20 dark:bg-brand-950/20 border-brand-400'
                           : ''
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -916,8 +904,21 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
                               {resp.isAnonymous ? (
                                 <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                              ) : resp.authorAvatar ? (
+                                <img
+                                  src={resp.authorAvatar}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover border border-black/10 dark:border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || 'Member')}`;
+                                  }}
+                                />
                               ) : (
-                                <User className="w-3.5 h-3.5 text-zinc-500" />
+                                <img
+                                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || resp.authorEmail || 'Member')}`}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
                               )}
                             </div>
                           ) : (
@@ -926,13 +927,28 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                               onClick={() => onOpenProfile({
                                 username: resp.authorUsername,
                                 name: resp.authorName,
+                                avatar: resp.authorAvatar,
                                 email: resp.authorEmail,
-                                role: resp.authorRole,
                               })}
-                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer"
+                              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-ink-800 hover:ring-2 hover:ring-brand-500/50 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0 transition-all cursor-pointer overflow-hidden"
                               title={`View ${resp.authorName}'s profile`}
                             >
-                              <User className="w-3.5 h-3.5 text-zinc-500" />
+                              {resp.authorAvatar ? (
+                                <img
+                                  src={resp.authorAvatar}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover border border-black/10 dark:border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || 'Member')}`;
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resp.authorName || resp.authorEmail || 'Member')}`}
+                                  alt={resp.authorName}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              )}
                             </button>
                           )}
                           <div>
@@ -947,28 +963,26 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                   onClick={() => onOpenProfile({
                                     username: resp.authorUsername,
                                     name: resp.authorName,
+                                    avatar: resp.authorAvatar,
                                     email: resp.authorEmail,
-                                    role: resp.authorRole,
                                   })}
                                   className="text-xs font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
                                   title={`View ${resp.authorName}'s profile`}
                                 >
-                                  {resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member')}
+                                  {resp.displayPreference === 'name'
+                                    ? resp.authorName
+                                    : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
                                 </button>
-                              )}
-                              {resp.authorRole && (
-                                <span className="text-[11px] text-slate-400">• {resp.authorRole}</span>
                               )}
                             </div>
                           </div>
                         </div>
 
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            resp.choice === 'YES'
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${resp.choice === 'YES'
                               ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-400/30'
                               : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200/70 dark:border-rose-400/30'
-                          }`}
+                            }`}
                         >
                           {resp.choice === 'YES' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
                           <span>{resp.choice}</span>
@@ -1006,11 +1020,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                   }
                                   playHapticChime('yes');
                                 }}
-                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
-                                  hasReacted
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${hasReacted
                                     ? 'bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-300 dark:border-brand-500/40 font-bold shadow-2xs scale-105'
                                     : 'bg-slate-100 dark:bg-ink-800/80 text-slate-600 dark:text-zinc-300 border border-slate-200/60 dark:border-white/10 hover:border-slate-300'
-                                }`}
+                                  }`}
                               >
                                 <span className="text-sm leading-none">{emoji}</span>
                                 <span className="text-[11px] font-bold">{count}</span>
@@ -1036,11 +1049,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                 }
                                 setActiveReactionPickerId((prev) => (prev === resp.id ? null : resp.id));
                               }}
-                              className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${
-                                activeReactionPickerId === resp.id
+                              className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${activeReactionPickerId === resp.id
                                   ? 'text-brand-600 dark:text-brand-400 font-bold'
                                   : 'text-slate-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400'
-                              }`}
+                                }`}
                               title="React with emoji"
                             >
                               <Smile className="w-3.5 h-3.5" />
@@ -1063,9 +1075,8 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                         playHapticChime('yes');
                                         setActiveReactionPickerId(null);
                                       }}
-                                      className={`p-1.5 rounded-full hover:scale-125 transition-transform cursor-pointer text-base ${
-                                        userHas ? 'bg-brand-50 dark:bg-brand-500/20' : ''
-                                      }`}
+                                      className={`p-1.5 rounded-full hover:scale-125 transition-transform cursor-pointer text-base ${userHas ? 'bg-brand-50 dark:bg-brand-500/20' : ''
+                                        }`}
                                       title={label}
                                     >
                                       {emoji}
@@ -1082,11 +1093,10 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             onClick={() => {
                               setActiveReplySubmissionId((prev) => (prev === resp.id ? null : resp.id));
                             }}
-                            className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${
-                              activeReplySubmissionId === resp.id
+                            className={`flex items-center gap-1 transition-colors cursor-pointer font-medium ${activeReplySubmissionId === resp.id
                                 ? 'text-brand-600 dark:text-brand-400 font-bold'
                                 : 'text-slate-500 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400'
-                            }`}
+                              }`}
                           >
                             <MessageSquare className="w-3 h-3" />
                             <span>Reply{resp.replies && resp.replies.length > 0 ? ` (${resp.replies.length})` : ''}</span>
@@ -1120,25 +1130,47 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                             return (
                               <div key={reply.id} className="text-xs space-y-1 bg-slate-50 dark:bg-white/[0.02] p-2.5 rounded-xl">
                                 <div className="flex items-center justify-between">
-                                  {reply.isAnonymous || !onOpenProfile ? (
-                                    <span className="font-bold text-ink-950 dark:text-white">
-                                      {reply.authorAlias || 'Anonymous'}
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => onOpenProfile({
-                                        username: reply.authorUsername,
-                                        name: reply.authorName,
-                                        email: reply.authorEmail,
-                                        role: reply.authorRole,
-                                      })}
-                                      className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
-                                      title={`View ${reply.authorName}'s profile`}
-                                    >
-                                      {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
-                                    </button>
-                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    {reply.isAnonymous ? (
+                                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-ink-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
+                                        <ShieldCheck className="w-2.5 h-2.5 text-brand-600 dark:text-brand-400" />
+                                      </div>
+                                    ) : reply.authorAvatar ? (
+                                      <img
+                                        src={reply.authorAvatar}
+                                        alt={reply.authorName}
+                                        className="w-4 h-4 rounded-full object-cover border border-black/10 dark:border-white/10 shrink-0"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || 'Member')}`;
+                                        }}
+                                      />
+                                    ) : (
+                                      <img
+                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reply.authorName || reply.authorEmail || 'Member')}`}
+                                        alt={reply.authorName}
+                                        className="w-4 h-4 rounded-full object-cover shrink-0"
+                                      />
+                                    )}
+                                    {reply.isAnonymous || !onOpenProfile ? (
+                                      <span className="font-bold text-ink-950 dark:text-white">
+                                        {reply.authorAlias || 'Anonymous'}
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenProfile({
+                                          username: reply.authorUsername,
+                                          name: reply.authorName,
+                                          avatar: reply.authorAvatar,
+                                          email: reply.authorEmail,
+                                        })}
+                                        className="font-bold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors cursor-pointer text-left"
+                                        title={`View ${reply.authorName}'s profile`}
+                                      >
+                                        {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
+                                      </button>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] text-slate-400">
                                       {new Date(reply.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

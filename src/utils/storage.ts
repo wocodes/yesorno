@@ -128,11 +128,16 @@ export async function pushIssuesToServer(issues: Issue[]): Promise<void> {
 export async function fetchServerIssues(): Promise<Issue[] | null> {
   if (typeof window === 'undefined') return null;
   try {
-    const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? '/api-issues.php'
-      : '/api-issues.php';
+    const endpoint = `/api-issues.php?_t=${Date.now()}`;
 
-    const res = await fetch(endpoint);
+    const res = await fetch(endpoint, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
