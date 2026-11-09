@@ -500,6 +500,8 @@ export async function fetchTrendingQuestionSuggestions(params: {
   category?: string;
   region?: IssueRegion;
   apiKey?: string;
+  excludeTitles?: string[];
+  cycle?: number;
 }): Promise<TrendSuggestionResult> {
   const endpoint = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -525,44 +527,95 @@ export async function fetchTrendingQuestionSuggestions(params: {
 
   // Fallback if network is offline
   const contextLower = (params.context || '').toLowerCase();
-  if (contextLower.includes('lagos') || contextLower.includes('governor') || contextLower.includes('debate')) {
-    return {
-      success: true,
-      source: 'curated_trend_engine',
-      grounded: false,
-      context: params.context,
-      suggestions: [
-        {
-          title: 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
-          description: 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
-          category: 'Politics & Policy',
-          tags: ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
-          trendContext: 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
-        },
-        {
-          title: 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
-          description: 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
-          category: 'Politics & Policy',
-          tags: ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
-          trendContext: 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
-        },
-        {
-          title: 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
-          description: 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
-          category: 'Environment & Climate',
-          tags: ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
-          trendContext: 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
-        }
-      ]
-    };
-  }
+  const excludeSet = new Set((params.excludeTitles || []).map((t) => t.toLowerCase().trim()));
 
-  return {
-    success: true,
-    source: 'curated_trend_engine',
-    grounded: false,
-    context: params.context,
-    suggestions: [
+  let pool: QuestionSuggestion[] = [];
+
+  if (contextLower.includes('lagos') || contextLower.includes('governor') || contextLower.includes('debate')) {
+    pool = [
+      {
+        title: 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
+        description: 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
+        category: 'Politics & Policy',
+        tags: ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
+        trendContext: 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
+      },
+      {
+        title: 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
+        description: 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
+        category: 'Politics & Policy',
+        tags: ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
+        trendContext: 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
+      },
+      {
+        title: 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
+        description: 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
+        category: 'Environment & Climate',
+        tags: ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
+        trendContext: 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+      },
+      {
+        title: 'Should Lagos State completely ban informal yellow Danfo minibuses on major transport corridors to enforce rapid transit?',
+        description: 'Transit reform advocates insist informal minibuses cause chaotic traffic bottlenecks and harbor unsafe driving practices. Commuter advocates argue that without tripling the current BRT bus fleet, sudden bans leave millions of daily workers stranded on highways.',
+        category: 'Politics & Policy',
+        tags: ['DanfoBan', 'LagosTransport', 'BRTTransit', 'CommuterMobility', 'TrafficReform'],
+        trendContext: 'Debated in gubernatorial manifestos regarding metropolitan transport modernizations and multimodal integration.'
+      },
+      {
+        title: 'Should local government chairmen receive direct federal allocations without state joint-account deductions?',
+        description: 'Grassroots activists insist local development has stalled because state governors siphon municipal revenue into centralized funds. Governors counter that councils lack the administrative transparency and auditing capacity to manage large revenues independently.',
+        category: 'Politics & Policy',
+        tags: ['LocalGovAutonomy', 'SupremeCourtRuling', 'GrassrootsDev', 'FederalAllocations', 'CivicAccountability'],
+        trendContext: 'Following the landmark Supreme Court ruling on local government financial autonomy and gubernatorial implementation.'
+      },
+      {
+        title: 'Should community development associations (CDAs) be legally prohibited from locking residential street gates before midnight?',
+        description: 'Night shift professionals, doctors, and emergency delivery drivers argue locking public residential streets at 10 PM is tyrannical. Estate security committees insist midnight curfews are the only proven deterrent against armed robbery gangs in unpoliced neighborhoods.',
+        category: 'Community & Neighborhood',
+        tags: ['GatedCommunities', 'EstateSecurity', 'PublicRoads', 'LagosLiving', 'NeighborRights'],
+        trendContext: 'Triggered by recurrent clashes between night commuters and private estate security guards in metropolitan centers.'
+      },
+      {
+        title: 'Should the state government offer a 50% property tax rebate to landlords who contractually cap annual rent increases at 10%?',
+        description: 'Tenant rights coalitions argue predatory 50% to 100% annual rent spikes are driving middle-class families into homelessness. Real estate investors respond that high building maintenance costs, inflation, and currency devaluation make artificial rent caps unfeasible.',
+        category: 'Economy & Finance',
+        tags: ['TenantsRights', 'RentControl', 'LagosHousing', 'PropertyTax', 'CostOfLiving'],
+        trendContext: 'In response to heated town hall discussions on tenant protections and skyrocketing residential rent in urban centers.'
+      }
+    ];
+  } else if (contextLower.includes('tax') || contextLower.includes('crypto') || contextLower.includes('dollar') || contextLower.includes('remote')) {
+    pool = [
+      {
+        title: 'Should remote tech workers and freelancers earning in USD or GBP pay a progressive foreign currency income surcharge?',
+        description: 'Proponents claim high-earning remote professionals benefit from low domestic living expenses while local currency volatility deepens local wealth inequality. Remote tech workers respond that they already pay for their own power, security, and satellite internet without government support.',
+        category: 'Economy & Finance',
+        tags: ['RemoteWork', 'Taxation', 'TechEcosystem', 'Economy', 'Forex'],
+        trendContext: 'Grounded in ongoing public reactions to proposed progressive tax brackets on foreign exchange freelance earnings.'
+      },
+      {
+        title: 'Should the central bank fully legitimize and license peer-to-peer cryptocurrency exchanges for domestic settlements?',
+        description: 'Tech advocates assert that crypto liquidity provides vital capital channels for young entrepreneurs and hedges against currency depreciation. Traditional central bankers caution that unregulated digital assets exacerbate exchange rate volatility and facilitate untraceable capital flight.',
+        category: 'Economy & Finance',
+        tags: ['CryptoRegulation', 'Fintech', 'CentralBank', 'P2PTrading', 'NairaStability'],
+        trendContext: 'In response to recent SEC guidelines and central bank policy updates regarding virtual asset service providers.'
+      },
+      {
+        title: 'Should commercial banks be mandated to automatically refund customers plus pay a 10% penalty for failed digital transfers delayed past 1 hour?',
+        description: 'Frustrated consumers argue bank network failures trap emergency funds and ruin small traders without any accountability. Bankers argue telecom fibre cuts and interbank switch downtimes are systemic external shocks that individual banks cannot insure against.',
+        category: 'Business',
+        tags: ['BankingService', 'NIBSS', 'CustomerProtection', 'FintechReliability', 'CentralBankDirectives'],
+        trendContext: 'Triggered by rising consumer complaints regarding trapped funds and digital banking network glitches during peak transaction hours.'
+      },
+      {
+        title: 'Should the government replace the mandatory 1-year NYSC service with a direct ₦1,000,000 business startup grant for graduates?',
+        description: 'Youth advocates point out that posting graduates to under-resourced schools for a year does nothing to address mass youth unemployment. Traditionalists argue NYSC is the only surviving institution fostering national unity, cultural integration, and cross-ethnic tolerance.',
+        category: 'Economy & Finance',
+        tags: ['NYSCReform', 'YouthEmployment', 'StartupGrants', 'NationalUnity', 'GraduateJobs'],
+        trendContext: 'Spurred by recent legislative motions on restructuring youth service programs into entrepreneurship incubators.'
+      }
+    ];
+  } else {
+    pool = [
       {
         title: 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
         description: 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
@@ -571,11 +624,18 @@ export async function fetchTrendingQuestionSuggestions(params: {
         trendContext: 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
       },
       {
-        title: 'Should remote tech workers earning in foreign currency (USD/GBP) pay a progressive domestic income tax surcharge?',
-        description: 'Proponents argue that high-earning remote professionals benefit from low local cost of living while currency depreciation widens inequality. Tech professionals insist they already pay for their own private power, solar, and satellite internet with zero public services.',
-        category: 'Economy & Finance',
-        tags: ['RemoteWork', 'Taxation', 'TechEcosystem', 'Economy', 'Forex'],
-        trendContext: 'Grounded in public reactions to proposed progressive tax brackets on foreign exchange freelance earnings.'
+        title: 'Should private food commodity hoarders face immediate criminal asset forfeiture during severe national food price spikes?',
+        description: 'Civic rights defenders argue artificial hoarding of essential grains in warehouses for speculative profit starves vulnerable citizens. Agricultural merchants argue bulk storage is normal market inventory management against inflation and government price controls always collapse supply.',
+        category: 'Business',
+        tags: ['FoodInflation', 'MarketEnforcement', 'Agriculture', 'CostOfLiving', 'EconomicSecurity'],
+        trendContext: 'Grounded in consumer protection taskforce warehouse inspections and nationwide food affordability concerns.'
+      },
+      {
+        title: 'Should public transport fares on commuter rail and rapid bus systems be subsidized by 50% using state oil revenues?',
+        description: 'Urban sociologists point out that accessible public transit is the single fastest way to ease post-subsidy cost of living pressures. Fiscal conservatives argue open-ended transport subsidies drain public treasuries and starve funding for essential hospitals and schools.',
+        category: 'Politics & Policy',
+        tags: ['MassTransit', 'TransportSubsidy', 'UrbanMobility', 'FuelSubsidy', 'PublicSpending'],
+        trendContext: 'Prompted by rising inter-city and metropolitan transit costs following fuel subsidy adjustments.'
       },
       {
         title: 'Should universities permanently ban generative AI tools in undergraduate coursework and examinations?',
@@ -583,7 +643,29 @@ export async function fetchTrendingQuestionSuggestions(params: {
         category: 'Education & Campus',
         tags: ['GenerativeAI', 'UniversityReform', 'AcademicIntegrity', 'CampusLife', 'TechInEducation'],
         trendContext: 'Triggered by campus Senate circulars addressing AI plagiarism and curriculum redesign across tertiary institutions.'
+      },
+      {
+        title: 'Should married couples be culturally expected to contribute equally (50/50) to monthly housing and grocery bills?',
+        description: 'Modern financial planners point out that dual-income household partnership is essential to thrive in high-inflation urban economies. Cultural traditionalists insist that providing for the home is the primary non-negotiable responsibility of a man.',
+        category: 'Family & Home',
+        tags: ['MarriageFinances', 'FiftyFifty', 'ModernRelationships', 'HouseholdBudget', 'CulturalTradition'],
+        trendContext: 'Sparked by viral social debates on relationship financial dynamics and equitable domestic partnership.'
       }
-    ]
+    ];
+  }
+
+  // Deduplicate against excludeSet
+  const available = pool.filter((item) => !excludeSet.has(item.title.toLowerCase().trim()));
+  const finalPool = available.length >= 3 ? available : pool;
+
+  // Shuffle
+  const shuffled = [...finalPool].sort(() => 0.5 - Math.random());
+
+  return {
+    success: true,
+    source: 'curated_trend_engine',
+    grounded: false,
+    context: params.context,
+    suggestions: shuffled.slice(0, 3),
   };
 }

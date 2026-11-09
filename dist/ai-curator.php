@@ -362,13 +362,13 @@ function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-1.5-flash') 
     return null;
 }
 
-// Curated Context-Aware Trend Fallbacks
-function get_trend_fallback_suggestions($context = '', $category = '') {
+// Curated Context-Aware Trend Fallbacks with Dynamic Angle Cycling & Deduplication
+function get_trend_fallback_suggestions($context = '', $category = '', $excludeTitles = [], $cycle = 1) {
     $contextLower = strtolower($context);
 
     // 1. Context matches Lagos / Governorship / State Governance / Elections
     if (strpos($contextLower, 'lagos') !== false || strpos($contextLower, 'governor') !== false || strpos($contextLower, 'debate') !== false || strpos($contextLower, 'election') !== false) {
-        return [
+        $pool = [
             [
                 'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
                 'description' => 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
@@ -389,13 +389,54 @@ function get_trend_fallback_suggestions($context = '', $category = '') {
                 'category' => 'Environment & Climate',
                 'tags' => ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
                 'trendContext' => 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+            ],
+            [
+                'title' => 'Should Lagos State completely ban informal yellow Danfo minibuses on major transport corridors to enforce rapid transit?',
+                'description' => 'Transit reform advocates insist informal minibuses cause chaotic traffic bottlenecks and harbor unsafe driving practices. Commuter advocates argue that without triples the current BRT bus fleet, sudden bans leave millions of daily workers stranded on highways.',
+                'category' => 'Politics & Policy',
+                'tags' => ['DanfoBan', 'LagosTransport', 'BRTTransit', 'CommuterMobility', 'TrafficReform'],
+                'trendContext' => 'Debated in gubernatorial manifestos regarding metropolitan transport modernizations and multimodal integration.'
+            ],
+            [
+                'title' => 'Should local government chairmen receive direct federal allocations without state joint-account deductions?',
+                'description' => 'Grassroots activists insist local development has stalled because state governors siphon municipal revenue into centralized funds. Governors counter that councils lack the administrative transparency and auditing capacity to manage large revenues independently.',
+                'category' => 'Politics & Policy',
+                'tags' => ['LocalGovAutonomy', 'SupremeCourtRuling', 'GrassrootsDev', 'FederalAllocations', 'CivicAccountability'],
+                'trendContext' => 'Following the landmark Supreme Court ruling on local government financial autonomy and gubernatorial implementation.'
+            ],
+            [
+                'title' => 'Should community development associations (CDAs) be legally prohibited from locking residential street gates before midnight?',
+                'description' => 'Night shift professionals, doctors, and emergency delivery drivers argue locking public residential streets at 10 PM is tyrannical. Estate security committees insist midnight curfews are the only proven deterrent against armed robbery gangs in unpoliced neighborhoods.',
+                'category' => 'Community & Neighborhood',
+                'tags' => ['GatedCommunities', 'EstateSecurity', 'PublicRoads', 'LagosLiving', 'NeighborRights'],
+                'trendContext' => 'Triggered by recurrent clashes between night commuters and private estate security guards in metropolitan centers.'
+            ],
+            [
+                'title' => 'Should heavy container trucks and fuel tankers be legally restricted to transit only between 11:00 PM and 5:00 AM?',
+                'description' => 'Motorists and civic safety advocates demand nighttime-only truck transit to end fatal container falls and catastrophic gridlock on highway bridges. Maritime haulage operators argue night-only movement is impossible given dangerous highway security conditions and daytime port cargo clearances.',
+                'category' => 'Politics & Policy',
+                'tags' => ['TruckSafety', 'ApapaCorridor', 'HighwayTraffic', 'PortHaulage', 'RoadSafety'],
+                'trendContext' => 'Sparked by ongoing traffic bottlenecks around port corridors and highway safety campaigns.'
+            ],
+            [
+                'title' => 'Should Lagos State require verified state residency cards (LASRRA) for patients to access subsidized care at state hospitals?',
+                'description' => 'Fiscal planners argue Lagos tax-payers cannot indefinitely subsidize healthcare for influx patients from neighboring states. Healthcare rights advocates declare emergency hospital access is a universal humanitarian right that must never be gated by administrative cards.',
+                'category' => 'Politics & Policy',
+                'tags' => ['HealthcareAccess', 'LASRRA', 'PublicHospitals', 'CivicWelfare', 'StateBudget'],
+                'trendContext' => 'Debated as state healthcare boards evaluate resident verification policies to manage hospital bed over-capacity.'
+            ],
+            [
+                'title' => 'Should the state government offer a 50% property tax rebate to landlords who contractually cap annual rent increases at 10%?',
+                'description' => 'Tenant rights coalitions argue predatory 50% to 100% annual rent spikes are driving middle-class families into homelessness. Real estate investors respond that high building maintenance costs, inflation, and currency devaluation make artificial rent caps unfeasible.',
+                'category' => 'Economy & Finance',
+                'tags' => ['TenantsRights', 'RentControl', 'LagosHousing', 'PropertyTax', 'CostOfLiving'],
+                'trendContext' => 'In response to heated town hall discussions on tenant protections and skyrocketing residential rent in urban centers.'
             ]
         ];
     }
-
     // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
-    if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
-        return [
+    else if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
+        $pool = [
             [
                 'title' => 'Should remote tech workers and freelancers earning in USD or GBP pay a progressive foreign currency income surcharge?',
                 'description' => 'Proponents claim high-earning remote professionals benefit from low domestic living expenses while local currency volatility deepens local wealth inequality. Remote tech workers respond that they already pay for their own power, security, and satellite internet without government support.',
@@ -409,13 +450,33 @@ function get_trend_fallback_suggestions($context = '', $category = '') {
                 'category' => 'Economy & Finance',
                 'tags' => ['CryptoRegulation', 'Fintech', 'CentralBank', 'P2PTrading', 'NairaStability'],
                 'trendContext' => 'In response to recent SEC guidelines and central bank policy updates regarding virtual asset service providers.'
+            ],
+            [
+                'title' => 'Should commercial banks be mandated to automatically refund customers plus pay a 10% penalty for failed digital transfers delayed past 1 hour?',
+                'description' => 'Frustrated consumers argue bank network failures trap emergency funds and ruin small traders without any accountability. Bankers argue telecom fibre cuts and interbank switch downtimes are systemic external shocks that individual banks cannot insure against.',
+                'category' => 'Business',
+                'tags' => ['BankingService', 'NIBSS', 'CustomerProtection', 'FintechReliability', 'CentralBankDirectives'],
+                'trendContext' => 'Triggered by rising consumer complaints regarding trapped funds and digital banking network glitches during peak transaction hours.'
+            ],
+            [
+                'title' => 'Should the government replace the mandatory 1-year NYSC service with a direct ₦1,000,000 business startup grant for graduates?',
+                'description' => 'Youth advocates point out that posting graduates to under-resourced schools for a year does nothing to address mass youth unemployment. Traditionalists argue NYSC is the only surviving institution fostering national unity, cultural integration, and cross-ethnic tolerance.',
+                'category' => 'Economy & Finance',
+                'tags' => ['NYSCReform', 'YouthEmployment', 'StartupGrants', 'NationalUnity', 'GraduateJobs'],
+                'trendContext' => 'Spurred by recent legislative motions on restructuring youth service programs into entrepreneurship incubators.'
+            ],
+            [
+                'title' => 'Should early-stage tech and creative startups be exempt from all company income taxes for their first 5 years of operation?',
+                'description' => 'Venture ecosystem founders argue tax holidays allow nascent startups to survive the high mortality rate of early years and build scale. Revenue authorities argue blanket tax exemptions starve the government of vital non-oil tax revenue when public budgets are severely strained.',
+                'category' => 'Business',
+                'tags' => ['StartupAct', 'TaxIncentives', 'VentureCapital', 'InnovationHubs', 'EconomicGrowth'],
+                'trendContext' => 'Debated during implementation town halls for the national Startup Act and tech investment pioneer status.'
             ]
         ];
     }
-
     // 3. Context matches AI / Universities / Education / Campus
-    if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
-        return [
+    else if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
+        $pool = [
             [
                 'title' => 'Should universities permanently ban generative AI tools for undergraduate coursework and essays?',
                 'description' => 'Faculty senates insist that AI-assisted essays undermine deep critical thinking, original research, and the integrity of academic degrees. Student innovators argue generative AI is the modern calculator and institutions must teach AI collaboration rather than fighting an unstoppable technological tide.',
@@ -429,49 +490,112 @@ function get_trend_fallback_suggestions($context = '', $category = '') {
                 'category' => 'Education & Campus',
                 'tags' => ['TuitionHike', 'UniversityFunding', 'ASUU', 'StudentLoans', 'PublicEducation'],
                 'trendContext' => 'Prompted by recent federal student loan scheme rollouts and student union protests over tertiary fee revisions.'
+            ],
+            [
+                'title' => 'Should university lecturers who force students to buy course handouts be dismissed immediately without benefits?',
+                'description' => 'Student anti-corruption activists declare mandatory handout sales are extortionate scams that exploit financially vulnerable scholars. Defending faculty argue poor departmental budgets and unpaid research allowances leave them with zero resources to print reference materials.',
+                'category' => 'Education & Campus',
+                'tags' => ['CampusHandouts', 'LecturerExtortion', 'UniversityEthics', 'StudentRights', 'EducationReform'],
+                'trendContext' => 'Following anti-corruption agency investigations into unauthorized course material levies in tertiary faculties.'
+            ],
+            [
+                'title' => 'Should tech corporations drop 4-year degree requirements and hire software engineers strictly based on verified portfolio tests?',
+                'description' => 'Tech hiring managers argue self-taught developers and bootcamp alumni often out-perform traditional graduates in practical skills. Academic institutions maintain that structured degree programs provide foundational ethics, collaboration, and systemic problem-solving that bootcamps cannot replicate.',
+                'category' => 'Workplace & Career',
+                'tags' => ['DegreeVsSkills', 'TechHiring', 'SoftwareEngineering', 'CampusToCareer', 'JobMarket'],
+                'trendContext' => 'In response to major tech employers revising hiring credentials to emphasize real-world project portfolios.'
+            ]
+        ];
+    }
+    // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security, Culture)
+    else {
+        $pool = [
+            [
+                'title' => 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
+                'description' => 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
+                'category' => 'Economy & Finance',
+                'tags' => ['ElectricityTariff', 'PowerSector', 'BandA', 'EnergyCrisis', 'ConsumerRights'],
+                'trendContext' => 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
+            ],
+            [
+                'title' => 'Should private food commodity hoarders face immediate criminal asset forfeiture during severe national food price spikes?',
+                'description' => 'Civic rights defenders argue artificial hoarding of essential grains in warehouses for speculative profit starves vulnerable citizens. Agricultural merchants argue bulk storage is normal market inventory management against inflation and government price controls always collapse supply.',
+                'category' => 'Business',
+                'tags' => ['FoodInflation', 'MarketEnforcement', 'Agriculture', 'CostOfLiving', 'EconomicSecurity'],
+                'trendContext' => 'Grounded in consumer protection taskforce warehouse inspections and nationwide food affordability concerns.'
+            ],
+            [
+                'title' => 'Should public transport fares on commuter rail and rapid bus systems be subsidized by 50% using state oil revenues?',
+                'description' => 'Urban sociologists point out that accessible public transit is the single fastest way to ease post-subsidy cost of living pressures. Fiscal conservatives argue open-ended transport subsidies drain public treasuries and starve funding for essential hospitals and schools.',
+                'category' => 'Politics & Policy',
+                'tags' => ['MassTransit', 'TransportSubsidy', 'UrbanMobility', 'FuelSubsidy', 'PublicSpending'],
+                'trendContext' => 'Prompted by rising inter-city and metropolitan transit costs following fuel subsidy adjustments.'
+            ],
+            [
+                'title' => 'Should married couples be culturally expected to contribute equally (50/50) to monthly housing and grocery bills?',
+                'description' => 'Modern financial planners point out that dual-income household partnership is essential to thrive in high-inflation urban economies. Cultural traditionalists insist that providing for the home is the primary non-negotiable responsibility of a man.',
+                'category' => 'Family & Home',
+                'tags' => ['MarriageFinances', 'FiftyFifty', 'ModernRelationships', 'HouseholdBudget', 'CulturalTradition'],
+                'trendContext' => 'Sparked by viral social debates on relationship financial dynamics and equitable domestic partnership.'
+            ],
+            [
+                'title' => 'Should religious centers with high-decibel outdoor loudspeakers in residential estates face immediate operational shutdown after 10:00 PM?',
+                'description' => 'Sleep-deprived neighbors argue residential peace and public health are fundamental constitutional rights that noise polluters must respect. Worship groups counter that overnight vigils and public calls to prayer are protected expressions of freedom of religion.',
+                'category' => 'Community & Neighborhood',
+                'tags' => ['NoisePollution', 'FreedomOfWorship', 'ResidentialEstates', 'PublicHealth', 'NeighborEtiquette'],
+                'trendContext' => 'In response to municipal environmental agency enforcement sweeps against noise pollution in residential districts.'
+            ],
+            [
+                'title' => 'Should companies have the legal right to terminate employees caught working secondary remote jobs during standard business hours?',
+                'description' => 'Corporate leaders insist that dual-employment divides focus, creates intellectual property conflicts of interest, and violates employment contracts. Remote professionals argue as long as daily deliverables and key results are achieved, how they utilize their remaining hours is their private prerogative.',
+                'category' => 'Workplace & Career',
+                'tags' => ['Overemployment', 'RemoteWorkEthics', 'Moonlighting', 'CorporateGovernance', 'CareerFreedom'],
+                'trendContext' => 'Prompted by corporate HR directives and discussions around remote work multi-jobbing in tech and finance.'
             ]
         ];
     }
 
-    // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security)
-    return [
-        [
-            'title' => 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
-            'description' => 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
-            'category' => 'Economy & Finance',
-            'tags' => ['ElectricityTariff', 'PowerSector', 'BandA', 'EnergyCrisis', 'ConsumerRights'],
-            'trendContext' => 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
-        ],
-        [
-            'title' => 'Should private food commodity hoarders face immediate criminal asset forfeiture during severe national food price spikes?',
-            'description' => 'Civic rights defenders argue artificial hoarding of essential grains in warehouses for speculative profit starves vulnerable citizens. Agricultural merchants argue bulk storage is normal market inventory management against inflation and government price controls always collapse supply.',
-            'category' => 'Business',
-            'tags' => ['FoodInflation', 'MarketEnforcement', 'Agriculture', 'CostOfLiving', 'EconomicSecurity'],
-            'trendContext' => 'Grounded in consumer protection taskforce warehouse inspections and nationwide food affordability concerns.'
-        ],
-        [
-            'title' => 'Should public transport fares on commuter rail and rapid bus systems be subsidized by 50% using state oil revenues?',
-            'description' => 'Urban sociologists point out that accessible public transit is the single fastest way to ease post-subsidy cost of living pressures. Fiscal conservatives argue open-ended transport subsidies drain public treasuries and starve funding for essential hospitals and schools.',
-            'category' => 'Politics & Policy',
-            'tags' => ['MassTransit', 'TransportSubsidy', 'UrbanMobility', 'FuelSubsidy', 'PublicSpending'],
-            'trendContext' => 'Prompted by rising inter-city and metropolitan transit costs following fuel subsidy adjustments.'
-        ]
-    ];
+    // Exclude previously displayed titles to guarantee fresh, distinct angles on every click
+    if (!empty($excludeTitles) && is_array($excludeTitles)) {
+        $normalizedExclude = array_map(function($t) { return strtolower(trim($t)); }, $excludeTitles);
+        $filtered = array_filter($pool, function($item) use ($normalizedExclude) {
+            return !in_array(strtolower(trim($item['title'])), $normalizedExclude);
+        });
+        if (count($filtered) >= 3) {
+            $pool = array_values($filtered);
+        }
+    }
+
+    // Shuffle pool with dynamic random seed incorporating cycle and microtime
+    $seed = crc32($context . microtime(true) . $cycle . rand(100, 9999));
+    srand($seed);
+    shuffle($pool);
+
+    return array_slice($pool, 0, 3);
 }
 
 // Generate Trend Questions using Gemini + Live Google Search Grounding
-function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-1.5-flash') {
+function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-1.5-flash', $excludeTitles = [], $cycle = 1) {
     $context = trim($context);
     $category = trim($category);
 
     if (!empty($apiKey)) {
-        $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n\n"
+        $excludePrompt = '';
+        if (!empty($excludeTitles) && is_array($excludeTitles)) {
+            $excludePrompt = "\nIMPORTANT DIVERSITY RULE: Provide COMPLETELY FRESH, alternative debate angles. DO NOT repeat, duplicate, or closely rephrase any of these previous questions:\n"
+                . implode("\n", array_map(function($t) { return "- \"{$t}\""; }, $excludeTitles))
+                . "\nExplore contrasting sub-topics, different affected stakeholders, or unexpected policy/ethical angles.\n";
+        }
+
+        $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n"
+            . "Generation Cycle: #{$cycle}\n\n"
             . "Task:\n"
             . (!empty($context) 
                 ? "Research and ground your questions in the latest real-time trends, news stories, and public debates regarding: \"{$context}\".\n"
                 : "Research the top trending news stories, viral civic discussions, policy disputes, and cultural dilemmas in Nigeria, Africa, and global tech/politics today.\n")
             . (!empty($category) ? "Target Category: {$category}\n" : "")
-            . "Target Region: {$region}\n\n"
+            . "Target Region: {$region}\n"
+            . $excludePrompt . "\n"
             . "Identify the core point of controversy, tension, or policy dilemma where thoughtful citizens, experts, and community members are divided roughly 50/50.\n\n"
             . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts.\n\n"
             . "For each suggestion, provide:\n"
@@ -506,18 +630,20 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
                 'source' => $result['grounded'] ? 'gemini_google_search' : 'gemini_generative',
                 'grounded' => $result['grounded'],
                 'context' => $context,
+                'cycle' => $cycle,
                 'suggestions' => $suggestions
             ];
         }
     }
 
-    // Dynamic Curated Context Fallback
-    $fallbackList = get_trend_fallback_suggestions($context, $category);
+    // Dynamic Curated Context Fallback with angle cycling and deduplication
+    $fallbackList = get_trend_fallback_suggestions($context, $category, $excludeTitles, $cycle);
     return [
         'success' => true,
         'source' => 'curated_trend_engine',
         'grounded' => false,
         'context' => $context,
+        'cycle' => $cycle,
         'suggestions' => $fallbackList
     ];
 }
@@ -1516,11 +1642,15 @@ if ($action === 'suggest_trends') {
     $category = isset($_GET['category']) ? trim($_GET['category']) : (isset($payload['category']) ? trim($payload['category']) : '');
     $region = isset($_GET['region']) ? trim($_GET['region']) : (isset($payload['region']) ? trim($payload['region']) : 'Africa & Middle East');
     $customApiKey = isset($_GET['apiKey']) ? trim($_GET['apiKey']) : (isset($payload['apiKey']) ? trim($payload['apiKey']) : '');
+    $cycle = isset($_GET['cycle']) ? (int)$_GET['cycle'] : (isset($payload['cycle']) ? (int)$payload['cycle'] : 1);
+    $excludeTitles = isset($payload['excludeTitles']) && is_array($payload['excludeTitles']) 
+        ? $payload['excludeTitles'] 
+        : (isset($_GET['excludeTitles']) ? explode(',', $_GET['excludeTitles']) : []);
 
     $apiKey = !empty($customApiKey) ? $customApiKey : ($settings['geminiApiKey'] ?? '');
     $model = !empty($payload['model']) ? trim($payload['model']) : ($settings['model'] ?? 'gemini-1.5-flash');
 
-    $result = generate_trend_question_suggestions($context, $category, $region, $apiKey, $model);
+    $result = generate_trend_question_suggestions($context, $category, $region, $apiKey, $model, $excludeTitles, $cycle);
     echo json_encode($result);
     exit;
 }
