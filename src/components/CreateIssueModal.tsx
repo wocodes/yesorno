@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, AlertCircle, Clock, Lock, Globe, 
-  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil, FileText
+  Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil, FileText,
+  Sparkles
 } from 'lucide-react';
 import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment, IssueDraft } from '../types';
 import { moderateText, generateCivicAlias, validateIssueQuestion } from '../utils/moderation';
 import { VoiceRecorder } from './VoiceRecorder';
 import { fileToDataUrl } from '../utils/audio';
+import { GeminiTrendSuggestModal } from './GeminiTrendSuggestModal';
 
 interface Props {
   isOpen: boolean;
@@ -86,7 +88,28 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [duration, setDuration] = useState<DurationOption>(DURATION_OPTIONS[0]); // Indefinite (No Expiry) default
   const [activeTool, setActiveTool] = useState<ActiveToolPanel>(null);
   const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [showTrendModal, setShowTrendModal] = useState(false);
   const draftDebounceTimer = useRef<number | null>(null);
+
+  const handleConfirmTrendSuggestion = (sug: {
+    title: string;
+    description: string;
+    category: IssueCategory;
+    region: IssueRegion;
+    tags: string[];
+    durationLabel: string;
+  }) => {
+    setTitle(sug.title);
+    setDescription(sug.description);
+    setShowDescription(true);
+    setCategory(sug.category);
+    if (sug.tags && sug.tags.length > 0) {
+      setTagsInput(sug.tags.join(', '));
+    }
+    const matchedDur = DURATION_OPTIONS.find((d) => d.label === sug.durationLabel);
+    if (matchedDur) setDuration(matchedDur);
+    setShowTrendModal(false);
+  };
 
   // Media attachments
   const [creatorVoice, setCreatorVoice] = useState<VoiceAttachment | null>(null);
@@ -400,14 +423,26 @@ export const CreateIssueModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-ink-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowTrendModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
+              title="Research live news trends & suggest questions with Gemini"
+            >
+              <Sparkles className="w-3 h-3 text-purple-500" />
+              <span>AI Ideas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-ink-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Draft Restored Banner */}
@@ -925,6 +960,14 @@ export const CreateIssueModal: React.FC<Props> = ({
           </div>
         </form>
       </div>
+
+      {/* AI Trend Suggestions Modal */}
+      <GeminiTrendSuggestModal
+        isOpen={showTrendModal}
+        onClose={() => setShowTrendModal(false)}
+        onConfirmPublish={handleConfirmTrendSuggestion}
+        currentUser={currentUser}
+      />
     </div>
   );
 };

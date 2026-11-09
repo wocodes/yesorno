@@ -6,11 +6,11 @@ import {
   Mail, Check, Loader2, Sparkles, Power, Bot, Users2, Key,
   ChevronDown, ChevronUp, RefreshCw, Play, Pause
 } from 'lucide-react';
-import { Issue, UserProfile, AppView } from '../types';
+import { Issue, UserProfile, AppView, IssueCategory, IssueRegion } from '../types';
 import { ColorTone, ThemeMode } from '../utils/theme';
-import { generatePolarizingQuestionNow } from '../utils/geminiDailyGenerator';
 import { saveIssues } from '../utils/storage';
 import { SEED_PERSONAS } from '../data/seedPersonas';
+import { GeminiTrendSuggestModal } from './GeminiTrendSuggestModal';
 import {
   loadAnalyticsStore,
   resetAnalyticsStore,
@@ -39,27 +39,51 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
   const [clickFilter, setClickFilter] = useState<'all' | 'button' | 'link'>('all');
   const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [isGeneratingGemini, setIsGeneratingGemini] = useState(false);
   const [geminiResultStatus, setGeminiResultStatus] = useState<string | null>(null);
+  const [showTrendModal, setShowTrendModal] = useState(false);
 
-  const handleGenerateGeminiQuestion = async () => {
-    setIsGeneratingGemini(true);
-    setGeminiResultStatus(null);
-    try {
-      const newIssue = await generatePolarizingQuestionNow();
-      const updated = [newIssue, ...issues];
-      saveIssues(updated);
-      setGeminiResultStatus(`Posted: "${newIssue.title}" (${newIssue.category}) under william.odiomonafe@gmail.com!`);
-      setTimeout(() => {
-        onOpenIssue(newIssue);
-      }, 1500);
-    } catch (err) {
-      console.error('Failed to generate Gemini issue:', err);
-      setGeminiResultStatus('Failed to generate. Check console.');
-    } finally {
-      setIsGeneratingGemini(false);
-      setTimeout(() => setGeminiResultStatus(null), 10000);
-    }
+  const handleGenerateGeminiQuestion = () => {
+    setShowTrendModal(true);
+  };
+
+  const handleConfirmPublishTrendQuestion = (issueData: {
+    title: string;
+    description: string;
+    category: IssueCategory;
+    region: IssueRegion;
+    tags: string[];
+    durationLabel: string;
+  }) => {
+    const now = new Date();
+    const newIssue: Issue = {
+      id: `issue-trend-${Date.now()}`,
+      title: issueData.title,
+      description: issueData.description,
+      category: issueData.category,
+      region: issueData.region,
+      tags: issueData.tags,
+      author: currentUser?.name || 'William Odiomonafe',
+      creatorEmail: currentUser?.email || 'william.odiomonafe@gmail.com',
+      creatorAvatar: currentUser?.avatar || undefined,
+      createdAt: now.toISOString(),
+      durationLabel: issueData.durationLabel || 'Indefinite (No Expiry)',
+      visibility: 'public',
+      invitedEmails: [],
+      invitedGroups: [],
+      yesCount: 0,
+      noCount: 0,
+      likesCount: 0,
+      favoritesCount: 0,
+      responses: [],
+      featured: true,
+    };
+
+    const updated = [newIssue, ...issues];
+    saveIssues(updated);
+    setGeminiResultStatus(`Published: "${newIssue.title}" (${newIssue.category})!`);
+    setTimeout(() => {
+      onOpenIssue(newIssue);
+    }, 600);
   };
 
   const handleTriggerTestEmail = async () => {
@@ -501,21 +525,11 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
             <button
               type="button"
               onClick={handleGenerateGeminiQuestion}
-              disabled={isGeneratingGemini}
               className="px-3.5 py-2 rounded-xl bg-purple-500/25 hover:bg-purple-500/40 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Generate a polarizing question with Gemini and post under william.odiomonafe@gmail.com"
+              title="Research live trends & suggest questions with Gemini before confirming"
             >
-              {isGeneratingGemini ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating (Gemini)...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-                  <span>Generate Question (Gemini)</span>
-                </>
-              )}
+              <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+              <span>Generate Question (Gemini)</span>
             </button>
 
             <button
@@ -1424,6 +1438,14 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
           )}
         </div>
       </section>
+
+      {/* AI Trend Question Deliberation Studio Modal */}
+      <GeminiTrendSuggestModal
+        isOpen={showTrendModal}
+        onClose={() => setShowTrendModal(false)}
+        onConfirmPublish={handleConfirmPublishTrendQuestion}
+        currentUser={currentUser}
+      />
     </div>
   );
 };

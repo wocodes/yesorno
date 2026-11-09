@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, User, Settings, Globe2, Sparkles, UserPlus, Check, 
   ShieldCheck, Sliders, Sun, Moon, LogOut, Vote, Users, Bookmark, Heart,
-  Volume2, VolumeX, ZapOff
+  Volume2, VolumeX, ZapOff, Bell
 } from 'lucide-react';
 import { UserProfile, Issue, IssueCategory, IssueRegion, VoiceFilterType, DisplayPreference } from '../types';
 import { TOP_CREATORS_AND_VOTERS, TopCreatorProfile } from '../utils/auth';
@@ -113,6 +113,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
   }, [issues]);
 
   const [defaultAnonymous, setDefaultAnonymous] = useState<boolean>(user.defaultAnonymous ?? false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(user.notificationsEnabled ?? true);
   const [defaultVoiceFilter, setDefaultVoiceFilter] = useState<VoiceFilterType>(user.defaultVoiceFilter || 'deep');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     if (user.soundEnabled !== undefined) return user.soundEnabled;
@@ -137,6 +138,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
       setInterests(user.interests || []);
       setFollowing(user.followingCreators || []);
       setDefaultAnonymous(user.defaultAnonymous ?? false);
+      setNotificationsEnabled(user.notificationsEnabled ?? true);
       setDefaultVoiceFilter(user.defaultVoiceFilter || 'deep');
       setSoundEnabled(user.soundEnabled !== undefined ? user.soundEnabled : areSoundsEnabled());
       setAnimationsEnabledState(user.animationsEnabled !== undefined ? user.animationsEnabled : areAnimationsEnabled());
@@ -171,6 +173,7 @@ export const ProfileSettingsModal: React.FC<Props> = ({
       interests,
       followingCreators: following,
       defaultAnonymous,
+      notificationsEnabled,
       defaultVoiceFilter,
       soundEnabled,
       animationsEnabled,
@@ -810,6 +813,32 @@ export const ProfileSettingsModal: React.FC<Props> = ({
                   <span
                     className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
                       defaultAnonymous ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Debate Reply & Reaction Activity Alerts */}
+              <div className="card p-4 sm:p-5 flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Bell className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-ink-950 dark:text-white">Email Activity Alerts</h4>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                      Receive email notifications when someone votes, comments, or reacts to your debates.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    notificationsEnabled ? 'bg-brand-600' : 'bg-slate-300 dark:bg-ink-700'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
+                      notificationsEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>

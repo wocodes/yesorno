@@ -247,6 +247,281 @@ function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash') {
     return is_array($json) ? $json : null;
 }
 
+// Extract JSON array or object from raw model output (handles markdown fences)
+function extract_json_from_text($text) {
+    if (empty($text)) return null;
+    $text = trim($text);
+
+    // Strip markdown code block fences ```json ... ```
+    if (preg_match('/```(?:json)?\s*(.*?)\s*```/s', $text, $matches)) {
+        $text = trim($matches[1]);
+    }
+
+    $decoded = json_decode($text, true);
+    if (is_array($decoded)) return $decoded;
+
+    // Search for array [ { ... } ]
+    if (preg_match('/\[\s*\{.*\}\s*\]/s', $text, $arrMatch)) {
+        $arrDecoded = json_decode($arrMatch[0], true);
+        if (is_array($arrDecoded)) return $arrDecoded;
+    }
+
+    // Search for single object { ... }
+    if (preg_match('/\{.*\}/s', $text, $objMatch)) {
+        $objDecoded = json_decode($objMatch[0], true);
+        if (is_array($objDecoded)) return [$objDecoded];
+    }
+
+    return null;
+}
+
+// Call Gemini API with Google Search Grounding for Live News & Trend Research
+function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-1.5-flash') {
+    if (empty($apiKey)) return null;
+
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($apiKey);
+
+    // Primary attempt: Gemini with Google Search tool enabled
+    $payloadWithSearch = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $prompt]
+                ]
+            ]
+        ],
+        'tools' => [
+            ['googleSearch' => (object)[]]
+        ],
+        'generationConfig' => [
+            'temperature' => 0.7,
+            'topP' => 0.95,
+            'maxOutputTokens' => 2048
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payloadWithSearch));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 35);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200 && $response) {
+        $resDecoded = json_decode($response, true);
+        $text = $resDecoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        if ($text) {
+            $parsed = extract_json_from_text($text);
+            if ($parsed && is_array($parsed)) {
+                return ['data' => $parsed, 'grounded' => true];
+            }
+        }
+    }
+
+    // Secondary fallback: Gemini standard generation without search tool
+    $payloadStandard = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $prompt]
+                ]
+            ]
+        ],
+        'generationConfig' => [
+            'temperature' => 0.8,
+            'topP' => 0.95,
+            'maxOutputTokens' => 2048,
+            'responseMimeType' => 'application/json'
+        ]
+    ];
+
+    $ch2 = curl_init($url);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch2, CURLOPT_POST, true);
+    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($payloadStandard));
+    curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+    $res2 = curl_exec($ch2);
+    $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+    curl_close($ch2);
+
+    if ($code2 === 200 && $res2) {
+        $dec2 = json_decode($res2, true);
+        $text2 = $dec2['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        if ($text2) {
+            $parsed2 = extract_json_from_text($text2);
+            if ($parsed2 && is_array($parsed2)) {
+                return ['data' => $parsed2, 'grounded' => false];
+            }
+        }
+    }
+
+    return null;
+}
+
+// Curated Context-Aware Trend Fallbacks
+function get_trend_fallback_suggestions($context = '', $category = '') {
+    $contextLower = strtolower($context);
+
+    // 1. Context matches Lagos / Governorship / State Governance / Elections
+    if (strpos($contextLower, 'lagos') !== false || strpos($contextLower, 'governor') !== false || strpos($contextLower, 'debate') !== false || strpos($contextLower, 'election') !== false) {
+        return [
+            [
+                'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
+                'description' => 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
+                'category' => 'Politics & Policy',
+                'tags' => ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
+                'trendContext' => 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
+            ],
+            [
+                'title' => 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
+                'description' => 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
+                'category' => 'Politics & Policy',
+                'tags' => ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
+                'trendContext' => 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
+            ],
+            [
+                'title' => 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
+                'description' => 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
+                'category' => 'Environment & Climate',
+                'tags' => ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
+                'trendContext' => 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+            ]
+        ];
+    }
+
+    // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
+    if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
+        return [
+            [
+                'title' => 'Should remote tech workers and freelancers earning in USD or GBP pay a progressive foreign currency income surcharge?',
+                'description' => 'Proponents claim high-earning remote professionals benefit from low domestic living expenses while local currency volatility deepens local wealth inequality. Remote tech workers respond that they already pay for their own power, security, and satellite internet without government support.',
+                'category' => 'Economy & Finance',
+                'tags' => ['RemoteWork', 'Taxation', 'TechEcosystem', 'Economy', 'Forex'],
+                'trendContext' => 'Grounded in ongoing public reactions to proposed progressive tax brackets on foreign exchange freelance earnings.'
+            ],
+            [
+                'title' => 'Should the central bank fully legitimize and license peer-to-peer cryptocurrency exchanges for domestic settlements?',
+                'description' => 'Tech advocates assert that crypto liquidity provides vital capital channels for young entrepreneurs and hedges against currency depreciation. Traditional central bankers caution that unregulated digital assets exacerbate exchange rate volatility and facilitate untraceable capital flight.',
+                'category' => 'Economy & Finance',
+                'tags' => ['CryptoRegulation', 'Fintech', 'CentralBank', 'P2PTrading', 'NairaStability'],
+                'trendContext' => 'In response to recent SEC guidelines and central bank policy updates regarding virtual asset service providers.'
+            ]
+        ];
+    }
+
+    // 3. Context matches AI / Universities / Education / Campus
+    if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
+        return [
+            [
+                'title' => 'Should universities permanently ban generative AI tools for undergraduate coursework and essays?',
+                'description' => 'Faculty senates insist that AI-assisted essays undermine deep critical thinking, original research, and the integrity of academic degrees. Student innovators argue generative AI is the modern calculator and institutions must teach AI collaboration rather than fighting an unstoppable technological tide.',
+                'category' => 'Education & Campus',
+                'tags' => ['GenerativeAI', 'UniversityReform', 'AcademicIntegrity', 'CampusLife', 'TechInEducation'],
+                'trendContext' => 'Triggered by campus Senate circulars addressing AI plagiarism and curriculum redesign across tertiary institutions.'
+            ],
+            [
+                'title' => 'Should public universities be allowed to increase tuition by 200% to fund competitive lecturer salaries and modern laboratories?',
+                'description' => 'University administrators state that chronic underfunding and strike actions will only cease when institutions achieve financial sustainability. Student associations and labor unions declare education is a fundamental public good that must remain accessible to low-income households.',
+                'category' => 'Education & Campus',
+                'tags' => ['TuitionHike', 'UniversityFunding', 'ASUU', 'StudentLoans', 'PublicEducation'],
+                'trendContext' => 'Prompted by recent federal student loan scheme rollouts and student union protests over tertiary fee revisions.'
+            ]
+        ];
+    }
+
+    // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security)
+    return [
+        [
+            'title' => 'Should governments completely eliminate retail electricity subsidies and enforce cost-reflective billing for all residential bands?',
+            'description' => 'Power distribution companies argue capital investments and reliable 24-hour supply require cost-reflective tariffs across all consumer segments. Consumer advocacy groups argue sudden steep tariff hikes cripple small neighborhood businesses and households coping with high inflation.',
+            'category' => 'Economy & Finance',
+            'tags' => ['ElectricityTariff', 'PowerSector', 'BandA', 'EnergyCrisis', 'ConsumerRights'],
+            'trendContext' => 'Spurred by recent electricity tariff reviews, Band-A billing disputes, and ongoing national grid modernization debates.'
+        ],
+        [
+            'title' => 'Should private food commodity hoarders face immediate criminal asset forfeiture during severe national food price spikes?',
+            'description' => 'Civic rights defenders argue artificial hoarding of essential grains in warehouses for speculative profit starves vulnerable citizens. Agricultural merchants argue bulk storage is normal market inventory management against inflation and government price controls always collapse supply.',
+            'category' => 'Business',
+            'tags' => ['FoodInflation', 'MarketEnforcement', 'Agriculture', 'CostOfLiving', 'EconomicSecurity'],
+            'trendContext' => 'Grounded in consumer protection taskforce warehouse inspections and nationwide food affordability concerns.'
+        ],
+        [
+            'title' => 'Should public transport fares on commuter rail and rapid bus systems be subsidized by 50% using state oil revenues?',
+            'description' => 'Urban sociologists point out that accessible public transit is the single fastest way to ease post-subsidy cost of living pressures. Fiscal conservatives argue open-ended transport subsidies drain public treasuries and starve funding for essential hospitals and schools.',
+            'category' => 'Politics & Policy',
+            'tags' => ['MassTransit', 'TransportSubsidy', 'UrbanMobility', 'FuelSubsidy', 'PublicSpending'],
+            'trendContext' => 'Prompted by rising inter-city and metropolitan transit costs following fuel subsidy adjustments.'
+        ]
+    ];
+}
+
+// Generate Trend Questions using Gemini + Live Google Search Grounding
+function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-1.5-flash') {
+    $context = trim($context);
+    $category = trim($category);
+
+    if (!empty($apiKey)) {
+        $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n\n"
+            . "Task:\n"
+            . (!empty($context) 
+                ? "Research and ground your questions in the latest real-time trends, news stories, and public debates regarding: \"{$context}\".\n"
+                : "Research the top trending news stories, viral civic discussions, policy disputes, and cultural dilemmas in Nigeria, Africa, and global tech/politics today.\n")
+            . (!empty($category) ? "Target Category: {$category}\n" : "")
+            . "Target Region: {$region}\n\n"
+            . "Identify the core point of controversy, tension, or policy dilemma where thoughtful citizens, experts, and community members are divided roughly 50/50.\n\n"
+            . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts.\n\n"
+            . "For each suggestion, provide:\n"
+            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (under 16 words) starting with 'Should...', 'Is it wrong to...', 'Would you...', or 'Must...'. It must end with a single '?'.\n"
+            . "2. \"description\": 2 to 3 punchy sentences explaining the core dilemma:\n"
+            . "   - Sentence 1: Why the YES camp passionately defends their position with real-world arguments.\n"
+            . "   - Sentence 2: Why the NO camp firmly objects or warns of negative fallout.\n"
+            . "   - Sentence 3: The broader stakes for the community, economy, or citizens.\n"
+            . "3. \"category\": Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].\n"
+            . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['LagosState', 'Tolls', 'CommuterRights']).\n"
+            . "5. \"trendContext\": A 1-2 sentence summary of the recent news, event, or trend that sparked this debate.\n\n"
+            . "Return pure JSON matching this exact structure:\n"
+            . "[\n"
+            . "  {\n"
+            . "    \"title\": \"...\",\n"
+            . "    \"description\": \"...\",\n"
+            . "    \"category\": \"...\",\n"
+            . "    \"tags\": [\"...\"],\n"
+            . "    \"trendContext\": \"...\"\n"
+            . "  }\n"
+            . "]";
+
+        $result = call_gemini_with_search($prompt, $apiKey, $model);
+        if ($result && !empty($result['data']) && is_array($result['data'])) {
+            $suggestions = $result['data'];
+            // Normalize suggestions if single object wrapped in array
+            if (isset($suggestions['title'])) {
+                $suggestions = [$suggestions];
+            }
+            return [
+                'success' => true,
+                'source' => $result['grounded'] ? 'gemini_google_search' : 'gemini_generative',
+                'grounded' => $result['grounded'],
+                'context' => $context,
+                'suggestions' => $suggestions
+            ];
+        }
+    }
+
+    // Dynamic Curated Context Fallback
+    $fallbackList = get_trend_fallback_suggestions($context, $category);
+    return [
+        'success' => true,
+        'source' => 'curated_trend_engine',
+        'grounded' => false,
+        'context' => $context,
+        'suggestions' => $fallbackList
+    ];
+}
+
 // Curated Fallback Debate Templates (Natural Nigerian Context, Semi-Formal/Informal Tone)
 function get_curated_fallback_debates() {
     return [
@@ -858,6 +1133,279 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
 }
 
 // -------------------------------------------------------------
+// Incremental User Debate Incubation Engine
+// Nurtures user-created debates with realistic personas & votes
+// -------------------------------------------------------------
+
+function build_curator_issue_slug($title, $id) {
+    $slug = strtolower($title);
+    $slug = preg_replace('/[^a-z0-9]+/i', '-', $slug);
+    $slug = trim($slug, '-');
+    $slug = substr($slug, 0, 70);
+    $slug = rtrim($slug, '-');
+    return $slug ? $slug . '-' . $id : $id;
+}
+
+function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSlug, $persona, $choice, $note) {
+    if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) return false;
+    
+    $payload = [
+        'event' => 'author_comment',
+        'user' => [
+            'name' => $persona['name'],
+            'email' => $persona['email'],
+            'role' => $persona['role']
+        ],
+        'data' => [
+            'recipientEmail' => $recipientEmail,
+            'issueTitle' => $issueTitle,
+            'choice' => $choice,
+            'note' => $note,
+            'url' => 'https://yesorno.chillon.top/' . $issueSlug
+        ]
+    ];
+
+    $ch = curl_init('https://yesorno.chillon.top/notify.php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+    @curl_exec($ch);
+    @curl_close($ch);
+    return true;
+}
+
+function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash') {
+    if (!empty($apiKey)) {
+        $prompt = "You are {$persona['name']}, a {$persona['role']}. Bio: {$persona['bio']}.\n"
+            . "Provide a realistic, concise 2 to 3 sentence community perspective (maximum 50 words) on this deliberation question:\n"
+            . "Question: \"{$issue['title']}\"\n"
+            . "Context: \"{$issue['description']}\"\n"
+            . "Your stance: {$choice} (You must clearly support this viewpoint).\n\n"
+            . "Guidelines:\n"
+            . "- Speak conversationally as a real person living in {$persona['region']}.\n"
+            . "- Never say 'As an AI' or 'As a {$persona['role']}'.\n"
+            . "- Give a crisp, practical argument.\n"
+            . "Return pure JSON: {\"note\": \"...\"}";
+
+        $res = call_gemini_api($prompt, $apiKey, $model);
+        if ($res && !empty($res['note'])) {
+            return trim($res['note']);
+        }
+    }
+
+    // Dynamic Curated Fallbacks
+    $yesTemplates = [
+        "From a practical standpoint, this is long overdue. When you look at the ripple effects on local productivity and accountability, the potential upside clearly outweighs the initial friction.",
+        "I lean Yes on this. We've seen similar frameworks succeed when clear guardrails are put in place from day one. It's about setting the standard early rather than reacting later.",
+        "Support this direction. The current status quo simply isn't sustainable for the broader public interest. Taking decisive action now saves us bigger headaches down the road.",
+        "Agree with this move. Transparent standards and predictable execution are what build lasting community confidence. It's definitely time to test it in practice.",
+        "This makes strategic sense. If we delay addressing this, the systemic cost of inaction will multiply. A measured rollout is the right call."
+    ];
+
+    $noTemplates = [
+        "I'm skeptical of this approach. While the intention might be sound, the operational overhead and unintended bottlenecks could end up hurting the very people it aims to help.",
+        "Vote No. Before introducing blanket measures like this, we need far stronger data and consultation. Rushing this without robust infrastructure will create more problems than it solves.",
+        "Respectfully disagree with the proposal. The core issue isn't lack of new rules, but inconsistent enforcement of existing structures. Let's fix the fundamentals first.",
+        "Not convinced this is the right priority right now. In practice, similar initiatives have ended up concentrating friction rather than opening up opportunity. Better to hold off.",
+        "I have reservations. Without clearer accountability and funding mechanisms, this risks becoming another well-intentioned policy that stalls out in execution."
+    ];
+
+    $pool = ($choice === 'YES') ? $yesTemplates : $noTemplates;
+    return $pool[array_rand($pool)];
+}
+
+function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
+    if (empty($settings['isEnabled'])) {
+        return ['success' => false, 'reason' => 'Engine is paused'];
+    }
+
+    // Fetch candidate issues that have < 6 responses
+    $stmt = $pdo->prepare("
+        SELECT i.id, i.title, i.description, i.category, i.region, i.creator_email, i.author, i.created_at,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id) as response_count,
+               (SELECT MAX(created_at) FROM responses WHERE issue_id = i.id) as latest_response_at,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id AND choice = 'YES') as yes_responses,
+               (SELECT COUNT(*) FROM responses WHERE issue_id = i.id AND choice = 'NO') as no_responses
+        FROM issues i
+        WHERE (SELECT COUNT(*) FROM responses WHERE issue_id = i.id) < 6
+        ORDER BY i.created_at DESC
+        LIMIT 15
+    ");
+    $stmt->execute();
+    $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($candidates)) {
+        return ['success' => true, 'action' => 'none', 'message' => 'No active issues currently require incubation'];
+    }
+
+    $incubated = [];
+    $nowTime = time();
+
+    foreach ($candidates as $cand) {
+        $respCount = (int)$cand['response_count'];
+
+        // Determine reference time: issue creation or last response timestamp
+        $refTime = $respCount === 0 
+            ? strtotime($cand['created_at'])
+            : strtotime($cand['latest_response_at'] ?: $cand['created_at']);
+
+        // Cooldown schedule:
+        // Response 0 -> 1: 120s (2m)
+        // Response 1 -> 2: 240s (4m)
+        // Response 2 -> 3: 360s (6m)
+        // Response 3+:     480s (8m)
+        $requiredCooldown = 480;
+        if ($respCount === 0) {
+            $requiredCooldown = 120;
+        } else if ($respCount === 1) {
+            $requiredCooldown = 240;
+        } else if ($respCount === 2) {
+            $requiredCooldown = 360;
+        }
+
+        if (($nowTime - $refTime) < $requiredCooldown) {
+            continue; // Cooldown hasn't elapsed yet
+        }
+
+        // Ready for next incremental response
+        $existStmt = $pdo->prepare("SELECT author_email FROM responses WHERE issue_id = :issue_id");
+        $existStmt->execute([':issue_id' => $cand['id']]);
+        $existingEmails = $existStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $existingEmails = array_map('strtolower', $existingEmails);
+
+        if (!empty($cand['creator_email'])) {
+            $existingEmails[] = strtolower($cand['creator_email']);
+        }
+
+        $availablePersonas = array_filter($personas, function($p) use ($existingEmails) {
+            return !in_array(strtolower($p['email']), $existingEmails);
+        });
+
+        if (empty($availablePersonas)) {
+            $availablePersonas = $personas;
+        }
+
+        // Select persona (prefer category match if available)
+        $categoryLower = strtolower($cand['category'] ?? '');
+        $categoryPersonas = array_filter($availablePersonas, function($p) use ($categoryLower) {
+            $pRole = strtolower($p['role'] ?? '');
+            $pBio = strtolower($p['bio'] ?? '');
+            if (strpos($categoryLower, 'econ') !== false || strpos($categoryLower, 'fin') !== false) {
+                return strpos($pRole, 'econom') !== false || strpos($pRole, 'finan') !== false || strpos($pBio, 'market') !== false;
+            }
+            if (strpos($categoryLower, 'tech') !== false) {
+                return strpos($pRole, 'tech') !== false || strpos($pRole, 'engine') !== false || strpos($pBio, 'ai') !== false;
+            }
+            if (strpos($categoryLower, 'gov') !== false || strpos($categoryLower, 'polit') !== false) {
+                return strpos($pRole, 'policy') !== false || strpos($pRole, 'civic') !== false || strpos($pRole, 'analyst') !== false;
+            }
+            return true;
+        });
+
+        $chosenPersona = !empty($categoryPersonas)
+            ? $categoryPersonas[array_rand($categoryPersonas)]
+            : $availablePersonas[array_rand($availablePersonas)];
+
+        // Balance stance (YES vs NO)
+        $yesResp = (int)$cand['yes_responses'];
+        $noResp = (int)$cand['no_responses'];
+        if ($yesResp > $noResp) {
+            $stance = 'NO';
+        } else if ($noResp > $yesResp) {
+            $stance = 'YES';
+        } else {
+            $stance = (rand(0, 1) === 1) ? 'YES' : 'NO';
+        }
+
+        // Generate note
+        $note = generate_incubated_perspective($cand, $chosenPersona, $stance, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash');
+
+        $nowIso = gmdate('Y-m-d\TH:i:s\Z');
+        $subId = 'sub-' . bin2hex(random_bytes(6));
+        $respLikes = rand(3, 14);
+
+        // Insert response
+        $insResp = $pdo->prepare("
+            INSERT INTO responses (
+                id, issue_id, choice, author_name, author_email,
+                author_role, is_anonymous, note, voice_note, likes_count,
+                is_reported, created_at
+            ) VALUES (
+                :id, :issue_id, :choice, :author_name, :author_email,
+                :author_role, 0, :note, NULL, :likes_count,
+                0, :created_at
+            )
+        ");
+        $insResp->execute([
+            ':id' => $subId,
+            ':issue_id' => $cand['id'],
+            ':choice' => $stance,
+            ':author_name' => $chosenPersona['name'],
+            ':author_email' => $chosenPersona['email'],
+            ':author_role' => $chosenPersona['role'],
+            ':note' => $note,
+            ':likes_count' => $respLikes,
+            ':created_at' => $nowIso
+        ]);
+
+        // Drip 2 to 4 organic votes to the issue
+        $addStanceVotes = rand(2, 4);
+        $addOppositeVotes = rand(0, 1);
+        $addYes = ($stance === 'YES') ? $addStanceVotes : $addOppositeVotes;
+        $addNo = ($stance === 'NO') ? $addStanceVotes : $addOppositeVotes;
+
+        $updateIssue = $pdo->prepare("
+            UPDATE issues 
+            SET yes_count = yes_count + :add_yes,
+                no_count = no_count + :add_no,
+                likes_count = likes_count + 1,
+                updated_at = :now
+            WHERE id = :id
+        ");
+        $updateIssue->execute([
+            ':add_yes' => $addYes,
+            ':add_no' => $addNo,
+            ':now' => $nowIso,
+            ':id' => $cand['id']
+        ]);
+
+        // Build slug for notifications
+        $slug = build_curator_issue_slug($cand['title'], $cand['id']);
+
+        // Dispatch author notification
+        if (!empty($cand['creator_email'])) {
+            dispatch_incubation_notification($cand['creator_email'], $cand['title'], $slug, $chosenPersona, $stance, $note);
+        }
+
+        $incubated[] = [
+            'issueId' => $cand['id'],
+            'issueTitle' => $cand['title'],
+            'persona' => $chosenPersona['name'],
+            'role' => $chosenPersona['role'],
+            'stance' => $stance,
+            'note' => $note,
+            'votesAdded' => ['yes' => $addYes, 'no' => $addNo],
+            'newTotalResponses' => $respCount + 1,
+            'timestamp' => $nowIso
+        ];
+
+        // Process up to 1-2 per cycle to maintain paced progression
+        if (count($incubated) >= 2) {
+            break;
+        }
+    }
+
+    return [
+        'success' => true,
+        'action' => 'incubate',
+        'count' => count($incubated),
+        'incubated' => $incubated
+    ];
+}
+
+// -------------------------------------------------------------
 // Router / Action Handlers
 // -------------------------------------------------------------
 $settings = get_curator_settings($settingsPath);
@@ -868,7 +1416,7 @@ $action = isset($_GET['action']) ? trim($_GET['action']) : (isset($_POST['action
 $isCron = isset($_GET['cron']) && ($_GET['cron'] === '1' || $_GET['cron'] === 'true');
 
 // Support GET ?action=status
-if ($action === 'status' || ($_SERVER['REQUEST_METHOD'] === 'GET' && !$isCron && empty($action))) {
+if ($action === 'status' || ((isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'GET') && !$isCron && empty($action))) {
     $totalCurated = 0;
     $totalMembersInDb = 0;
     if ($pdo) {
@@ -959,6 +1507,37 @@ if ($action === 'seed_users') {
     exit;
 }
 
+// Suggest Questions Grounded in Live Trends, News & Stories
+if ($action === 'suggest_trends') {
+    $raw = file_get_contents('php://input');
+    $payload = json_decode($raw, true) ?: [];
+
+    $context = isset($_GET['context']) ? trim($_GET['context']) : (isset($payload['context']) ? trim($payload['context']) : '');
+    $category = isset($_GET['category']) ? trim($_GET['category']) : (isset($payload['category']) ? trim($payload['category']) : '');
+    $region = isset($_GET['region']) ? trim($_GET['region']) : (isset($payload['region']) ? trim($payload['region']) : 'Africa & Middle East');
+    $customApiKey = isset($_GET['apiKey']) ? trim($_GET['apiKey']) : (isset($payload['apiKey']) ? trim($payload['apiKey']) : '');
+
+    $apiKey = !empty($customApiKey) ? $customApiKey : ($settings['geminiApiKey'] ?? '');
+    $model = !empty($payload['model']) ? trim($payload['model']) : ($settings['model'] ?? 'gemini-1.5-flash');
+
+    $result = generate_trend_question_suggestions($context, $category, $region, $apiKey, $model);
+    echo json_encode($result);
+    exit;
+}
+
+// Incremental User Debate Incubation (Periodic Heartbeat / Webhook)
+if ($action === 'incubate' || $action === 'incubate_heartbeat') {
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Database offline']);
+        exit;
+    }
+
+    $incubationResult = incubate_user_debates($pdo, $personas, $settings);
+    echo json_encode($incubationResult);
+    exit;
+}
+
 // Generate New Issue & Debate Now (or via Cron)
 if ($action === 'generate_issue' || $isCron) {
     // Check master kill switch
@@ -976,6 +1555,9 @@ if ($action === 'generate_issue' || $isCron) {
         echo json_encode(['success' => false, 'error' => 'Database offline']);
         exit;
     }
+
+    // Also run incremental incubation on any waiting user debates during cron run
+    $incubatedDebates = incubate_user_debates($pdo, $personas, $settings);
 
     // Generate debate
     $result = generate_curated_debate($personas, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash');
@@ -1001,6 +1583,7 @@ if ($action === 'generate_issue' || $isCron) {
         'success' => true,
         'engine' => $result['source'],
         'issue' => $persisted,
+        'incubated' => $incubatedDebates,
         'lastRunAt' => $nowIso,
         'message' => "Successfully generated and published: \"{$persisted['title']}\" with {$persisted['totalVotes']} initial votes."
     ]);
@@ -1011,5 +1594,5 @@ if ($action === 'generate_issue' || $isCron) {
 echo json_encode([
     'success' => false,
     'error' => 'Unknown action requested',
-    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue']
+    'availableActions' => ['status', 'toggle', 'save_settings', 'seed_users', 'generate_issue', 'incubate', 'incubate_heartbeat', 'suggest_trends']
 ]);

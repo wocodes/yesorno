@@ -38,6 +38,7 @@ export interface UserProfile {
   animationsEnabled?: boolean;
   theme?: 'dark' | 'light';
   colorTone?: 'vibrant' | 'toned';
+  notificationsEnabled?: boolean;
   onboardingCompleted?: boolean;
 }
 

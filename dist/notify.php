@@ -177,6 +177,53 @@ switch ($eventType) {
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Subject:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$subjectText}</td></tr>";
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Message:</td><td style='padding:14px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.6;font-size:13px;white-space:pre-wrap;'>{$messageText}</td></tr>";
         break;
+
+    case 'author_comment':
+        $badgeColor = '#6366f1'; // Indigo
+        $badgeText = 'NEW PERSPECTIVE ON YOUR DEBATE';
+        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Your Debate';
+        $choice = isset($data['choice']) ? htmlspecialchars($data['choice']) : 'VOTE';
+        $note = isset($data['note']) && !empty($data['note']) ? htmlspecialchars($data['note']) : '';
+        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
+        $choiceColor = $choice === 'YES' ? '#10b981' : ($choice === 'NO' ? '#f43f5e' : '#f59e0b');
+
+        $subject = "[YesOrNo] 💬 New perspective on: \"{$issueTitle}\"";
+        $headline = "Someone just weighed in on your question!";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Your Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Their Stance:</td><td style='padding:8px 0;color:{$choiceColor};font-weight:800;font-size:15px;'>Voted {$choice}</td></tr>";
+        if (!empty($note)) {
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Their Reason:</td><td style='padding:12px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.5;'>{$note}</td></tr>";
+        }
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>Open Live Debate & Reply →</a></td></tr>";
+        break;
+
+    case 'author_reply':
+        $badgeColor = '#3b82f6'; // Blue
+        $badgeText = 'DIRECT REPLY TO YOUR COMMENT';
+        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Debate Thread';
+        $replyContent = isset($data['content']) ? htmlspecialchars($data['content']) : '';
+        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
+
+        $subject = "[YesOrNo] ↩️ {$userName} replied to your comment";
+        $headline = "{$userName} replied directly to your perspective!";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Their Reply:</td><td style='padding:12px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.5;'>{$replyContent}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Thread Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>View Reply in Thread →</a></td></tr>";
+        break;
+
+    case 'author_reaction':
+        $badgeColor = '#ec4899'; // Pink
+        $badgeText = 'NEW REACTION';
+        $emoji = isset($data['emoji']) ? htmlspecialchars($data['emoji']) : '👍';
+        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Your Debate';
+        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
+
+        $subject = "[YesOrNo] {$emoji} New reaction on: \"{$issueTitle}\"";
+        $headline = "Someone reacted with {$emoji} to your debate!";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Reaction:</td><td style='padding:8px 0;font-size:24px;'>{$emoji}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
+        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>View Live Debate →</a></td></tr>";
+        break;
 }
 
 // Build Clean HTML Email Body
@@ -247,7 +294,7 @@ $messageBody = "
     <!-- Footer -->
     <tr>
       <td style='padding:16px 28px;background:#090d16;border-top:1px solid #1e293b;text-align:center;font-size:11px;color:#64748b;'>
-        Sent automatically to <strong style='color:#94a3b8;'>{$adminEmail}</strong> from <a href='{$siteUrl}' style='color:#6366f1;text-decoration:none;'>yesorno.chillon.top</a>
+        Sent from <a href='{$siteUrl}' style='color:#6366f1;text-decoration:none;'>yesorno.chillon.top</a> • You can manage activity alerts in your Profile Settings.
       </td>
     </tr>
 
@@ -255,6 +302,44 @@ $messageBody = "
 </body>
 </html>
 ";
+
+// Determine target recipient (author or admin)
+$targetRecipient = (!empty($data['recipientEmail']) && filter_var($data['recipientEmail'], FILTER_VALIDATE_EMAIL))
+    ? trim($data['recipientEmail'])
+    : $adminEmail;
+
+// Check if recipient opted out of activity notifications (explicit payload or SQLite profile)
+$notificationsDisabled = false;
+if (isset($data['recipientNotificationsEnabled']) && $data['recipientNotificationsEnabled'] === false) {
+    $notificationsDisabled = true;
+} else if ($targetRecipient !== $adminEmail) {
+    try {
+        $dbPath = __DIR__ . '/data/yesorno.sqlite';
+        if (file_exists($dbPath)) {
+            $pdo = new PDO('sqlite:' . $dbPath);
+            $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(email) = :email LIMIT 1");
+            $stmt->execute([':email' => strtolower($targetRecipient)]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['user_data'])) {
+                $uData = json_decode($row['user_data'], true);
+                if (is_array($uData) && isset($uData['notificationsEnabled']) && $uData['notificationsEnabled'] === false) {
+                    $notificationsDisabled = true;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // Continue normally
+    }
+}
+
+if ($notificationsDisabled) {
+    echo json_encode([
+        'success' => true,
+        'skipped' => true,
+        'message' => 'User disabled notifications in profile settings'
+    ]);
+    exit;
+}
 
 // Email Headers
 $headers = [];
@@ -267,7 +352,7 @@ $headers[] = 'X-Mailer: PHP/' . phpversion();
 $headersStr = implode("\r\n", $headers);
 
 // Dispatch Email
-$mailSent = @mail($adminEmail, $subject, $messageBody, $headersStr);
+$mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr);
 
 // Log to notifications.log on server for audit trail & permanent backup
 $logEntry = json_encode([
