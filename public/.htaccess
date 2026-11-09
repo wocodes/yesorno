@@ -6,6 +6,9 @@
   RewriteCond %{HTTPS} off
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+  # Route sitemap.xml directly to dynamic sitemap.php
+  RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+
   # Serve existing files and directories directly
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
