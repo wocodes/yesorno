@@ -473,7 +473,7 @@ export const CreateIssueModal: React.FC<Props> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ask a Yes or No question... (e.g. Should our team adopt a 4-day work week?)"
+              placeholder="Ask a question or pose a debate... (e.g. Should our team adopt a 4-day work week? or 50/50 rent: Yes or No?)"
               className="w-full text-base sm:text-lg font-bold bg-transparent text-ink-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none leading-snug"
             />
             {title.trim().length > 0 && !titleMod.isAppropriate && (

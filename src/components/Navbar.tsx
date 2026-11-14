@@ -303,7 +303,7 @@ export const Navbar: React.FC<Props> = ({
               onChange={(e) => onSortChange(e.target.value as FeedSortOption)}
               className="text-xs bg-white/90 dark:bg-ink-900 rounded-xl px-2.5 py-1.5 text-ink-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="for-you">🔥 Trending &amp; New (For You)</option>
+              <option value="for-you">🔥 Blended (Latest &amp; Most Popular)</option>
               <option value="active">Most Active</option>
               <option value="newest">Newest First</option>
               <option value="closing">Closing Soon</option>

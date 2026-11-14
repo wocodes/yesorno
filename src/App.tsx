@@ -1670,36 +1670,54 @@ export function App() {
     const followedCreatorIds = currentUser?.followingCreators || [];
 
     // Helper: compute ranking score for the default feed ('for-you'):
-    // Blends Trending momentum + Newest freshness, boosted by user interests & region.
-    // If user has not selected/saved interests or region, all posts rank purely by trending + freshness.
+    // Blends Popularity Momentum (votes, comments, views/impressions, likes) with Latest Freshness
     const computeFeedScore = (issue: Issue): number => {
       const now = Date.now();
       const issueCreatedTime = new Date(issue.createdAt || '').getTime() || (now - 86400000 * 3);
       const ageHours = Math.max(0, (now - issueCreatedTime) / (1000 * 60 * 60));
 
-      // 1. Trending Momentum:
-      // High weight on votes (5 pts), perspectives (10 pts), voice clips (14 pts), and likes (3 pts)
-      const totalVotes = issue.yesCount + issue.noCount;
-      const responsesCount = issue.responses?.length || 0;
-      const voiceNotesCount = issue.responses?.filter(r => !!r.voiceNote).length || 0;
-      const likesCount = issue.likesCount || 0;
+      // 1. Popularity & Engagement Signals:
+      // Votes (7 pts each)
+      const totalVotes = (issue.yesCount || 0) + (issue.noCount || 0);
 
-      // Close split debate bonus (balanced YES/NO ratios generate intense viral engagement)
+      // Comments: Top-level responses + threaded replies (14 pts each)
+      const topLevelResponses = issue.responses?.length || 0;
+      const threadedReplies = issue.responses?.reduce((acc, r) => acc + (r.replies?.length || 0), 0) || 0;
+      const totalComments = topLevelResponses + threadedReplies;
+      const voiceNotesCount = issue.responses?.filter(r => !!r.voiceNote).length || 0;
+
+      // Views & Impressions (0.5 pts each)
+      const views = (issue as any).viewsCount || (issue as any).impressionsCount || 
+        Math.round((totalVotes * 4.2) + (totalComments * 3.5) + ((issue.likesCount || 0) * 2.2) + 20);
+
+      const likesCount = issue.likesCount || 0;
+      const favCount = issue.favoritesCount || 0;
+
+      // Close split debate bonus (balanced 50/50 ratios generate intense viral engagement)
       let debateBonus = 0;
       if (totalVotes >= 3) {
         const splitRatio = Math.min(issue.yesCount, issue.noCount) / Math.max(issue.yesCount, issue.noCount);
-        debateBonus = splitRatio * 30; // up to +30 points for contentious 50-50 splits
+        debateBonus = splitRatio * 40; // up to +40 points for contentious 50-50 splits
       }
 
-      // Smooth decay on engagement momentum so hot active debates outrank dormant ancient polls
-      const engagementRaw = (totalVotes * 5) + (responsesCount * 10) + (voiceNotesCount * 14) + (likesCount * 3) + debateBonus;
-      const engagementDecay = Math.max(0.18, Math.exp(-ageHours / 72));
-      const trendingScore = engagementRaw * engagementDecay;
+      // Raw engagement score combining votes, comments, views/impressions, audio, likes, and debate split
+      const engagementRaw = 
+        (totalVotes * 7) + 
+        (totalComments * 14) + 
+        (voiceNotesCount * 12) + 
+        (views * 0.5) + 
+        (likesCount * 4) + 
+        (favCount * 8) + 
+        debateBonus;
 
-      // 2. Newest / Freshness Factor:
-      // Gives strong visibility to newly published issues alongside top trending ones
-      // An issue under 6h gets up to +140 bonus, under 24h gets +45 bonus
-      const freshnessScore = Math.max(0, 140 * Math.exp(-ageHours / 18));
+      // Power-law time decay so hot active debates outrank dormant ancient polls
+      const timeDecay = Math.pow(ageHours + 2, 1.15);
+      const momentumScore = (engagementRaw * 12) / timeDecay;
+
+      // 2. Latest / Freshness Factor:
+      // Gives strong immediate visibility to newly published issues alongside top trending ones
+      // Under 2h: +180 to +160 pts; under 12h: +75 pts; under 24h: +35 pts
+      const freshnessScore = 180 * Math.exp(-ageHours / 14);
 
       // 3. Featured Editorial Bonus:
       const featuredScore = issue.featured ? 35 : 0;
@@ -1748,7 +1766,7 @@ export function App() {
         }
       }
 
-      return trendingScore + freshnessScore + featuredScore + interestScore + regionScore + followedScore;
+      return momentumScore + freshnessScore + featuredScore + interestScore + regionScore + followedScore;
     };
 
     let result = issues.filter(issue => {
@@ -1776,6 +1794,15 @@ export function App() {
         }
       }
 
+      return true;
+    });
+
+    // Deduplicate issues by normalized title so duplicate questions NEVER appear in the feed
+    const seenTitles = new Set<string>();
+    result = result.filter(issue => {
+      const norm = issue.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (seenTitles.has(norm)) return false;
+      seenTitles.add(norm);
       return true;
     });
 

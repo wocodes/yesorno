@@ -146,6 +146,31 @@ function get_curator_pdo($dbPath) {
             );
         ");
 
+        // Auto-migration: ensure views_count and impressions_count exist
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN views_count INTEGER DEFAULT 0");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN impressions_count INTEGER DEFAULT 0");
+        } catch (Exception $e) {}
+
+        // Self-healing deduplication: soft-delete any duplicate issues with identical titles (keeping oldest)
+        try {
+            $pdo->exec("
+                UPDATE issues SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP
+                WHERE id IN (
+                    SELECT id FROM issues i1
+                    WHERE is_deleted = 0
+                    AND EXISTS (
+                        SELECT 1 FROM issues i2
+                        WHERE i2.is_deleted = 0
+                        AND LOWER(TRIM(i2.title)) = LOWER(TRIM(i1.title))
+                        AND (i2.created_at < i1.created_at OR (i2.created_at = i1.created_at AND i2.id < i1.id))
+                    )
+                )
+            ");
+        } catch (Exception $e) {}
+
         return $pdo;
     } catch (Exception $e) {
         return null;
@@ -275,86 +300,82 @@ function extract_json_from_text($text) {
     return null;
 }
 
-// Call Gemini API with Google Search Grounding for Live News & Trend Research
-function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-1.5-flash') {
+// Call Gemini API with Google Search Grounding or Real-Time Generation
+function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-2.5-flash') {
     if (empty($apiKey)) return null;
 
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($apiKey);
+    $candidateModels = array_unique(array_filter([$model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']));
 
-    // Primary attempt: Gemini with Google Search tool enabled
-    $payloadWithSearch = [
-        'contents' => [
-            [
-                'parts' => [
-                    ['text' => $prompt]
-                ]
+    foreach ($candidateModels as $m) {
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$m}:generateContent?key=" . urlencode($apiKey);
+
+        // Attempt 1: Gemini with Google Search tool enabled
+        $payloadWithSearch = [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ],
+            'tools' => [
+                ['googleSearch' => (object)[]]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'topP' => 0.95,
+                'maxOutputTokens' => 2048
             ]
-        ],
-        'tools' => [
-            ['googleSearch' => (object)[]]
-        ],
-        'generationConfig' => [
-            'temperature' => 0.7,
-            'topP' => 0.95,
-            'maxOutputTokens' => 2048
-        ]
-    ];
+        ];
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payloadWithSearch));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 35);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payloadWithSearch));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-    if ($httpCode === 200 && $response) {
-        $resDecoded = json_decode($response, true);
-        $text = $resDecoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if ($text) {
-            $parsed = extract_json_from_text($text);
-            if ($parsed && is_array($parsed)) {
-                return ['data' => $parsed, 'grounded' => true];
+        if ($httpCode === 200 && $response) {
+            $resDecoded = json_decode($response, true);
+            $text = $resDecoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if ($text) {
+                $parsed = extract_json_from_text($text);
+                if ($parsed && is_array($parsed)) {
+                    return ['data' => $parsed, 'grounded' => true];
+                }
             }
         }
-    }
 
-    // Secondary fallback: Gemini standard generation without search tool
-    $payloadStandard = [
-        'contents' => [
-            [
-                'parts' => [
-                    ['text' => $prompt]
-                ]
+        // Attempt 2: Direct generation with responseMimeType
+        $payloadStandard = [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.75,
+                'topP' => 0.95,
+                'maxOutputTokens' => 2048,
+                'responseMimeType' => 'application/json'
             ]
-        ],
-        'generationConfig' => [
-            'temperature' => 0.8,
-            'topP' => 0.95,
-            'maxOutputTokens' => 2048,
-            'responseMimeType' => 'application/json'
-        ]
-    ];
+        ];
 
-    $ch2 = curl_init($url);
-    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch2, CURLOPT_POST, true);
-    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($payloadStandard));
-    curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
-    $res2 = curl_exec($ch2);
-    $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-    curl_close($ch2);
+        $ch2 = curl_init($url);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_POST, true);
+        curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($payloadStandard));
+        curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+        $res2 = curl_exec($ch2);
+        $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+        curl_close($ch2);
 
-    if ($code2 === 200 && $res2) {
-        $dec2 = json_decode($res2, true);
-        $text2 = $dec2['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if ($text2) {
-            $parsed2 = extract_json_from_text($text2);
-            if ($parsed2 && is_array($parsed2)) {
-                return ['data' => $parsed2, 'grounded' => false];
+        if ($code2 === 200 && $res2) {
+            $dec2 = json_decode($res2, true);
+            $text2 = $dec2['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if ($text2) {
+                $parsed2 = extract_json_from_text($text2);
+                if ($parsed2 && is_array($parsed2)) {
+                    return ['data' => $parsed2, 'grounded' => false];
+                }
             }
         }
     }
@@ -362,22 +383,288 @@ function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-1.5-flash') 
     return null;
 }
 
-// Curated Context-Aware Trend Fallbacks with Dynamic Angle Cycling & Deduplication
-function get_trend_fallback_suggestions($context = '', $category = '', $excludeTitles = [], $cycle = 1) {
-    $contextLower = strtolower($context);
+// Fetch Real-Time X (Twitter) Trends for Nigeria
+function fetch_live_nigerian_x_trends() {
+    $xTrends = [];
 
-    // 1. Context matches Lagos / Governorship / State Governance / Elections
-    if (strpos($contextLower, 'lagos') !== false || strpos($contextLower, 'governor') !== false || strpos($contextLower, 'debate') !== false || strpos($contextLower, 'election') !== false) {
-        $pool = [
-            [
-                'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
-                'description' => 'Commuter unions and civic activists argue that arbitrary toll hikes on captive daily transit corridors impose unreasonable economic burdens on working citizens. Urban infrastructure planners maintain that private concession tolls are the only sustainable mechanism to fund major expressways without draining state revenue.',
+    // Source 1: getdaytrends.com/nigeria/
+    $url = "https://getdaytrends.com/nigeria/";
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    $html = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200 && !empty($html)) {
+        if (preg_match_all('/<th scope="row" class="pos">(\d+)<\/th>\s*<td class="main">\s*<a[^>]*>(.*?)<\/a>/is', $html, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $pos = (int)$m[1];
+                $name = trim(strip_tags($m[2]));
+                if (!empty($name) && strlen($name) > 1 && strlen($name) < 65) {
+                    $weight = max(25, 100 - (($pos - 1) * 2));
+                    $xTrends[] = [
+                        'name' => $name,
+                        'rank' => $pos,
+                        'weight' => $weight,
+                        'platform' => 'x'
+                    ];
+                }
+            }
+        }
+    }
+
+    // Source 2: trends24.in/nigeria/ as fallback/supplement
+    if (count($xTrends) < 5) {
+        $url2 = "https://trends24.in/nigeria/";
+        $ch2 = curl_init($url2);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 6);
+        curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch2, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+        $html2 = curl_exec($ch2);
+        $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+        curl_close($ch2);
+
+        if ($httpCode2 === 200 && !empty($html2)) {
+            if (preg_match_all('/<a[^>]*href="https:\/\/twitter\.com\/search\?q=[^"]*"[^>]*class=trend-link[^>]*>([^<]+)<\/a>/i', $html2, $matches2)) {
+                $rank = 1;
+                foreach ($matches2[1] as $rawTrend) {
+                    $name = trim(urldecode($rawTrend));
+                    if (!empty($name) && strlen($name) > 1 && strlen($name) < 65) {
+                        $weight = max(25, 100 - (($rank - 1) * 2));
+                        $xTrends[] = [
+                            'name' => $name,
+                            'rank' => $rank,
+                            'weight' => $weight,
+                            'platform' => 'x'
+                        ];
+                        $rank++;
+                        if ($rank > 25) break;
+                    }
+                }
+            }
+        }
+    }
+
+    return $xTrends;
+}
+
+// Fetch Real-Time News Headlines from Google News RSS for Nigeria
+function fetch_live_nigerian_news_headlines($context = '') {
+    $context = trim($context);
+    if (!empty($context)) {
+        $encoded = urlencode($context . ' Nigeria');
+        $url = "https://news.google.com/rss/search?q={$encoded}&hl=en-NG&gl=NG&ceid=NG:en";
+    } else {
+        $url = "https://news.google.com/rss?hl=en-NG&gl=NG&ceid=NG:en";
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 7);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)');
+    $xmlData = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200 || empty($xmlData)) {
+        return [];
+    }
+
+    $headlines = [];
+    try {
+        $xml = @simplexml_load_string($xmlData);
+        if ($xml && isset($xml->channel->item)) {
+            foreach ($xml->channel->item as $item) {
+                $rawTitle = (string)$item->title;
+                $cleanTitle = trim(preg_replace('/\s*-\s*[^-]+$/', '', $rawTitle));
+                $source = (string)($item->source ?? 'Live Breaking News');
+                if (!empty($cleanTitle) && strlen($cleanTitle) > 15) {
+                    $headlines[] = [
+                        'title' => $cleanTitle,
+                        'source' => $source
+                    ];
+                }
+                if (count($headlines) >= 12) break;
+            }
+        }
+    } catch (Exception $e) {
+        return [];
+    }
+
+    return $headlines;
+}
+
+// Curated Context-Aware Trend Fallbacks with Dynamic Angle Cycling, 𝕏 Viral Weight & Deduplication
+function get_trend_fallback_suggestions($context = '', $category = '', $excludeTitles = [], $cycle = 1, $liveHeadlines = [], $liveXTrends = []) {
+    $contextLower = strtolower($context);
+    $pool = [];
+
+    // 1. If live headlines were fetched from Google News RSS, dynamically synthesize real-time debate topics from them
+    if (!empty($liveHeadlines) && is_array($liveHeadlines)) {
+        foreach ($liveHeadlines as $h) {
+            $ht = $h['title'];
+            if (empty($ht)) continue;
+
+            if (preg_match('/\b(petrol|fuel|dangote|nnpcl?|pump|refinery|subsidy|oil|gantry)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => 'Dangote refinery & domestic fuel pricing: should government force retail stations to drop pump prices below ₦1,000?',
+                    'description' => 'Commuters argue local refining must immediately end extortionate transportation costs. Fuel marketers maintain old high-price stock and distribution logistics prevent immediate price slashes without insolvency.',
+                    'category' => 'Economy & Finance',
+                    'tags' => ['DangoteRefinery', 'PetrolPrices', 'EnergyCrisis', 'NigeriaEconomy'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 97,
+                    'xRank' => 1,
+                    'platforms' => ['x', 'google_news']
+                ];
+            } elseif (preg_match('/\b(election|tinubu|rally|violence|apc|pdp|lp|nnpp|vote|2027|inec)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => 'Politicians and sponsors implicated in election violence: should they receive lifetime bans from public office?',
+                    'description' => 'Civic watchdogs argue only permanent disqualification and asset forfeiture will stop godfathers from deploying thugs at rallies. Critics argue ruling administrations easily weaponize violence charges to silence opposition contenders.',
+                    'category' => 'Politics & Policy',
+                    'tags' => ['2027Elections', 'PoliticalViolence', 'Tinubu', 'Democracy'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 93,
+                    'xRank' => 4,
+                    'platforms' => ['x', 'google_news']
+                ];
+            } elseif (preg_match('/\b(naira|fx|dollar|cbn|inflation|bank|tax|revenue|vat)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => 'Floating the Naira: should the central bank return to currency pegging to arrest runaway cost of living?',
+                    'description' => 'Struggling workers point out that the depreciated currency destroyed real wages and tripled staple food prices. Monetary economists insist artificial pegging burns national foreign reserves and enriches currency arbitrage cartels.',
+                    'category' => 'Economy & Finance',
+                    'tags' => ['NairaFloating', 'Inflation', 'CBN', 'CostOfLiving'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 95,
+                    'xRank' => 3,
+                    'platforms' => ['x', 'google_news']
+                ];
+            } elseif (preg_match('/\b(grid|power|electricity|disco|band.?a|blackout|tcn)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => 'Repeated national grid collapses: should state governments disconnect completely and build independent state grids?',
+                    'description' => 'Industrialists and estate associations maintain state-level power generation is the only sustainable exit from perpetual national blackouts. Federal grid authorities argue fragmenting the transmission network threatens national security.',
+                    'category' => 'Environment & Climate',
+                    'tags' => ['NationalGrid', 'PowerSector', 'ElectricityAct', 'BandATariff'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 91,
+                    'xRank' => 6,
+                    'platforms' => ['x', 'google_news']
+                ];
+            } elseif (preg_match('/\b(wage|minimum wage|salary|workers?|nlc|labour|trade union)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => '₦70,000 minimum wage standoff: should cash-strapped state governments retrench workers to pay the new wage?',
+                    'description' => 'State governors argue spending 85% of allocations on civil service wages starves infrastructure, healthcare, and schools. Labour unions counter that retrenching workers during hyperinflation is cruelty and breaches the law.',
+                    'category' => 'Workplace & Career',
+                    'tags' => ['MinimumWage', 'LabourRights', 'CivilService', 'StateBudgets'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 92,
+                    'xRank' => 5,
+                    'platforms' => ['x', 'google_news']
+                ];
+            } elseif (preg_match('/\b(food|diabetes|health|disease|lassa|hospital|doctor|cappa|drug)\b/i', $ht)) {
+                $pool[] = [
+                    'title' => 'Should government enforce emergency price controls and advertising bans on essential foods and sugary drinks?',
+                    'description' => 'Public health advocates insist chronic disease burdens and market price gouging are killing vulnerable families. Food manufacturers argue state price caps trigger factory closures, job losses, and black-market hoarding.',
+                    'category' => 'Business',
+                    'tags' => ['PublicHealth', 'FoodInflation', 'ConsumerRights', 'Healthcare'],
+                    'trendContext' => 'Breaking live news: ' . $ht,
+                    'trendScore' => 88,
+                    'platforms' => ['google_news']
+                ];
+            }
+        }
+    }
+
+    // 2. If live 𝕏 trends were fetched, dynamically synthesize debates from the top hashtags and topics
+    if (!empty($liveXTrends) && is_array($liveXTrends)) {
+        foreach (array_slice($liveXTrends, 0, 8) as $xt) {
+            $xName = $xt['name'] ?? '';
+            $xRank = (int)($xt['rank'] ?? 1);
+            $xWeight = (int)($xt['weight'] ?? 80);
+            if (empty($xName)) continue;
+
+            $pool[] = [
+                'title' => "Trend debate on {$xName}: should public policy intervene or let cultural and market forces decide?",
+                'description' => "Trending #{$xRank} on 𝕏 Nigeria with viral commentary across social channels. One camp insists this demands strict regulatory oversight and civic standards, while opponents insist personal autonomy and market freedom must prevail.",
                 'category' => 'Politics & Policy',
-                'tags' => ['LagosGovernance', 'TollGates', 'GovernorshipDebate', 'CommuterRights', 'PublicInfrastructure'],
-                'trendContext' => 'Grounded in public debates from the Lagos gubernatorial town hall over commuter tolls, concession transparency, and state transport funding.'
-            ],
-            [
-                'title' => 'Should state governors have direct constitutional command over state police forces rather than federal commissioners?',
+                'tags' => [preg_replace('/[^a-zA-Z0-9]/', '', $xName), 'XTrendsNigeria', 'ViralDebate'],
+                'trendContext' => "Trending #{$xRank} on 𝕏 (Twitter) Nigeria right now with high viral engagement.",
+                'trendScore' => $xWeight,
+                'xRank' => $xRank,
+                'platforms' => ['x']
+            ];
+        }
+    }
+
+    // 2. High-Friction Current Trend Library (Grounded in late-2026 Nigerian Realities)
+    $currentTrendPool = [
+        [
+            'title' => 'Dangote refinery selling petrol directly to marketers: will national pump prices drop below ₦1,000?',
+            'description' => 'Consumers and transport unions expect direct domestic supply to dismantle import monopolies and slash fares. Marketers caution that financing costs, distribution margins, and crude exchange rates will keep pump prices elevated.',
+            'category' => 'Economy & Finance',
+            'tags' => ['DangoteRefinery', 'PetrolPrices', 'NNPCL', 'CostOfLiving', 'Energy'],
+            'trendContext' => 'Grounded in breaking developments as domestic refineries commence direct distribution to major petroleum marketers.'
+        ],
+        [
+            'title' => 'Floating the Naira: was unpegging the currency the single worst economic blunder in 20 years?',
+            'description' => 'Critiques point to a collapsed middle class, hyperinflation, and factory closures across manufacturing corridors. Free-market economists maintain that subsidized official exchange rates were bankrupting foreign reserves and enriching currency speculators.',
+            'category' => 'Economy & Finance',
+            'tags' => ['NairaFloating', 'ForexMarket', 'CBN', 'EconomicPolicy', 'Inflation'],
+            'trendContext' => 'Debated across central bank monetary policy updates and public cost of living town halls.'
+        ],
+        [
+            'title' => 'State governments that cannot afford the ₦70,000 minimum wage: should they retrench civil servants?',
+            'description' => 'Fiscal analysts insist states cannot deploy 85% of monthly revenue to pay government staff while citizens lack clean water and clinics. Trade unions declare any state worker retrenchment an act of economic warfare.',
+            'category' => 'Workplace & Career',
+            'tags' => ['MinimumWage', 'CivilService', 'LabourUnion', 'StateBudgets', 'Governance'],
+            'trendContext' => 'Following disputes between state governors and organized labour over minimum wage implementation deadlines.'
+        ],
+        [
+            'title' => 'Should state governments completely disconnect from the national grid and commission independent regional power plants?',
+            'description' => 'Manufacturers declare repeated national grid collapses are strangling industrial production. Federal energy officials argue decentralized state grids undermine collective energy security and leave poor states in total darkness.',
+            'category' => 'Environment & Climate',
+            'tags' => ['ElectricityAct', 'NationalGrid', 'PowerGeneration', 'IndustrialCrisis', 'RenewableEnergy'],
+            'trendContext' => 'Sparked by repeated national grid trips and state electricity regulatory commissions granting private power licenses.'
+        ],
+        [
+            'title' => 'Tech companies ending hybrid work and mandating 5-day office attendance: is remote work dead in Lagos?',
+            'description' => 'Corporate bosses argue that in-person collaboration, apprentice mentorship, and speed are impossible over Zoom. Tech workers argue that 4-hour daily traffic on third mainland bridge destroys productivity and mental health.',
+            'category' => 'Workplace & Career',
+            'tags' => ['RemoteWork', 'ReturnToOffice', 'TechEcosystem', 'LagosTraffic', 'WorkplaceCulture'],
+            'trendContext' => 'Prompted by corporate directives from banks and technology firms enforcing full in-office work weeks.'
+        ],
+        [
+            'title' => 'Should Value Added Tax (VAT) revenues be shared strictly by where goods are consumed rather than corporate headquarters?',
+            'description' => 'Consuming states demand fiscal federalism, arguing corporate headquarters in commercial hubs siphon taxes paid by citizens nationwide. Hub states respond that their state-funded infrastructure sustains those corporations and deserves the revenue.',
+            'category' => 'Politics & Policy',
+            'tags' => ['TaxReform', 'VATSharing', 'FiscalFederalism', 'NationalAssembly', 'RevenueMobilization'],
+            'trendContext' => 'Debated in heated legislative hearings over national tax reform bills and state derivation allocations.'
+        ],
+        [
+            'title' => 'Politicians and sponsors implicated in political rally violence: lifetime ban from public office?',
+            'description' => 'Civic activists argue only permanent disqualification and jail time will prevent godfathers from unleashing armed thugs. Defenders argue ruling parties will weaponize violence accusations to disqualify strong opposition contenders.',
+            'category' => 'Politics & Policy',
+            'tags' => ['2027Elections', 'ElectoralViolence', 'CivicAccountability', 'Democracy', 'PoliceReform'],
+            'trendContext' => 'Prompted by warnings from security agencies and civil society ahead of upcoming electoral mobilization.'
+        ],
+        [
+            'title' => 'Should landlords demanding 2 years rent upfront from monthly salary earners be jailed?',
+            'description' => 'Tenants argue forcing salary earners to cough up multi-million Naira lump sums fuels bribery and drives families into homelessness. Property developers respond that tenant default rates and zero tenancy insurance make multi-year deposits essential.',
+            'category' => 'Business',
+            'tags' => ['LagosRent', 'TenantRights', 'RealEstate', 'HousingDeficit', 'CostOfLiving'],
+            'trendContext' => 'In response to nationwide controversies on residential rent affordability and quarterly rent proposals.'
+        ]
+    ];
+
+    $pool = array_merge($pool, $currentTrendPool);
+
+    // 3. Extended Curated Trend & Debate Library
+    $extendedPool = [
+        [
+            'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
                 'description' => 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
                 'category' => 'Politics & Policy',
                 'tags' => ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
@@ -433,7 +720,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
                 'trendContext' => 'In response to heated town hall discussions on tenant protections and skyrocketing residential rent in urban centers.'
             ]
         ];
-    }
+        $pool = array_merge($pool, $extendedPool);
     // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
     else if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
         $pool = [
@@ -473,7 +760,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
                 'trendContext' => 'Debated during implementation town halls for the national Startup Act and tech investment pioneer status.'
             ]
         ];
-    }
+        $pool = array_merge($pool, $extendedPool);
     // 3. Context matches AI / Universities / Education / Campus
     else if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
         $pool = [
@@ -506,7 +793,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
                 'trendContext' => 'In response to major tech employers revising hiring credentials to emphasize real-world project portfolios.'
             ]
         ];
-    }
+        $pool = array_merge($pool, $extendedPool);
     // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security, Culture)
     else {
         $pool = [
@@ -553,7 +840,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
                 'trendContext' => 'Prompted by corporate HR directives and discussions around remote work multi-jobbing in tech and finance.'
             ]
         ];
-    }
+        $pool = array_merge($pool, $extendedPool);
 
     // Exclude previously displayed titles to guarantee fresh, distinct angles on every click
     if (!empty($excludeTitles) && is_array($excludeTitles)) {
@@ -574,10 +861,16 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
     return array_slice($pool, 0, 3);
 }
 
-// Generate Trend Questions using Gemini + Live Google Search Grounding
-function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-1.5-flash', $excludeTitles = [], $cycle = 1) {
+// Generate Trend Questions using Gemini + Live Google Search Grounding & Real-Time Headlines + 𝕏 (Twitter) Trends
+function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-2.5-flash', $excludeTitles = [], $cycle = 1) {
     $context = trim($context);
     $category = trim($category);
+
+    // Fetch real-time live headlines from Google News RSS for Nigeria
+    $liveHeadlines = fetch_live_nigerian_news_headlines($context);
+
+    // Fetch real-time live viral trends from 𝕏 (Twitter) in Nigeria
+    $liveXTrends = fetch_live_nigerian_x_trends();
 
     if (!empty($apiKey)) {
         $excludePrompt = '';
@@ -587,26 +880,51 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
                 . "\nExplore contrasting sub-topics, different affected stakeholders, or unexpected policy/ethical angles.\n";
         }
 
+        $liveHeadlinesText = '';
+        if (!empty($liveHeadlines)) {
+            $liveHeadlinesText = "\nREAL-TIME BREAKING NEWS HEADLINES IN NIGERIA RIGHT NOW:\n"
+                . implode("\n", array_map(function($h) { return "- \"" . $h['title'] . "\" (Source: " . $h['source'] . ")"; }, $liveHeadlines))
+                . "\n";
+        }
+
+        $liveXTrendsText = '';
+        if (!empty($liveXTrends)) {
+            $liveXTrendsText = "\nREAL-TIME 𝕏 (TWITTER) TRENDING IN NIGERIA RIGHT NOW (VIRAL WEIGHT & VOLUME):\n"
+                . implode("\n", array_map(function($x) {
+                    return "- Rank #{$x['rank']}: \"{$x['name']}\" (Viral Traction Weight: {$x['weight']}/100)";
+                }, array_slice($liveXTrends, 0, 15)))
+                . "\n\nCRITICAL MULTI-PLATFORM RULE: Cross-reference viral conversations on 𝕏 with breaking Google News headlines. Assign higher weight scores (85-98) to issues that are burning on both platforms simultaneously!\n";
+        }
+
         $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n"
             . "Generation Cycle: #{$cycle}\n\n"
             . "Task:\n"
             . (!empty($context) 
                 ? "Research and ground your questions in the latest real-time trends, news stories, and public debates regarding: \"{$context}\".\n"
                 : "Research the top trending news stories, viral civic discussions, policy disputes, and cultural dilemmas in Nigeria, Africa, and global tech/politics today.\n")
+            . $liveHeadlinesText
+            . $liveXTrendsText
             . (!empty($category) ? "Target Category: {$category}\n" : "")
             . "Target Region: {$region}\n"
             . $excludePrompt . "\n"
             . "Identify the core point of controversy, tension, or policy dilemma where thoughtful citizens, experts, and community members are divided roughly 50/50.\n\n"
-            . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts.\n\n"
+            . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts as a Nigerian for Nigerians.\n\n"
             . "For each suggestion, provide:\n"
-            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (under 16 words) starting with 'Should...', 'Is it wrong to...', 'Would you...', or 'Must...'. It must end with a single '?'.\n"
-            . "2. \"description\": 2 to 3 punchy sentences explaining the core dilemma:\n"
+            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (strictly ending with a single '?'). VARY THE FORMAT naturally:\n"
+            . "   - Short & sharp direct question (e.g. 'End NYSC now?', 'Ban plastic bags?', 'Checking partner\\'s phone: justified?')\n"
+            . "   - Statement preamble + question (e.g. 'Fuel subsidy removed: should it be brought back?', 'Dangote refinery cuts petrol price: will filling stations drop pump prices?')\n"
+            . "   - Direct binary polarity hot-take (e.g. '50/50 rent in marriage: Yes or No?', 'A man earning ₦150k has no business dating in Lagos: agree?')\n"
+            . "   - Provocative civic question (e.g. 'Should politicians seeking foreign healthcare be stripped of office?')\n"
+            . "2. \"description\": 2 to 3 punchy sentences giving a sharp take/perspective on the dilemma:\n"
             . "   - Sentence 1: Why the YES camp passionately defends their position with real-world arguments.\n"
-            . "   - Sentence 2: Why the NO camp firmly objects or warns of negative fallout.\n"
-            . "   - Sentence 3: The broader stakes for the community, economy, or citizens.\n"
+            . "   - Sentence 2: Why the NO camp firmly objects or calls it absurd.\n"
+            . "   - Sentence 3: The broader stakes for citizens, families, or the economy.\n"
             . "3. \"category\": Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].\n"
-            . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['LagosState', 'Tolls', 'CommuterRights']).\n"
-            . "5. \"trendContext\": A 1-2 sentence summary of the recent news, event, or trend that sparked this debate.\n\n"
+            . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['DangoteRefinery', 'PetrolPrices', 'CommuterRights']).\n"
+            . "5. \"trendContext\": A 1-2 sentence summary of the recent news, event, or trend that sparked this debate.\n"
+            . "6. \"trendScore\": Integer from 70 to 98 (combined viral weight score based on 𝕏 viral traction and Google News coverage).\n"
+            . "7. \"xRank\": Integer position on 𝕏 Nigeria trends if matching an active topic, or null.\n"
+            . "8. \"platforms\": Array containing [\"x\", \"google_news\"].\n\n"
             . "Return pure JSON matching this exact structure:\n"
             . "[\n"
             . "  {\n"
@@ -614,7 +932,10 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
             . "    \"description\": \"...\",\n"
             . "    \"category\": \"...\",\n"
             . "    \"tags\": [\"...\"],\n"
-            . "    \"trendContext\": \"...\"\n"
+            . "    \"trendContext\": \"...\",\n"
+            . "    \"trendScore\": 94,\n"
+            . "    \"xRank\": 3,\n"
+            . "    \"platforms\": [\"x\", \"google_news\"]\n"
             . "  }\n"
             . "]";
 
@@ -631,19 +952,21 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
                 'grounded' => $result['grounded'],
                 'context' => $context,
                 'cycle' => $cycle,
+                'xTrendsCount' => count($liveXTrends),
                 'suggestions' => $suggestions
             ];
         }
     }
 
-    // Dynamic Curated Context Fallback with angle cycling and deduplication
-    $fallbackList = get_trend_fallback_suggestions($context, $category, $excludeTitles, $cycle);
+    // Dynamic Curated Real-Time News & Trend Fallback with angle cycling and deduplication
+    $fallbackList = get_trend_fallback_suggestions($context, $category, $excludeTitles, $cycle, $liveHeadlines, $liveXTrends);
     return [
         'success' => true,
-        'source' => 'curated_trend_engine',
-        'grounded' => false,
+        'source' => (!empty($liveHeadlines) || !empty($liveXTrends)) ? 'realtime_news_and_x_trends' : 'curated_trend_engine',
+        'grounded' => (!empty($liveHeadlines) || !empty($liveXTrends)),
         'context' => $context,
         'cycle' => $cycle,
+        'xTrendsCount' => count($liveXTrends),
         'suggestions' => $fallbackList
     ];
 }
@@ -939,13 +1262,224 @@ function get_curated_fallback_debates() {
                     'content' => 'Suffering is not a KPI! Just because someone didn\'t inhale exhaust fumes on third mainland bridge doesn\'t mean their brain didn\'t solve complex problems all day.'
                 ]
             ]
+        ],
+        [
+            'title' => '50/50 rent in marriage: Yes or No?',
+            'description' => 'Modernists argue runaway urban inflation makes dual-income partnership mandatory for household survival. Cultural and religious traditionalists insist that providing shelter remains strictly the husband’s non-negotiable obligation.',
+            'category' => 'Gender',
+            'region' => 'Africa & Middle East',
+            'tags' => ['Marriage', '5050Rent', 'Relationships', 'CostOfLiving', 'GenderRoles'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Financial Educator',
+                    'choice' => 'YES',
+                    'note' => 'With 2-bedroom flats in Lekki and Ikeja hitting ₦4 Million to ₦7 Million annually, expecting one partner to shoulder 100% of shelter while the other keeps their entire salary is unrealistic in 2026. Marriage is an economic partnership.'
+                ],
+                [
+                    'archetype' => 'Full-Time Mother',
+                    'choice' => 'NO',
+                    'note' => 'A man is the priest and provider of his household. The day a wife starts paying 50% of the rent, authority in the home becomes contested and respect fades. If a man cannot afford a ₦3M flat, he should rent a ₦1M apartment within his means.'
+                ],
+                [
+                    'archetype' => 'Creative & Designer',
+                    'choice' => 'YES',
+                    'note' => 'Both people sleep under the same roof, turn on the same air conditioner, and use the same water. If you both earn decent salaries, splitting major fixed expenses equally reduces financial stress and builds generational wealth faster.'
+                ],
+                [
+                    'archetype' => 'Sociologist',
+                    'choice' => 'NO',
+                    'note' => 'African societal structure still places the full burden of domestic labor, childbirth, and nursing disproportionately on women. Asking a woman to match financial contributions 50/50 without 50/50 domestic labor sharing is double exploitation.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Financial Educator',
+                    'archetype' => 'Labor Advocate',
+                    'content' => 'If you want 50/50 rent, make sure you also do 50% of the midnight infant nursing, 50% of school runs, and 50% of the kitchen work. You cannot pick and choose where equality begins.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Fuel subsidy removed and transport costs tripled: should government bring it back?',
+            'description' => 'Working citizens and small businesses argue astronomical petrol prices have crippled daily livelihood, spiked food prices, and destroyed the middle class. Fiscal economists maintain that fuel subsidies drained national reserves and enriched smugglers.',
+            'category' => 'Economy & Finance',
+            'region' => 'Africa & Middle East',
+            'tags' => ['FuelSubsidy', 'TransportCosts', 'Economy', 'Inflation', 'Nigeria'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Grassroots Trader',
+                    'choice' => 'YES',
+                    'note' => 'I spend ₦4,500 daily just to transport vegetables from Mile 12 to my stall, compared to ₦1,200 before. Customers cannot afford to buy food. The government must intervene with fuel subsidies before ordinary families starve completely.'
+                ],
+                [
+                    'archetype' => 'Economist',
+                    'choice' => 'NO',
+                    'note' => 'Nigeria was borrowing billions of dollars every month simply to subsidize cheap fuel that criminal syndicates smuggled across the borders to Cameroon and Benin. Reinstating subsidies guarantees total national bankruptcy and debt default.'
+                ],
+                [
+                    'archetype' => 'Ride-Hailing Driver',
+                    'choice' => 'YES',
+                    'note' => 'We are buying petrol at ₦1,100 per litre while riders complain when ride fares increase by ₦500. After fueling the car, paying commission to the app company, and fixing suspension, drivers are taking home zero profit. Bring it back!'
+                ],
+                [
+                    'archetype' => 'Policy Insider',
+                    'choice' => 'NO',
+                    'note' => 'The solution is not returning to a corrupt subsidy regime that swallowed ₦4 Trillion annually. The real urgency is accelerating CNG bus conversions, fixing rail corridors, and investing oil revenues directly into public healthcare and education.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Economist',
+                    'archetype' => 'Student Leader',
+                    'content' => 'Saying subsidies caused bankruptcy is easy when you earn in dollars or work in an air-conditioned office. The millions of students who walk miles to campus every day cannot eat macroeconomic theories.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Mandatory DNA testing before issuing any child birth certificate: Yes or No?',
+            'description' => 'Alarming paternity fraud statistics in urban clinics have sparked nationwide calls for compulsory DNA verification before fathers sign birth registers. Opponents warn mandatory testing destroys marital trust and weaponizes biology against children.',
+            'category' => 'Family & Home',
+            'region' => 'Africa & Middle East',
+            'tags' => ['DNATesting', 'PaternityFraud', 'MarriageEthics', 'FamilyLaw', 'ParentalRights'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Family Lawyer',
+                    'choice' => 'YES',
+                    'note' => 'Paternity fraud is emotional and financial devastation of the highest order. Making DNA verification mandatory at hospital delivery removes stigma, protects men from raising children not their own, and provides absolute legal clarity for child custody and inheritance.'
+                ],
+                [
+                    'archetype' => 'Sociologist',
+                    'choice' => 'NO',
+                    'note' => 'Treating every pregnant mother as a suspected fraudster destroys the bedrock of trust in marriage. Fatherhood is a commitment of nurture, love, and community protection, not just a laboratory swab.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Sociologist',
+                    'archetype' => 'Labor Advocate',
+                    'content' => 'Saying fatherhood is not biological is easy until you spend 20 years paying school fees only to discover the child belongs to your landlord or pastor. Truth harms no innocent soul.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Should public officials seeking healthcare abroad be immediately disqualified from holding office?',
+            'description' => 'Citizens argue leaders will never invest in domestic teaching hospitals while public funds fly them to London and Dubai for routine checkups. Political insiders claim security threats and specialist medical confidentiality justify foreign care.',
+            'category' => 'Politics & Policy',
+            'region' => 'Africa & Middle East',
+            'tags' => ['MedicalTourism', 'PublicHospitals', 'Accountability', 'Governance', 'HealthcareReform'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Public Health Doctor',
+                    'choice' => 'YES',
+                    'note' => 'If Nigerian hospitals are good enough for the citizens who pay taxes, they must be good enough for the politicians managing the budget. The moment their lives depend on local clinics, our healthcare system will be repaired in 6 months.'
+                ],
+                [
+                    'archetype' => 'Policy Insider',
+                    'choice' => 'NO',
+                    'note' => 'National leaders handle sensitive intelligence that hostile actors could compromise in local facilities lacking high-grade countersurveillance. Furthermore, emergency specialized trauma surgery sometimes requires immediate foreign centers.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Policy Insider',
+                    'archetype' => 'Student Leader',
+                    'content' => 'Ordinary citizens die daily of preventable asthma and childbirth bleeding because clinics lack electricity and bandages. Leaders must feel the direct pain of the hospitals they refuse to fund.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'First date with an uninvited entourage of friends: is walking out without paying the bill justified?',
+            'description' => 'A viral dispute on Nigerian social media pits dating etiquette against financial dignity. One camp argues inviting friends to order expensive platters on someone else\'s bill is extortion, while critics call walking out ungentlemanly.',
+            'category' => 'Dating & Relationships',
+            'region' => 'Africa & Middle East',
+            'tags' => ['DatingEtiquette', 'FirstDateBills', 'LagosDating', 'Entitlement', 'ModernDating'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Financial Educator',
+                    'choice' => 'YES',
+                    'note' => 'Dating is an intentional mutual interaction, not an open buffet sponsorship for your hungry roommates. Walking out and settling only your bottle of water teaches predatory daters a lifelong lesson in basic respect.'
+                ],
+                [
+                    'archetype' => 'Creative & Designer',
+                    'choice' => 'NO',
+                    'note' => 'Walking out creates a public scandal and shows emotional immaturity. An adult simply handles the food they ordered, pays for the date as agreed, and politely cuts communication afterward.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Creative & Designer',
+                    'archetype' => 'Tech Youth & Freelancer',
+                    'content' => 'There is no maturity in being a willing financial victim to a ₦180,000 bill you never authorized. Self-respect means refusing extortion.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Abolishing bride price completely in African customary marriages: Agree or Disagree?',
+            'description' => 'Modern couples argue that monetary bride price commodifies women and makes abusive in-laws feel entitled to treat wives like purchased property. Traditional elders insist bride price is sacred cultural honor and token appreciation between families.',
+            'category' => 'Culture & Society',
+            'region' => 'Africa & Middle East',
+            'tags' => ['BridePrice', 'TraditionalWedding', 'GenderEquality', 'AfricanCulture', 'FamilyEthics'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Sociologist',
+                    'choice' => 'YES',
+                    'note' => 'Commercializing traditional wedding list requirements into hundreds of thousands of Naira makes women appear like bought chattel in the eyes of insecure men. Eradicating bride price ends marital ownership entitlement.'
+                ],
+                [
+                    'archetype' => 'Traditional Chief',
+                    'choice' => 'NO',
+                    'note' => 'Bride price has never been a purchase price; it is a spiritual and cultural covenant of gratitude between two lineages. Scrapping it erodes ancient African identity and reduces sacred union to Western casual cohabitation.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Traditional Chief',
+                    'archetype' => 'Family Lawyer',
+                    'content' => 'When in-laws demand cash, yam tubers, wrappers, and live goats costing ₦1.5M, calling it a token appreciation is dishonesty. Custom must modernize or perish.'
+                ]
+            ]
+        ],
+        [
+            'title' => 'Japa on a heavy student loan vs earning ₦2.5 Million monthly in Lagos: is leaving Nigeria automatically better?',
+            'description' => 'The great middle-class dilemma: is abandoning a comfortable high-income executive job in Nigeria worth the grueling hustle, winter cold, and minimum-wage student survival abroad just to secure foreign citizenship?',
+            'category' => 'Workplace & Career',
+            'region' => 'Africa & Middle East',
+            'tags' => ['JapaWave', 'Relocation', 'NigeriaEconomy', 'MiddleClass', 'BrainDrain'],
+            'perspectives' => [
+                [
+                    'archetype' => 'Economist',
+                    'choice' => 'NO',
+                    'note' => '₦2.5 Million net monthly puts you in the top 1% of purchasing power in Nigeria. Leaving that to take a $40,000 tuition loan and work night shifts at a warehouse abroad is emotional self-sabotage driven by peer pressure.'
+                ],
+                [
+                    'archetype' => 'Tech Youth & Freelancer',
+                    'choice' => 'YES',
+                    'note' => 'Your ₦2.5M salary can be halved in real dollar purchasing power within 12 months by a single central bank devaluation. Citizenship in a country with rule of law, functional hospitals, and steady power is an invaluable generational hedge.'
+                ]
+            ],
+            'rebuttals' => [
+                [
+                    'replyToArchetype' => 'Economist',
+                    'archetype' => 'Labor Advocate',
+                    'content' => 'Money in Nigeria cannot buy you good roads when you have an emergency at 2 AM or prevent armed kidnappers on interstate highways. Security has no price tag.'
+                ]
+            ]
         ]
     ];
 }
 
-// Generate an Issue using Gemini API or Curated Templates
-function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash') {
+// Generate an Issue using Gemini API or Curated Templates with Strict Deduplication
+function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash', PDO $pdo = null) {
     $fallbackTemplates = get_curated_fallback_debates();
+
+    // Query existing active titles from SQLite to prevent repeating recent topics
+    $existingTitles = [];
+    if ($pdo) {
+        try {
+            $stmt = $pdo->query("SELECT title FROM issues WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 150");
+            $existingTitles = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Exception $e) {}
+    }
 
     // If Gemini key is available, attempt real AI generation
     if (!empty($apiKey)) {
@@ -959,15 +1493,36 @@ function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash'
         }
         $personaPromptText = implode("\n", $personaContext);
 
+        $dedupPrompt = "";
+        if (!empty($existingTitles)) {
+            $dedupPrompt = "\n\nCRITICAL DEDUPLICATION RULE: The following topics have ALREADY been debated and posted. You MUST NOT generate any topic or question similar to any of these:\n- " . implode("\n- ", array_slice($existingTitles, 0, 45)) . "\n";
+        }
+
         $prompt = "
 You are an expert community debate curator for YesOrNo, a fast-paced public voting and deliberation app.
-Create ONE provocative, time-bound binary question (strictly YES or NO).
+Create ONE direct, authentic, and rage-baiting binary question (strictly YES or NO) specifically crafted as a Nigerian for Nigerians.
+{$dedupPrompt}
+TOPIC ROTATION & NIGERIAN REALITIES:
+1. Politics & Policy: Mandatory civil service retirement at 50 for youth jobs, stripping politicians seeking foreign healthcare of office, state police weaponization, scrapping minimum wage, banning non-voters from passports.
+2. Economy & Finance: Floating the Naira (worst policy or necessary medicine?), fuel subsidy reinstatement, emergency food price caps on market traders, landlords demanding 2 years rent upfront, crypto banking integration.
+3. Dating & Relationships: 50/50 rent splitting in marriage, first date food bills with an uninvited entourage, checking partner's phone without permission, dating broke men/women in Lagos, ₦5M wedding budgets vs court weddings.
+4. Culture & Society: Abolishing bride price completely, spraying crisp Naira at Owambe parties, calling older relatives by first names, genotype AS marrying AS (wickedness or faith?), cutting off toxic family black tax.
+5. Work, Career & Hustle: Japa vs ₦2.5M local salary, toxic weekend WhatsApp messages from bosses, remote USD tech jobs on local company time, unpaid weekend overtime, corporate entitlement.
+6. Business & Commerce: POS ₦500 withdrawal extortion, dollarized rent, market traders hiking prices arbitrarily.
 
-PROVOCATION & SPICE INSTRUCTIONS:
-- Alternately generate EITHER:
-  1. A fiery, confidently annoying, rage-baiting social/lifestyle hot-take (dating standards, hustle-culture snobbery, remote work privilege, wedding budgets, sleep guilt, money etiquette).
-  2. A high-friction civic or economic friction question (taxes, transport bans, currency pegging, AI bans).
-- Use an authentic, natural, semi-formal to informal conversational tone. Think like sharp, opinionated Nigerians arguing passionately on X / Twitter, WhatsApp group chats, or a Lagos cafe.
+QUESTION FORMAT VARIETY (VARY YOUR STYLE!):
+Do NOT always start with 'Should...'. Alternate across these punchy styles:
+* Short & Sharp Direct Question (3 to 8 words):
+  e.g. 'End NYSC now?', 'Abolish bride price completely?', 'Checking partner\\'s phone: justified?', 'Ban commercial bikes on expressways?'
+* Contextual Statement Preamble + Question:
+  e.g. 'Fuel subsidy is gone and transport tripled: should it be brought back?', 'Lagos rent is now payable quarterly: is this fair to landlords?'
+* Direct Binary Polarity Hot-Take:
+  e.g. 'A man earning ₦150k has no business dating in Lagos: agree?', '50/50 rent in marriage: Yes or No?'
+* Provocative Civic Question:
+  e.g. 'Should civil servants retire at 50 to create youth employment?', 'Should politicians seeking healthcare abroad be barred from public office?'
+Every question must end with a single '?' and strictly elicit a YES or NO.
+
+PROVOCATION & PERSPECTIVE INSTRUCTIONS:
 - Takes must have CONFIDENT ARROGANCE on one side and FURIOUS, STREET-SMART INDIGNATION on the other side.
 - Make users itch to tap NO or YES out of pure conviction or outrage!
 - NEVER use formal titles (No 'Dr.', 'Prof.', 'Chief', etc.). Use strictly first and last names.
@@ -982,8 +1537,8 @@ Personas available:
 
 Output strict JSON with this exact schema:
 {
-  \"title\": \"Clear, high-stakes binary question (e.g. 'Should remote workers earning in USD pay higher local taxes?')\",
-  \"description\": \"2-3 sentences of sharp context explaining why this debate is burning right now.\",
+  \"title\": \"Clear, high-stakes binary question (short & sharp, statement+question, or direct hot-take)\",
+  \"description\": \"2-3 punchy sentences giving a sharp take/perspective on the dilemma, explaining why this debate is burning right now with the bold YES conviction and the angry NO indignation.\",
   \"category\": \"Economy & Finance | Politics & Governance | Technology & Internet | Education | Infrastructure | Health & Medicine | Family & Home\",
   \"region\": \"Africa & Middle East\",
   \"tags\": [\"Tag1\", \"Tag2\", \"Tag3\", \"Tag4\"],
@@ -1013,8 +1568,20 @@ Output strict JSON with this exact schema:
         }
     }
 
-    // Fallback: Pick a curated high-friction debate template
-    $template = $fallbackTemplates[array_rand($fallbackTemplates)];
+    // Fallback: Pick a curated high-friction debate template that has NOT been posted yet
+    $normalizedExisting = array_map(function($t) {
+        return preg_replace('/[^a-z0-9]/', '', strtolower($t));
+    }, $existingTitles);
+
+    $availableTemplates = array_filter($fallbackTemplates, function($tpl) use ($normalizedExisting) {
+        $norm = preg_replace('/[^a-z0-9]/', '', strtolower($tpl['title']));
+        return !in_array($norm, $normalizedExisting);
+    });
+
+    if (empty($availableTemplates)) {
+        $availableTemplates = $fallbackTemplates;
+    }
+    $template = $availableTemplates[array_rand($availableTemplates)];
     
     // Assign real matching personas from our 51-persona library
     $assignedPerspectives = [];
@@ -1086,8 +1653,31 @@ Output strict JSON with this exact schema:
     ];
 }
 
-// Persist Curated Debate into SQLite Database
+// Persist Curated Debate into SQLite Database with Strict Title Deduplication
 function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
+    if (empty($debateData) || empty($debateData['title'])) {
+        return null;
+    }
+
+    $normalizedNew = preg_replace('/[^a-z0-9]/', '', strtolower($debateData['title']));
+
+    // Strict deduplication check against existing active issues in database
+    try {
+        $checkStmt = $pdo->query("SELECT id, title FROM issues WHERE is_deleted = 0");
+        $existing = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($existing as $row) {
+            $normExisting = preg_replace('/[^a-z0-9]/', '', strtolower($row['title']));
+            if ($normExisting === $normalizedNew) {
+                error_log("Curation deduplication triggered: {$row['title']} already exists.");
+                return [
+                    'duplicate' => true,
+                    'issueId' => $row['id'],
+                    'title' => $row['title']
+                ];
+            }
+        }
+    } catch (Exception $e) {}
+
     $now = gmdate('Y-m-d\TH:i:s\Z');
     $issueId = 'issue-' . bin2hex(random_bytes(6));
 
@@ -1102,6 +1692,8 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
     $noCount = $totalVotes - $yesCount;
     $likesCount = (int)round($totalVotes * (rand(15, 35) / 100.0));
     $favCount = (int)round($totalVotes * (rand(5, 15) / 100.0));
+    $viewsCount = (int)round(($totalVotes * rand(38, 52) / 10.0) + ($likesCount * 3) + rand(25, 75));
+    $impressionsCount = (int)round($viewsCount * rand(18, 25) / 10.0);
 
     // Choose Author Persona
     $authorPersona = $personas[array_rand($personas)];
@@ -1113,12 +1705,14 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
             author, creator_id, creator_email, is_anonymous_author,
             closing_date, duration_label, visibility,
             yes_count, no_count, likes_count, favorites_count,
+            views_count, impressions_count,
             featured, created_at, updated_at
         ) VALUES (
             :id, :title, :description, :category, :region, :tags,
             :author, :creator_id, :creator_email, 0,
             NULL, 'Indefinite (Open Community Deliberation)', 'public',
             :yes_count, :no_count, :likes_count, :favorites_count,
+            :views_count, :impressions_count,
             1, :created_at, :updated_at
         )
     ");
@@ -1137,6 +1731,8 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
         ':no_count' => $noCount,
         ':likes_count' => $likesCount,
         ':favorites_count' => $favCount,
+        ':views_count' => $viewsCount,
+        ':impressions_count' => $impressionsCount,
         ':created_at' => $now,
         ':updated_at' => $now
     ]);
@@ -1686,12 +2282,56 @@ if ($action === 'generate_issue' || $isCron) {
         exit;
     }
 
+    // Process mutex: prevent overlapping or race-condition cron triggers
+    $lockFile = $dataDir . '/curator.lock';
+    $fp = @fopen($lockFile, 'c+');
+    if ($fp && !@flock($fp, LOCK_EX | LOCK_NB)) {
+        echo json_encode([
+            'success' => false,
+            'status' => 'LOCKED',
+            'message' => 'Another curation process is currently in progress.'
+        ]);
+        exit;
+    }
+
+    // Cooldown protection for automated cron runs (minimum interval between automated runs)
+    if ($action !== 'force_generate' && !empty($settings['lastRunAt'])) {
+        $elapsedSec = time() - strtotime($settings['lastRunAt']);
+        $minIntervalHours = max(1, (int)($settings['intervalHours'] ?? 2));
+        $minCooldownSec = ($minIntervalHours * 3600) - 300; // 5 min leeway
+        if ($elapsedSec < $minCooldownSec) {
+            echo json_encode([
+                'success' => false,
+                'status' => 'COOLDOWN',
+                'message' => "Curation cooldown active. Last run was " . round($elapsedSec / 60) . " mins ago. Next run allowed in " . round(($minCooldownSec - $elapsedSec) / 60) . " mins."
+            ]);
+            if ($fp) { @flock($fp, LOCK_UN); @fclose($fp); }
+            exit;
+        }
+    }
+
     // Also run incremental incubation on any waiting user debates during cron run
     $incubatedDebates = incubate_user_debates($pdo, $personas, $settings);
 
-    // Generate debate
-    $result = generate_curated_debate($personas, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash');
+    // Generate debate with PDO passed for strict title deduplication against SQLite
+    $result = generate_curated_debate($personas, $settings['geminiApiKey'] ?? '', $settings['model'] ?? 'gemini-1.5-flash', $pdo);
     $persisted = persist_curated_debate($pdo, $personas, $result['data'], $settings);
+
+    // If duplicate was detected, retry once with a different template
+    if (!$persisted || !empty($persisted['duplicate'])) {
+        $result = generate_curated_debate($personas, '', $settings['model'] ?? 'gemini-1.5-flash', $pdo);
+        $persisted = persist_curated_debate($pdo, $personas, $result['data'], $settings);
+    }
+
+    if (!$persisted || !empty($persisted['duplicate'])) {
+        echo json_encode([
+            'success' => false,
+            'status' => 'DUPLICATE_PREVENTED',
+            'message' => 'Topic generation skipped: unique candidate topic could not be resolved or already exists.'
+        ]);
+        if ($fp) { @flock($fp, LOCK_UN); @fclose($fp); }
+        exit;
+    }
 
     // Update settings last run & recent log
     $nowIso = gmdate('Y-m-d\TH:i:s\Z');
@@ -1708,6 +2348,11 @@ if ($action === 'generate_issue' || $isCron) {
     array_unshift($recentList, $recentItem);
     $settings['recentCurations'] = array_slice($recentList, 0, 15);
     save_curator_settings($settingsPath, $settings);
+
+    if ($fp) {
+        @flock($fp, LOCK_UN);
+        @fclose($fp);
+    }
 
     echo json_encode([
         'success' => true,
