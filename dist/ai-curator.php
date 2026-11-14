@@ -1,4 +1,13 @@
 <?php
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null) {
+        http_response_code(200);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['php_error' => $error]);
+        exit;
+    }
+});
 /**
  * YesOrNo - Autonomous AI Curation & Debate Engine
  * Powered by Gemini API & Multi-Persona Synthetic Deliberation
