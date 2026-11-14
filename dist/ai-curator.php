@@ -24,10 +24,6 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
     exit;
 }
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
-
 $dataDir = __DIR__ . '/data';
 if (!is_dir($dataDir)) {
     @mkdir($dataDir, 0755, true);
@@ -731,7 +727,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
     }
     // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
     else if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
-        $pool = array_merge($pool, [
+        $pool = [
             [
                 'title' => 'Should remote tech workers and freelancers earning in USD or GBP pay a progressive foreign currency income surcharge?',
                 'description' => 'Proponents claim high-earning remote professionals benefit from low domestic living expenses while local currency volatility deepens local wealth inequality. Remote tech workers respond that they already pay for their own power, security, and satellite internet without government support.',
