@@ -972,6 +972,309 @@ function handle_save_user_profile(?PDO $pdo, array $profile, string $profilesFal
 }
 
 // -------------------------------------------------------------
+// ADMIN USERS DIRECTORY & ACTIVITY AGGREGATION
+// -------------------------------------------------------------
+
+function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
+    $usersMap = [];
+
+    if ($pdo) {
+        try {
+            // 1. Load all stored user profiles
+            $stmt = $pdo->query("SELECT email, user_data, updated_at FROM user_profiles");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $email = strtolower(trim($row['email']));
+                if (!$email) continue;
+                $data = json_decode($row['user_data'], true);
+                if (is_array($data)) {
+                    $usersMap[$email] = [
+                        'profile' => $data,
+                        'updated_at' => $row['updated_at'],
+                    ];
+                }
+            }
+
+            // 2. Aggregate votes & last vote from responses
+            $voteAgg = [];
+            $vStmt = $pdo->query("
+                SELECT 
+                    lower(trim(r.author_email)) as email,
+                    count(*) as vote_count,
+                    max(r.created_at) as last_vote_at,
+                    r.author_name,
+                    r.author_role
+                FROM responses r
+                WHERE r.author_email IS NOT NULL AND trim(r.author_email) != ''
+                GROUP BY lower(trim(r.author_email))
+            ");
+            while ($vRow = $vStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $vRow['email'];
+                $voteAgg[$em] = [
+                    'count' => (int)$vRow['vote_count'],
+                    'last_at' => $vRow['last_vote_at'],
+                    'sample_name' => $vRow['author_name'] ?? '',
+                    'sample_role' => $vRow['author_role'] ?? '',
+                ];
+            }
+
+            // Also get most recent vote description for each email
+            $recentVotesStmt = $pdo->query("
+                SELECT lower(trim(r.author_email)) as email, r.choice, r.created_at, i.title
+                FROM responses r
+                LEFT JOIN issues i ON r.issue_id = i.id
+                WHERE r.author_email IS NOT NULL AND trim(r.author_email) != ''
+                ORDER BY r.created_at DESC
+            ");
+            while ($rv = $recentVotesStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $rv['email'];
+                if (isset($voteAgg[$em]) && !isset($voteAgg[$em]['last_desc'])) {
+                    $issueTitle = $rv['title'] ? substr($rv['title'], 0, 50) . '...' : 'an issue';
+                    $voteAgg[$em]['last_desc'] = "Voted " . ($rv['choice'] ?: 'YES') . " on: " . $issueTitle;
+                }
+            }
+
+            // 3. Aggregate issues created from issues table
+            $issueAgg = [];
+            $iStmt = $pdo->query("
+                SELECT 
+                    lower(trim(creator_email)) as email,
+                    count(*) as issue_count,
+                    max(created_at) as last_issue_at,
+                    author
+                FROM issues
+                WHERE is_deleted = 0 AND creator_email IS NOT NULL AND trim(creator_email) != ''
+                GROUP BY lower(trim(creator_email))
+            ");
+            while ($iRow = $iStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $iRow['email'];
+                $issueAgg[$em] = [
+                    'count' => (int)$iRow['issue_count'],
+                    'last_at' => $iRow['last_issue_at'],
+                    'sample_name' => $iRow['author'] ?? '',
+                ];
+            }
+
+            $recentIssuesStmt = $pdo->query("
+                SELECT lower(trim(creator_email)) as email, title, created_at
+                FROM issues
+                WHERE is_deleted = 0 AND creator_email IS NOT NULL AND trim(creator_email) != ''
+                ORDER BY created_at DESC
+            ");
+            while ($ri = $recentIssuesStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $ri['email'];
+                if (isset($issueAgg[$em]) && !isset($issueAgg[$em]['last_desc'])) {
+                    $issueAgg[$em]['last_desc'] = "Created issue: " . substr($ri['title'] ?? '', 0, 50) . '...';
+                }
+            }
+
+            // 4. Aggregate comments from replies table
+            $replyAgg = [];
+            $rStmt = $pdo->query("
+                SELECT 
+                    lower(trim(author_email)) as email,
+                    count(*) as reply_count,
+                    max(created_at) as last_reply_at,
+                    author_name
+                FROM replies
+                WHERE author_email IS NOT NULL AND trim(author_email) != ''
+                GROUP BY lower(trim(author_email))
+            ");
+            while ($rRow = $rStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $rRow['email'];
+                $replyAgg[$em] = [
+                    'count' => (int)$rRow['reply_count'],
+                    'last_at' => $rRow['last_reply_at'],
+                    'sample_name' => $rRow['author_name'] ?? '',
+                ];
+            }
+
+            $recentRepliesStmt = $pdo->query("
+                SELECT lower(trim(author_email)) as email, content, created_at
+                FROM replies
+                WHERE author_email IS NOT NULL AND trim(author_email) != ''
+                ORDER BY created_at DESC
+            ");
+            while ($rr = $recentRepliesStmt->fetch(PDO::FETCH_ASSOC)) {
+                $em = $rr['email'];
+                if (isset($replyAgg[$em]) && !isset($replyAgg[$em]['last_desc'])) {
+                    $replyAgg[$em]['last_desc'] = 'Commented: "' . substr(strip_tags($rr['content'] ?? ''), 0, 45) . '..."';
+                }
+            }
+
+            // 5. Gather all unique emails (from profiles, responses, issues, replies)
+            $allEmails = array_unique(array_merge(
+                array_keys($usersMap),
+                array_keys($voteAgg),
+                array_keys($issueAgg),
+                array_keys($replyAgg)
+            ));
+
+            $resultUsers = [];
+            foreach ($allEmails as $email) {
+                $entry = $usersMap[$email] ?? null;
+                $profile = $entry ? ($entry['profile'] ?? []) : [];
+                $updatedAt = $entry ? ($entry['updated_at'] ?? null) : null;
+
+                $vData = $voteAgg[$email] ?? null;
+                $iData = $issueAgg[$email] ?? null;
+                $rData = $replyAgg[$email] ?? null;
+
+                $id = $profile['id'] ?? ('usr_' . substr(md5($email), 0, 12));
+                $emailParts = explode('@', $email);
+                $fallbackHandle = preg_replace('/[^a-z0-9_]/i', '_', $emailParts[0] ?? 'user');
+
+                $name = !empty($profile['name']) ? $profile['name'] : (
+                    !empty($vData['sample_name']) ? $vData['sample_name'] : (
+                        !empty($iData['sample_name']) ? $iData['sample_name'] : (
+                            !empty($rData['sample_name']) ? $rData['sample_name'] : ucwords(str_replace(['.', '_', '-'], ' ', $emailParts[0] ?? 'User'))
+                        )
+                    )
+                );
+
+                $username = !empty($profile['username']) ? $profile['username'] : $fallbackHandle;
+                $role = !empty($profile['role']) ? $profile['role'] : (!empty($vData['sample_role']) ? $vData['sample_role'] : 'Civic Participant');
+                $bio = $profile['bio'] ?? '';
+                $avatar = $profile['avatar'] ?? '';
+                $region = $profile['region'] ?? '';
+                $groups = $profile['groups'] ?? [];
+                $interests = $profile['interests'] ?? [];
+
+                // Determine userType: registered vs seed
+                $isSeed = (strpos($id, 'pers-') === 0) || (($profile['userType'] ?? '') === 'seed');
+                $userType = $isSeed ? 'seed' : 'registered';
+
+                // Determine isVerified & badge
+                $isGmail = (strpos($email, '@gmail.') !== false) || (strpos($email, '@googlemail.') !== false);
+                $isOfficialDomain = preg_match('/\.(gov|edu|org|mil)(\.[a-z]{2})?$/i', $email) === 1;
+                $isVerified = isset($profile['isVerified']) ? (bool)$profile['isVerified'] : ($isGmail || $isOfficialDomain || $isSeed);
+
+                $verificationBadge = $profile['verificationBadge'] ?? (
+                    $isGmail ? 'google' : ($isOfficialDomain ? 'official' : ($isVerified ? 'resident' : 'none'))
+                );
+
+                // Registered At timestamp
+                $registeredAt = $profile['registeredAt'] ?? null;
+                if (!$registeredAt) {
+                    $candidates = array_filter([
+                        $updatedAt,
+                        $vData['last_at'] ?? null,
+                        $iData['last_at'] ?? null,
+                        $rData['last_at'] ?? null
+                    ]);
+                    $registeredAt = !empty($candidates) ? min($candidates) : gmdate('Y-m-d\TH:i:s\Z');
+                }
+
+                // Last Login At
+                $lastLoginAt = $profile['lastLoginAt'] ?? (
+                    $updatedAt ?: (
+                        $vData['last_at'] ?? (
+                            $iData['last_at'] ?? (
+                                $rData['last_at'] ?? $registeredAt
+                            )
+                        )
+                    )
+                );
+
+                // Compute counts
+                $votesCount = max(
+                    $vData ? $vData['count'] : 0,
+                    isset($profile['votedIssues']) && is_array($profile['votedIssues']) ? count($profile['votedIssues']) : 0
+                );
+                $issuesCount = $iData ? $iData['count'] : 0;
+                $commentsCount = $rData ? $rData['count'] : 0;
+
+                // Determine most recent action
+                $actions = [];
+                if (!empty($vData['last_at'])) {
+                    $actions[] = [
+                        'at' => $vData['last_at'],
+                        'desc' => $vData['last_desc'] ?? 'Cast a vote on an issue'
+                    ];
+                }
+                if (!empty($iData['last_at'])) {
+                    $actions[] = [
+                        'at' => $iData['last_at'],
+                        'desc' => $iData['last_desc'] ?? 'Published a civic issue'
+                    ];
+                }
+                if (!empty($rData['last_at'])) {
+                    $actions[] = [
+                        'at' => $rData['last_at'],
+                        'desc' => $rData['last_desc'] ?? 'Posted a deliberative comment'
+                    ];
+                }
+                if ($updatedAt) {
+                    $actions[] = [
+                        'at' => $updatedAt,
+                        'desc' => 'Updated civic profile and preferences'
+                    ];
+                }
+
+                usort($actions, function($a, $b) {
+                    return strcmp($b['at'], $a['at']);
+                });
+
+                $lastActionObj = !empty($actions) ? $actions[0] : null;
+                $lastActionAt = $lastActionObj ? $lastActionObj['at'] : $lastLoginAt;
+                $lastAction = $lastActionObj ? $lastActionObj['desc'] : 'Active on YesOrNo platform';
+
+                $resultUsers[] = [
+                    'id' => $id,
+                    'name' => $name,
+                    'username' => $username,
+                    'email' => $email,
+                    'role' => $role,
+                    'avatar' => $avatar,
+                    'bio' => $bio,
+                    'region' => $region,
+                    'userType' => $userType,
+                    'isVerified' => (bool)$isVerified,
+                    'verificationBadge' => $verificationBadge,
+                    'registeredAt' => $registeredAt,
+                    'lastLoginAt' => $lastLoginAt,
+                    'lastActionAt' => $lastActionAt,
+                    'lastAction' => $lastAction,
+                    'votesCount' => $votesCount,
+                    'issuesCount' => $issuesCount,
+                    'commentsCount' => $commentsCount,
+                    'groups' => $groups,
+                    'interests' => $interests,
+                ];
+            }
+
+            // Sort by lastActionAt or lastLoginAt descending by default
+            usort($resultUsers, function($a, $b) {
+                return strcmp($b['lastActionAt'] ?? $b['lastLoginAt'], $a['lastActionAt'] ?? $a['lastLoginAt']);
+            });
+
+            $registeredCount = 0;
+            $seedCount = 0;
+            $verifiedCount = 0;
+            foreach ($resultUsers as $u) {
+                if ($u['userType'] === 'registered') $registeredCount++;
+                if ($u['userType'] === 'seed') $seedCount++;
+                if (!empty($u['isVerified'])) $verifiedCount++;
+            }
+
+            return [
+                'success' => true,
+                'totalCount' => count($resultUsers),
+                'registeredCount' => $registeredCount,
+                'seedCount' => $seedCount,
+                'verifiedCount' => $verifiedCount,
+                'users' => $resultUsers,
+            ];
+
+        } catch (Exception $e) {
+            error_log('Error generating admin users report: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    return ['success' => false, 'error' => 'Database connection unavailable'];
+}
+
+// -------------------------------------------------------------
 // MAIN CONTROLLER EXECUTION
 // -------------------------------------------------------------
 
@@ -1025,6 +1328,12 @@ if (!$pdo) {
 // SQLITE-POWERED API
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (isset($_GET['action']) && $_GET['action'] === 'admin_users') {
+        $res = handle_admin_users($pdo, $profilesFallbackPath);
+        echo json_encode($res);
+        exit;
+    }
+
     if (isset($_GET['action']) && $_GET['action'] === 'get_profile') {
         $email = trim($_GET['email'] ?? '');
         $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
@@ -1051,6 +1360,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $payload['action'] ?? ($action ?? 'batch');
 
     switch ($action) {
+        case 'admin_users':
+            $res = handle_admin_users($pdo, $profilesFallbackPath);
+            echo json_encode($res);
+            exit;
+
         case 'get_profile':
             $email = trim($payload['email'] ?? '');
             $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
