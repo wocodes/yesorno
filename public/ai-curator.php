@@ -1,4 +1,15 @@
 <?php
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=UTF-8');
+        }
+        echo json_encode(['success' => false, 'error' => $error['message'] ?? 'Fatal PHP error', 'details' => $error]);
+        exit;
+    }
+});
 /**
  * YesOrNo - Autonomous AI Curation & Debate Engine
  * Powered by Gemini API & Multi-Persona Synthetic Deliberation
@@ -665,62 +676,66 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
     $extendedPool = [
         [
             'title' => 'Should Lagos State hold binding citizen referendums before implementing any new highway or bridge tolling?',
-                'description' => 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
-                'category' => 'Politics & Policy',
-                'tags' => ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
-                'trendContext' => 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
-            ],
-            [
-                'title' => 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
-                'description' => 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
-                'category' => 'Environment & Climate',
-                'tags' => ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
-                'trendContext' => 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
-            ],
-            [
-                'title' => 'Should Lagos State completely ban informal yellow Danfo minibuses on major transport corridors to enforce rapid transit?',
-                'description' => 'Transit reform advocates insist informal minibuses cause chaotic traffic bottlenecks and harbor unsafe driving practices. Commuter advocates argue that without triples the current BRT bus fleet, sudden bans leave millions of daily workers stranded on highways.',
-                'category' => 'Politics & Policy',
-                'tags' => ['DanfoBan', 'LagosTransport', 'BRTTransit', 'CommuterMobility', 'TrafficReform'],
-                'trendContext' => 'Debated in gubernatorial manifestos regarding metropolitan transport modernizations and multimodal integration.'
-            ],
-            [
-                'title' => 'Should local government chairmen receive direct federal allocations without state joint-account deductions?',
-                'description' => 'Grassroots activists insist local development has stalled because state governors siphon municipal revenue into centralized funds. Governors counter that councils lack the administrative transparency and auditing capacity to manage large revenues independently.',
-                'category' => 'Politics & Policy',
-                'tags' => ['LocalGovAutonomy', 'SupremeCourtRuling', 'GrassrootsDev', 'FederalAllocations', 'CivicAccountability'],
-                'trendContext' => 'Following the landmark Supreme Court ruling on local government financial autonomy and gubernatorial implementation.'
-            ],
-            [
-                'title' => 'Should community development associations (CDAs) be legally prohibited from locking residential street gates before midnight?',
-                'description' => 'Night shift professionals, doctors, and emergency delivery drivers argue locking public residential streets at 10 PM is tyrannical. Estate security committees insist midnight curfews are the only proven deterrent against armed robbery gangs in unpoliced neighborhoods.',
-                'category' => 'Community & Neighborhood',
-                'tags' => ['GatedCommunities', 'EstateSecurity', 'PublicRoads', 'LagosLiving', 'NeighborRights'],
-                'trendContext' => 'Triggered by recurrent clashes between night commuters and private estate security guards in metropolitan centers.'
-            ],
-            [
-                'title' => 'Should heavy container trucks and fuel tankers be legally restricted to transit only between 11:00 PM and 5:00 AM?',
-                'description' => 'Motorists and civic safety advocates demand nighttime-only truck transit to end fatal container falls and catastrophic gridlock on highway bridges. Maritime haulage operators argue night-only movement is impossible given dangerous highway security conditions and daytime port cargo clearances.',
-                'category' => 'Politics & Policy',
-                'tags' => ['TruckSafety', 'ApapaCorridor', 'HighwayTraffic', 'PortHaulage', 'RoadSafety'],
-                'trendContext' => 'Sparked by ongoing traffic bottlenecks around port corridors and highway safety campaigns.'
-            ],
-            [
-                'title' => 'Should Lagos State require verified state residency cards (LASRRA) for patients to access subsidized care at state hospitals?',
-                'description' => 'Fiscal planners argue Lagos tax-payers cannot indefinitely subsidize healthcare for influx patients from neighboring states. Healthcare rights advocates declare emergency hospital access is a universal humanitarian right that must never be gated by administrative cards.',
-                'category' => 'Politics & Policy',
-                'tags' => ['HealthcareAccess', 'LASRRA', 'PublicHospitals', 'CivicWelfare', 'StateBudget'],
-                'trendContext' => 'Debated as state healthcare boards evaluate resident verification policies to manage hospital bed over-capacity.'
-            ],
-            [
-                'title' => 'Should the state government offer a 50% property tax rebate to landlords who contractually cap annual rent increases at 10%?',
-                'description' => 'Tenant rights coalitions argue predatory 50% to 100% annual rent spikes are driving middle-class families into homelessness. Real estate investors respond that high building maintenance costs, inflation, and currency devaluation make artificial rent caps unfeasible.',
-                'category' => 'Economy & Finance',
-                'tags' => ['TenantsRights', 'RentControl', 'LagosHousing', 'PropertyTax', 'CostOfLiving'],
-                'trendContext' => 'In response to heated town hall discussions on tenant protections and skyrocketing residential rent in urban centers.'
-            ]
-        ];
+            'description' => 'Supporters argue governors cannot realistically function as chief security officers while federal police commands wait on directives from Abuja. Opponents caution that without federal oversight, state police command could be weaponized by incumbent governors against political rivals.',
+            'category' => 'Politics & Policy',
+            'tags' => ['StatePolice', 'SecurityReform', 'LagosState', 'Federalism', 'GovernorsForum'],
+            'trendContext' => 'Spurred by recent gubernatorial debate commitments and National Assembly deliberations on state police decentralization.'
+        ],
+        [
+            'title' => 'Should commercial real estate developers in Lagos flood-prone coastal zones pay a mandatory 15% drainage surcharge?',
+            'description' => 'Environmental town planners argue unchecked luxury reclamation blocks natural drainage channels and floods surrounding working-class mainland neighborhoods. Property developers warn that adding punitive levies on top of soaring material costs will trigger a severe housing affordability crisis.',
+            'category' => 'Environment & Climate',
+            'tags' => ['LagosFlooding', 'UrbanMasterplan', 'RealEstate', 'DrainageReform', 'CoastalErosion'],
+            'trendContext' => 'Prompted by recent controversies surrounding coastal sand-filling projects, seasonal flooding, and drainage canal enforcement.'
+        ],
+        [
+            'title' => 'Should Lagos State completely ban informal yellow Danfo minibuses on major transport corridors to enforce rapid transit?',
+            'description' => 'Transit reform advocates insist informal minibuses cause chaotic traffic bottlenecks and harbor unsafe driving practices. Commuter advocates argue that without triples the current BRT bus fleet, sudden bans leave millions of daily workers stranded on highways.',
+            'category' => 'Politics & Policy',
+            'tags' => ['DanfoBan', 'LagosTransport', 'BRTTransit', 'CommuterMobility', 'TrafficReform'],
+            'trendContext' => 'Debated in gubernatorial manifestos regarding metropolitan transport modernizations and multimodal integration.'
+        ],
+        [
+            'title' => 'Should local government chairmen receive direct federal allocations without state joint-account deductions?',
+            'description' => 'Grassroots activists insist local development has stalled because state governors siphon municipal revenue into centralized funds. Governors counter that councils lack the administrative transparency and auditing capacity to manage large revenues independently.',
+            'category' => 'Politics & Policy',
+            'tags' => ['LocalGovAutonomy', 'SupremeCourtRuling', 'GrassrootsDev', 'FederalAllocations', 'CivicAccountability'],
+            'trendContext' => 'Following the landmark Supreme Court ruling on local government financial autonomy and gubernatorial implementation.'
+        ],
+        [
+            'title' => 'Should community development associations (CDAs) be legally prohibited from locking residential street gates before midnight?',
+            'description' => 'Night shift professionals, doctors, and emergency delivery drivers argue locking public residential streets at 10 PM is tyrannical. Estate security committees insist midnight curfews are the only proven deterrent against armed robbery gangs in unpoliced neighborhoods.',
+            'category' => 'Community & Neighborhood',
+            'tags' => ['GatedCommunities', 'EstateSecurity', 'PublicRoads', 'LagosLiving', 'NeighborRights'],
+            'trendContext' => 'Triggered by recurrent clashes between night commuters and private estate security guards in metropolitan centers.'
+        ],
+        [
+            'title' => 'Should heavy container trucks and fuel tankers be legally restricted to transit only between 11:00 PM and 5:00 AM?',
+            'description' => 'Motorists and civic safety advocates demand nighttime-only truck transit to end fatal container falls and catastrophic gridlock on highway bridges. Maritime haulage operators argue night-only movement is impossible given dangerous highway security conditions and daytime port cargo clearances.',
+            'category' => 'Politics & Policy',
+            'tags' => ['TruckSafety', 'ApapaCorridor', 'HighwayTraffic', 'PortHaulage', 'RoadSafety'],
+            'trendContext' => 'Sparked by ongoing traffic bottlenecks around port corridors and highway safety campaigns.'
+        ],
+        [
+            'title' => 'Should Lagos State require verified state residency cards (LASRRA) for patients to access subsidized care at state hospitals?',
+            'description' => 'Fiscal planners argue Lagos tax-payers cannot indefinitely subsidize healthcare for influx patients from neighboring states. Healthcare rights advocates declare emergency hospital access is a universal humanitarian right that must never be gated by administrative cards.',
+            'category' => 'Politics & Policy',
+            'tags' => ['HealthcareAccess', 'LASRRA', 'PublicHospitals', 'CivicWelfare', 'StateBudget'],
+            'trendContext' => 'Debated as state healthcare boards evaluate resident verification policies to manage hospital bed over-capacity.'
+        ],
+        [
+            'title' => 'Should the state government offer a 50% property tax rebate to landlords who contractually cap annual rent increases at 10%?',
+            'description' => 'Tenant rights coalitions argue predatory 50% to 100% annual rent spikes are driving middle-class families into homelessness. Real estate investors respond that high building maintenance costs, inflation, and currency devaluation make artificial rent caps unfeasible.',
+            'category' => 'Economy & Finance',
+            'tags' => ['TenantsRights', 'RentControl', 'LagosHousing', 'PropertyTax', 'CostOfLiving'],
+            'trendContext' => 'In response to heated town hall discussions on tenant protections and skyrocketing residential rent in urban centers.'
+        ]
+    ];
+
+    // Context-dependent pool matching
+    if (strpos($contextLower, 'lagos') !== false || strpos($contextLower, 'transport') !== false || strpos($contextLower, 'rent') !== false || strpos($contextLower, 'road') !== false) {
         $pool = array_merge($pool, $extendedPool);
+    }
     // 2. Context matches Tax / Finance / Crypto / Dollar / Economy
     else if (strpos($contextLower, 'tax') !== false || strpos($contextLower, 'crypto') !== false || strpos($contextLower, 'dollar') !== false || strpos($contextLower, 'econom') !== false) {
         $pool = [
@@ -761,6 +776,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
             ]
         ];
         $pool = array_merge($pool, $extendedPool);
+    }
     // 3. Context matches AI / Universities / Education / Campus
     else if (strpos($contextLower, 'ai') !== false || strpos($contextLower, 'school') !== false || strpos($contextLower, 'universit') !== false || strpos($contextLower, 'student') !== false) {
         $pool = [
@@ -794,6 +810,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
             ]
         ];
         $pool = array_merge($pool, $extendedPool);
+    }
     // 4. Default broad trending civic debates (Energy, Fuel Subsidy, Food Security, Culture)
     else {
         $pool = [
@@ -841,6 +858,7 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
             ]
         ];
         $pool = array_merge($pool, $extendedPool);
+    }
 
     // Exclude previously displayed titles to guarantee fresh, distinct angles on every click
     if (!empty($excludeTitles) && is_array($excludeTitles)) {
