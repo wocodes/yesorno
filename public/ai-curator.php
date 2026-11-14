@@ -1,10 +1,12 @@
 <?php
 register_shutdown_function(function() {
     $error = error_get_last();
-    if ($error !== null) {
-        http_response_code(200);
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(['php_error' => $error]);
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=UTF-8');
+        }
+        echo json_encode(['success' => false, 'error' => $error['message'] ?? 'Fatal PHP error', 'details' => $error]);
         exit;
     }
 });

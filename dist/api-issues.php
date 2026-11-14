@@ -1328,24 +1328,6 @@ if (!$pdo) {
 // SQLITE-POWERED API
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (isset($_GET['action']) && $_GET['action'] === 'test_curator') {
-        try {
-            ob_start();
-            include_once __DIR__ . '/ai-curator.php';
-            $out = ob_get_clean();
-            echo json_encode(['success' => true, 'output' => substr($out, 0, 500)]);
-        } catch (Throwable $t) {
-            echo json_encode([
-                'success' => false,
-                'error' => $t->getMessage(),
-                'file' => $t->getFile(),
-                'line' => $t->getLine(),
-                'trace' => $t->getTraceAsString()
-            ]);
-        }
-        exit;
-    }
-
     if (isset($_GET['action']) && $_GET['action'] === 'admin_users') {
         $res = handle_admin_users($pdo, $profilesFallbackPath);
         echo json_encode($res);
