@@ -100,11 +100,19 @@ export const AuthPage: React.FC<Props> = ({
     }
 
     const cleanUsername = (saved && saved.username) || baseUser.username || (baseUser.email ? baseUser.email.split('@')[0].replace(/[^a-z0-9_]/g, '_') : undefined);
+    const nowIso = new Date().toISOString();
+    const isGoogleAccount = Boolean(baseUser.email && (baseUser.email.includes('@gmail.') || baseUser.email.includes('@googlemail.')));
+
     if (saved && !forceOnboarding) {
       const mergedUser: UserProfile = {
         ...baseUser,
         ...saved,
         username: cleanUsername,
+        registeredAt: saved.registeredAt || baseUser.registeredAt || nowIso,
+        lastLoginAt: nowIso,
+        isVerified: saved.isVerified ?? (baseUser.isVerified ?? isGoogleAccount),
+        verificationBadge: saved.verificationBadge || baseUser.verificationBadge || (isGoogleAccount ? 'google' : 'resident'),
+        userType: 'registered',
         displayPreference: saved.displayPreference || 'username',
         name: saved.name || baseUser.name,
         avatar: saved.avatar || baseUser.avatar,
@@ -129,6 +137,11 @@ export const AuthPage: React.FC<Props> = ({
       const newUser: UserProfile = {
         ...baseUser,
         username: cleanUsername,
+        registeredAt: baseUser.registeredAt || nowIso,
+        lastLoginAt: nowIso,
+        isVerified: baseUser.isVerified ?? isGoogleAccount,
+        verificationBadge: baseUser.verificationBadge || (isGoogleAccount ? 'google' : 'resident'),
+        userType: 'registered',
         displayPreference: baseUser.displayPreference || 'username',
         onboardingCompleted: forceOnboarding ? false : (baseUser.onboardingCompleted ?? false),
       };

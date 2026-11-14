@@ -1,4 +1,4 @@
-import { UserProfile, Issue } from '../types';
+import { UserProfile, Issue, AdminUserRecord } from '../types';
 
 /**
  * Checks whether the app is running on a local development environment
@@ -272,18 +272,54 @@ export async function saveServerProfile(profile: UserProfile): Promise<boolean> 
   }
 }
 
+export interface AdminUsersResult {
+  success: boolean;
+  totalCount: number;
+  registeredCount: number;
+  seedCount: number;
+  verifiedCount: number;
+  users: AdminUserRecord[];
+  error?: string;
+}
+
+/**
+ * Fetches the aggregated directory of all system users (registered + seeded) with civic telemetry
+ */
+export async function fetchAdminUsersList(): Promise<AdminUsersResult | null> {
+  try {
+    const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'https://yesorno.chillon.top/api-issues.php?action=admin_users'
+      : '/api-issues.php?action=admin_users';
+
+    const res = await fetch(endpoint);
+    const json = await res.json();
+    if (json && json.success && Array.isArray(json.users)) {
+      return json as AdminUsersResult;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch admin users from server:', err);
+  }
+  return null;
+}
+
 export function saveStoredUser(user: UserProfile | null): void {
   try {
     if (user) {
-      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
+      const now = new Date().toISOString();
+      const enrichedUser: UserProfile = {
+        ...user,
+        registeredAt: user.registeredAt || now,
+        lastLoginAt: user.lastLoginAt || now,
+      };
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(enrichedUser));
       // Also persist by email so preferences stick even across sign-out / sign-in
-      if (user.email) {
+      if (enrichedUser.email) {
         const raw = localStorage.getItem(STORAGE_KEY_PROFILES_BY_EMAIL);
         const map = raw ? JSON.parse(raw) : {};
-        map[user.email.trim().toLowerCase()] = user;
+        map[enrichedUser.email.trim().toLowerCase()] = enrichedUser;
         localStorage.setItem(STORAGE_KEY_PROFILES_BY_EMAIL, JSON.stringify(map));
         // And asynchronously sync to server database so all devices stay in sync
-        saveServerProfile(user).catch(() => {});
+        saveServerProfile(enrichedUser).catch(() => {});
       }
     } else {
       localStorage.removeItem(STORAGE_KEY_AUTH);

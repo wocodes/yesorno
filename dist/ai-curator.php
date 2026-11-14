@@ -984,29 +984,29 @@ function get_curated_fallback_debates() {
                 [
                     'archetype' => 'Tax Accountant',
                     'choice' => 'YES',
-                    'note' => 'If someone is living in the country, using local infrastructure, buying goods in local markets, and benefiting from domestic security, they have to pay their fair share. Civil servants earning modest salaries have PAYE deducted at source every month. Tax equity has to apply across the board.'
+                    'note' => 'Civil servants earning ₦70k have PAYE deducted at source before seeing their alert. Why should someone living in the same country, buying in the same market, pay zero tax just because their client is in London? Equity must touch everybody.'
                 ],
                 [
                     'archetype' => 'Tech Youth & Freelancer',
                     'choice' => 'NO',
-                    'note' => 'We buy our own solar inverters, fuel our own generators, pay for private Starlink internet, and use private healthcare because public services are non-existent. The foreign exchange we bring in directly helps the local economy when we spend it. Taxing us extra for working hard remotely makes zero sense.'
+                    'note' => 'We buy solar, fuel our own generators, pay private clinics, and use Starlink because public infrastructure is zero. And now government wants a cut of our hard-earned foreign currency? Are we joking or what?'
                 ],
                 [
                     'archetype' => 'Economist',
                     'choice' => 'NO',
-                    'note' => 'Targeting remote knowledge workers is counter-productive. In a country struggling with dollar liquidity and brain drain, you want to incentivize skilled talent to stay inside the country and spend their foreign currency locally, not push them to relocate to Rwanda or the UK.'
+                    'note' => 'Targeting remote knowledge workers makes zero sense. In an economy starving for foreign exchange, you want tech talent to stay here and spend dollars locally, not pack their bags and relocate to Kigali or London.'
                 ],
                 [
                     'archetype' => 'Policy Insider',
                     'choice' => 'YES',
-                    'note' => 'Nobody is saying tax people to death, but having a massive informal dollar economy that files zero returns while roads and hospitals decay is unsustainable. There has to be a simple, flat presumptive tax that brings remote earners into the tax net properly.'
+                    'note' => 'Nobody is saying tax people to death, but having young earners making millions in foreign currency while roads decay is unsustainable. A flat, simple presumptive tax is basic common sense.'
                 ]
             ],
             'rebuttals' => [
                 [
                     'replyToArchetype' => 'Tech Youth & Freelancer',
                     'archetype' => 'Labor Advocate',
-                    'content' => 'Everyone buys generator fuel and pays for private clinics, including junior factory workers. The solution to poor public services is demanding accountability from politicians, not having higher earners opt out of taxes completely.'
+                    'content' => 'Ah yes, because roads, streetlights, and basic security are downloaded straight from Starlink, right? Everyone is buying generator fuel. If you live here, contribute like everyone else abeg.'
                 ]
             ]
         ],
@@ -1020,29 +1020,29 @@ function get_curated_fallback_debates() {
                 [
                     'archetype' => 'Financial Educator',
                     'choice' => 'YES',
-                    'note' => 'Starting married life with an empty bank account or wedding debts just to feed 400 people party jollof rice is pure financial self-sabotage. That same ₦3M could pay for two years of house rent or serve as an emergency fund when the first baby arrives.'
+                    'note' => 'Starting marriage with an empty bank account just so 400 distant relatives can complain the fried rice was cold is pure comedy. That ₦3M is 2 full years of house rent. Use your head please.'
                 ],
                 [
                     'archetype' => 'Hospitality & Small Business',
                     'choice' => 'NO',
-                    'note' => 'Weddings are cultural milestones that bring extended families together and create lifelong memories. You only do it once. Money spent wisely on celebrating with parents, elders, and friends has emotional and social value that spreadsheets cannot capture.'
+                    'note' => 'Weddings are cultural milestones that bring families together. You only do it once in your lifetime. Celebrating with parents and elders has emotional value that cannot be measured on an Excel spreadsheet.'
                 ],
                 [
                     'archetype' => 'Sociologist',
                     'choice' => 'NO',
-                    'note' => 'In our culture, a wedding is not an individual affair; it is a community celebration that connects two families and builds social safety nets. The problem is not the ceremony itself, but peer pressure and ostentatious competition on social media.'
+                    'note' => 'Ah, the Twitter financial advisors have arrived. A wedding is about community honor and family blessing, not just money. Some things are bigger than your personal savings account.'
                 ],
                 [
                     'archetype' => 'Student Leader',
                     'choice' => 'YES',
-                    'note' => 'Let us be honest with ourselves: half the people at big weddings are there for free food and souvenirs. Those same guests will not send you ₦10,000 when rent is due next year. Keep it small, sign court papers, and protect your peace.'
+                    'note' => 'Let us be honest with ourselves: half the people at big weddings are only there for free food and souvenirs. Those same guests will not send you ₦5k when rent is due next year. Sign court papers and protect your peace.'
                 ]
             ],
             'rebuttals' => [
                 [
                     'replyToArchetype' => 'Hospitality & Small Business',
                     'archetype' => 'Artisan & Business Owner',
-                    'content' => 'Celebration is good, but when young couples start marriage taking high-interest loans for hall rentals and aso-ebi, the stress breaks marriages before the first anniversary. Wisdom comes before party.'
+                    'content' => 'When landlord comes knocking 6 months after the wedding, show him the family blessings and see if he accepts it as payment for rent. Wisdom comes before party.'
                 ]
             ]
         ],
@@ -1056,29 +1056,29 @@ function get_curated_fallback_debates() {
                 [
                     'archetype' => 'Medical Doctor',
                     'choice' => 'YES',
-                    'note' => 'Every single weekend, emergency wards admit young people with shattered limbs and severe head injuries from highway collisions with trucks. 100cc motorbikes and heavy articulated trailers physically do not belong on the same high-speed lanes.'
+                    'note' => 'Every weekend, hospital emergency rooms are full of people with broken heads and shattered legs from trailer collisions. 100cc motorbikes and 40-foot container trucks physically do not belong on the same express lane!'
                 ],
                 [
                     'archetype' => 'Labor Advocate',
                     'choice' => 'NO',
-                    'note' => 'Before government bans Okada on expressways, where are the alternative buses? Millions of commuters wake up before dawn every day. If you ban them without functional trains or cheap public buses, you are just punishing ordinary working-class citizens.'
+                    'note' => 'Ban okada? Fantastic idea! Now where are the alternative buses? People wake up at 4 AM to hustle. If you ban them without affordable buses, how should ordinary workers reach their jobs? Fly?'
                 ],
                 [
                     'archetype' => 'Urban Planner',
                     'choice' => 'YES',
-                    'note' => 'Expressways are designed for rapid multi-lane throughput. When motorbikes weave between lanes and drive against traffic, the entire corridor slows down and accident rates spike. We need dedicated bus rapid transit lanes, not informal highway chaos.'
+                    'note' => 'Expressways are built for 100km/h traffic throughput. When motorbikes weave blindly between lanes against oncoming trailers, the whole corridor slows down and casualty rates spike.'
                 ],
                 [
                     'archetype' => 'Grassroots Trader',
                     'choice' => 'NO',
-                    'note' => 'Market women carrying heavy loads of goods depend on Keke to get to markets early. When bans happen, police start seizing vehicles and taking bribes, while transport fares double for everyday passengers. It hurts the poor the most.'
+                    'note' => 'Market women carrying heavy food baskets depend on Keke to reach early markets. When bans happen, police start taking bribes and fares double for passengers. It hurts the poor the most.'
                 ]
             ],
             'rebuttals' => [
                 [
                     'replyToArchetype' => 'Urban Planner',
                     'archetype' => 'Logistics Operator',
-                    'content' => 'High-capacity buses sound nice on paper, but who will finance the 2,000 new buses needed by tomorrow morning? Banning transport options before building alternatives always fails.'
+                    'content' => 'Buses sound sweet in air-conditioned conference rooms, but who will finance the 2,000 new buses needed by tomorrow morning? Banning transport before providing alternatives is pure punishment.'
                 ]
             ]
         ],
@@ -1522,13 +1522,27 @@ Do NOT always start with 'Should...'. Alternate across these punchy styles:
   e.g. 'Should civil servants retire at 50 to create youth employment?', 'Should politicians seeking healthcare abroad be barred from public office?'
 Every question must end with a single '?' and strictly elicit a YES or NO.
 
-PROVOCATION & PERSPECTIVE INSTRUCTIONS:
-- Takes must have CONFIDENT ARROGANCE on one side and FURIOUS, STREET-SMART INDIGNATION on the other side.
-- Make users itch to tap NO or YES out of pure conviction or outrage!
-- NEVER use formal titles (No 'Dr.', 'Prof.', 'Chief', etc.). Use strictly first and last names.
-- Avoid robotic corporate AI phrasing (no 'In conclusion', 'It is important to remember', 'On the other hand').
-- The takes should be punchy, relatable, and opinionated (2 to 4 sentences).
-- Ground arguments in tangible everyday realities: inflation, house rent, fuel costs, remote work, school fees, power, traffic, relationships, or business.
+PROVOCATION, LANGUAGE & SARCASM INSTRUCTIONS:
+- CRITICAL: NO BIG GRAMMAR, NO TECHNICAL ESSAY JARGON.
+  - Strictly avoid phrases like 'from a practical standpoint', 'structural framework', 'mitigate friction', 'socioeconomic paradigm', 'macroeconomic implications', 'institutional accountability', 'concomitant'.
+  - Sound like REAL PEOPLE on Nigerian Twitter/X, in a bus, salon, barber shop, or cafeteria. Simple, conversational English that any layperson gets in 2 seconds.
+- MANDATORY SARCASM, DRY WIT & IRONY:
+  - At least 2 of the 4 perspectives AND the rebuttal MUST contain sharp sarcasm, dry humor, or rhetorical irony!
+  - Examples:
+    * 'Ah yes, because salary doubles every time fuel goes up, right?'
+    * 'So someone should work 30 days straight just to give the landlord everything and survive on photosynthesis?'
+    * 'Let us be serious for once in this country. Are we joking or what?'
+    * 'Next thing now they will tell us to pay tax before we breathe fresh air.'
+    * 'You want 50/50 rent but when it is time for pregnancy you remember biology is not 50/50. Choose one struggle please.'
+    * 'Make it make sense!'
+- PERSPECTIVES & TAKES:
+  - Takes must have CONFIDENT ARROGANCE on one side and FURIOUS, STREET-SMART INDIGNATION on the other side.
+  - Make users itch to tap NO or YES out of pure conviction or outrage!
+  - NEVER use formal titles (No 'Dr.', 'Prof.', 'Chief', etc.). Use strictly first and last names.
+  - The takes should be short, punchy, relatable, and opinionated (2 to 3 sentences maximum, under 45 words each).
+  - Ground arguments in tangible everyday realities: inflation, house rent, fuel costs, remote work, school fees, generator fuel, traffic, dating bills, or business.
+- REBUTTALS MUST BE PUNCHY CALL-OUTS:
+  - The rebuttal must directly mock, roast, or challenge the other persona's naive assumption with biting sarcasm and street-smart common sense!
 
 Select 4 distinct personas from the list below to write the primary perspectives (2 for YES, 2 for NO), and 1 persona to post a direct threaded rebuttal to one of the comments.
 
@@ -1546,14 +1560,14 @@ Output strict JSON with this exact schema:
     {
       \"personaId\": \"ID from list\",
       \"choice\": \"YES or NO\",
-      \"note\": \"Authentic, opinionated perspective matching their role and tone guidelines (2 to 4 sentences).\"
+      \"note\": \"Authentic, opinionated perspective in simple conversational language with street-smart logic and dry sarcasm (2 to 3 short sentences, max 45 words).\"
     }
   ],
   \"rebuttals\": [
     {
       \"personaId\": \"ID of persona replying\",
       \"replyToPersonaId\": \"ID of persona being rebutted\",
-      \"content\": \"Sharp, direct counter-argument challenging their premise.\"
+      \"content\": \"Sharp, sarcastic counter-argument roasting their naive premise with street reality (1 to 2 punchy sentences).\"
     }
   ]
 }
@@ -1901,14 +1915,14 @@ function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSl
 function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash') {
     if (!empty($apiKey)) {
         $prompt = "You are {$persona['name']}, a {$persona['role']}. Bio: {$persona['bio']}.\n"
-            . "Provide a realistic, concise 2 to 3 sentence community perspective (maximum 50 words) on this deliberation question:\n"
-            . "Question: \"{$issue['title']}\"\n"
+            . "Topic: \"{$issue['title']}\"\n"
             . "Context: \"{$issue['description']}\"\n"
-            . "Your stance: {$choice} (You must clearly support this viewpoint).\n\n"
-            . "Guidelines:\n"
-            . "- Speak conversationally as a real person living in {$persona['region']}.\n"
-            . "- Never say 'As an AI' or 'As a {$persona['role']}'.\n"
-            . "- Give a crisp, practical argument.\n"
+            . "Your stance: {$choice} (You firmly support this side).\n\n"
+            . "CRITICAL TONE & STYLE INSTRUCTIONS:\n"
+            . "- NO BIG GRAMMAR OR TECHNICAL JARGON: Strictly avoid academic, essay, or corporate language (never say 'from a practical standpoint', 'operational overhead', 'systemic implications', 'concomitant', or 'As an AI/professional').\n"
+            . "- SIMPLE LAYPERSON ENGLISH: Speak casually and directly like a real person commenting on Nigerian Twitter/X or arguing with friends at a bus stop or salon.\n"
+            . "- SARCASM & DRY WIT: Use biting sarcasm, dry humor, or rhetorical irony (e.g., 'Are we being serious right now?', 'Ah yes, because...', 'Please abeg, let us stop pretending.', 'Make it make sense!').\n"
+            . "- Keep it short and punchy: 1 to 3 sentences (maximum 40 words).\n"
             . "Return pure JSON: {\"note\": \"...\"}";
 
         $res = call_gemini_api($prompt, $apiKey, $model);
@@ -1917,21 +1931,23 @@ function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '',
         }
     }
 
-    // Dynamic Curated Fallbacks
+    // Dynamic Curated Fallbacks (Plain English, Street-Smart, with Sarcasm & Wit)
     $yesTemplates = [
-        "From a practical standpoint, this is long overdue. When you look at the ripple effects on local productivity and accountability, the potential upside clearly outweighs the initial friction.",
-        "I lean Yes on this. We've seen similar frameworks succeed when clear guardrails are put in place from day one. It's about setting the standard early rather than reacting later.",
-        "Support this direction. The current status quo simply isn't sustainable for the broader public interest. Taking decisive action now saves us bigger headaches down the road.",
-        "Agree with this move. Transparent standards and predictable execution are what build lasting community confidence. It's definitely time to test it in practice.",
-        "This makes strategic sense. If we delay addressing this, the systemic cost of inaction will multiply. A measured rollout is the right call."
+        "Let us be serious for once. If we keep pampering this problem, we will still be having this exact argument in 2035. End it now and let everybody adjust.",
+        "Support 100%. The only people complaining are those enjoying the current confusion. When the benefits show, the same critics will claim they supported it from day one.",
+        "Ah yes, because waiting another 10 years will magically fix things on its own, right? Make this move now. Common sense over sentiments please.",
+        "Total YES. Look at what is happening on ground right now and tell me the status quo is working. Stop overthinking it and do the right thing.",
+        "If you ask me, this is long overdue. People love to shout before a policy starts, but once order returns, nobody remembers the noise. Move forward.",
+        "Support completely. How can anyone look at this reality and still argue for business as usual? Make it make sense abeg."
     ];
 
     $noTemplates = [
-        "I'm skeptical of this approach. While the intention might be sound, the operational overhead and unintended bottlenecks could end up hurting the very people it aims to help.",
-        "Vote No. Before introducing blanket measures like this, we need far stronger data and consultation. Rushing this without robust infrastructure will create more problems than it solves.",
-        "Respectfully disagree with the proposal. The core issue isn't lack of new rules, but inconsistent enforcement of existing structures. Let's fix the fundamentals first.",
-        "Not convinced this is the right priority right now. In practice, similar initiatives have ended up concentrating friction rather than opening up opportunity. Better to hold off.",
-        "I have reservations. Without clearer accountability and funding mechanisms, this risks becoming another well-intentioned policy that stalls out in execution."
+        "Are we being serious right now? In this same economy where people are struggling with fuel and food, you want to add another impossible headache on top?",
+        "Capital NO please. Beautiful grammar on paper, but on the street it just means police and task force will find fresh excuse to harass ordinary citizens.",
+        "Wonderful logic. You haven't fixed the basic foundation and you want to jump straight to the roof? Let us stop playing with people's livelihoods.",
+        "Vote NO abeg. It sounds sweet in air-conditioned boardrooms, but anyone who actually enters market or buys things with their own money knows this will fail.",
+        "So we should just wake up and pretend the reality on ground doesn't exist? Please let us stop copying foreign ideas that fail the simplest street test.",
+        "Big NO. Next thing now they will tell us to apply for permit before we breathe fresh air. Let people breathe please!"
     ];
 
     $pool = ($choice === 'YES') ? $yesTemplates : $noTemplates;

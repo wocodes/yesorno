@@ -40,6 +40,39 @@ export interface UserProfile {
   colorTone?: 'vibrant' | 'toned';
   notificationsEnabled?: boolean;
   onboardingCompleted?: boolean;
+  registeredAt?: string;
+  isVerified?: boolean;
+  verificationBadge?: 'google' | 'official' | 'resident' | 'none';
+  lastLoginAt?: string;
+  lastActionAt?: string;
+  lastAction?: string;
+  votesCount?: number;
+  issuesCount?: number;
+  commentsCount?: number;
+  userType?: 'registered' | 'seed';
+}
+
+export interface AdminUserRecord {
+  id: string;
+  name: string;
+  username?: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  bio?: string;
+  region?: string;
+  userType: 'registered' | 'seed';
+  isVerified: boolean;
+  verificationBadge: 'google' | 'official' | 'resident' | 'none';
+  registeredAt: string;
+  lastLoginAt: string;
+  lastActionAt?: string;
+  lastAction?: string;
+  votesCount: number;
+  issuesCount: number;
+  commentsCount: number;
+  groups?: string[];
+  interests?: string[];
 }
 
 export type VoiceFilterType = 'none' | 'deep' | 'high' | 'robot' | 'radio';
