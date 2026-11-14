@@ -40,11 +40,12 @@ const CATEGORY_OPTIONS: IssueCategory[] = [
 ];
 
 const INSPIRATION_PILLS = [
-  { label: '🏛️ Lagos Governorship Debate', context: 'the recent Lagos governorship debate and transport policies' },
-  { label: '💰 Remote USD Income Tax', context: 'progressive tax bill on remote workers earning in USD' },
-  { label: '🎓 Campus AI & Essays Ban', context: 'universities banning generative AI for student assignments' },
-  { label: '⚡ Electricity Band-A Tariffs', context: 'national electricity tariff hikes and cost reflective billing' },
-  { label: '⛽ Fuel Subsidy Transport Fares', context: 'public transport fares and mass transit after fuel subsidy' },
+  { label: '⛽ Dangote Petrol Pricing', context: 'Dangote refinery petrol pricing and direct marketer sales' },
+  { label: '💵 Naira Float & Inflation', context: 'floating the Naira, dollar liquidity, and food price inflation' },
+  { label: '🏛️ 2027 Coalition Politics', context: '2027 presidential election coalitions and opposition merger' },
+  { label: '⚡ National Grid Collapses', context: 'repeated national electricity grid collapses and state power generation' },
+  { label: '💼 ₦70k Minimum Wage', context: '₦70,000 national minimum wage implementation and state worker layoffs' },
+  { label: '🏢 Remote Work vs 5-Day RTO', context: 'corporate 5-day return to office mandates and tech worker backlash' },
 ];
 
 export const GeminiTrendSuggestModal: React.FC<Props> = ({
@@ -410,8 +411,8 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
                     <Globe2 className="w-3 h-3 text-emerald-500" />
                     <span>
                       {trendSourceMeta.grounded
-                        ? 'Grounded with Google Search Live News'
-                        : 'Curated Trend Analysis'}
+                        ? 'Grounded with Google News & 𝕏 (Twitter) Live Trends'
+                        : 'Curated 𝕏 & Google Trend Analysis'}
                     </span>
                   </span>
                 )}
@@ -444,6 +445,16 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-zinc-300">
                               {sug.category}
                             </span>
+                            {typeof sug.trendScore === 'number' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center gap-1 border border-amber-200/60 dark:border-amber-500/30">
+                                <span>⚡ Weight: {sug.trendScore}/100</span>
+                              </span>
+                            )}
+                            {typeof sug.xRank === 'number' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 flex items-center gap-1 border border-sky-200/60 dark:border-sky-500/30">
+                                <span>𝕏 Trend #{sug.xRank}</span>
+                              </span>
+                            )}
                             {(sug.tags || []).slice(0, 3).map((tag) => (
                               <span
                                 key={tag}
@@ -576,7 +587,7 @@ export const GeminiTrendSuggestModal: React.FC<Props> = ({
               <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
                 Provide a context like{' '}
                 <span className="font-semibold text-purple-600 dark:text-purple-300">
-                  &quot;the recent Lagos governorship debate&quot;
+                  &quot;Dangote refinery petrol pricing&quot;
                 </span>{' '}
                 or leave it blank to browse live breaking headlines. Click below to fetch suggestions.
               </p>

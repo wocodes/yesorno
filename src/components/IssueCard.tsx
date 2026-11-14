@@ -106,6 +106,7 @@ export const IssueCard: React.FC<Props> = ({
   const shortCat = SHORT_CATEGORIES[issue.category] || issue.category;
   const authorInfo = getAuthorDisplay(issue, currentUser);
   const relativeTime = formatRelativeTime(issue.createdAt);
+  const totalComments = (issue.responses?.length || 0) + (issue.responses?.reduce((sum, r) => sum + (r.replies?.length || 0), 0) || 0);
 
   // Inline Social Reply Drawer State (X / Instagram / Facebook style instant reply)
   const [showInlineComposer, setShowInlineComposer] = useState(false);
@@ -524,7 +525,7 @@ export const IssueCard: React.FC<Props> = ({
           >
             <span className="flex items-center gap-1">
               <MessageSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{issue.responses.length}</span>
+              <span>{totalComments}</span>
             </span>
             {metrics.voiceNotesCount > 0 && (
               <span className="hidden sm:flex items-center gap-1 text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/15 px-1.5 py-0.5 rounded-full font-bold text-[10px]">

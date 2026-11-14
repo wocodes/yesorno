@@ -159,6 +159,8 @@ export interface Issue {
   creatorVoiceNote?: VoiceAttachment; // Voice note briefing attached by the creator
   featured?: boolean;
   summary?: IssueSummaryInsights;
+  viewsCount?: number;
+  impressionsCount?: number;
   isDeletedByAuthor?: boolean;
   deletedAt?: string;
 }

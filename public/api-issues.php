@@ -133,6 +133,31 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
             CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email);
         ");
 
+        // Auto-migration: ensure views_count and impressions_count exist
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN views_count INTEGER DEFAULT 0");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN impressions_count INTEGER DEFAULT 0");
+        } catch (Exception $e) {}
+
+        // Self-healing deduplication: soft-delete any duplicate issues with identical titles (keeping oldest)
+        try {
+            $pdo->exec("
+                UPDATE issues SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP
+                WHERE id IN (
+                    SELECT id FROM issues i1
+                    WHERE is_deleted = 0
+                    AND EXISTS (
+                        SELECT 1 FROM issues i2
+                        WHERE i2.is_deleted = 0
+                        AND LOWER(TRIM(i2.title)) = LOWER(TRIM(i1.title))
+                        AND (i2.created_at < i1.created_at OR (i2.created_at = i1.created_at AND i2.id < i1.id))
+                    )
+                )
+            ");
+        } catch (Exception $e) {}
+
         // Migrate existing JSON data if SQLite database is completely fresh
         $checkStmt = $pdo->query("SELECT COUNT(*) FROM issues");
         if ($checkStmt && (int)$checkStmt->fetchColumn() === 0 && file_exists($jsonFallbackPath)) {
@@ -404,12 +429,42 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             'creatorVoiceNote' => $creatorVoice,
             'featured' => (bool)$row['featured'],
             'summary' => $summary,
+            'viewsCount' => (int)($row['views_count'] ?? 0),
+            'impressionsCount' => (int)($row['impressions_count'] ?? 0),
             'isDeletedByAuthor' => (bool)$row['is_deleted'],
             'deletedAt' => $row['deleted_at'],
             'createdAt' => $row['created_at'],
             'responses' => $issueResponses,
         ];
     }
+
+    // Sort output issues by a mix of latest and most popular (votes, comments, views/impressions)
+    $now = time();
+    usort($output, function($a, $b) use ($now) {
+        $ageA = max(0, ($now - strtotime($a['createdAt'] ?? '')) / 3600);
+        $ageB = max(0, ($now - strtotime($b['createdAt'] ?? '')) / 3600);
+
+        $votesA = ($a['yesCount'] ?? 0) + ($a['noCount'] ?? 0);
+        $votesB = ($b['yesCount'] ?? 0) + ($b['noCount'] ?? 0);
+
+        $commentsA = count($a['responses'] ?? []);
+        foreach ($a['responses'] ?? [] as $r) { $commentsA += count($r['replies'] ?? []); }
+
+        $commentsB = count($b['responses'] ?? []);
+        foreach ($b['responses'] ?? [] as $r) { $commentsB += count($r['replies'] ?? []); }
+
+        $viewsA = !empty($a['viewsCount']) ? $a['viewsCount'] : (int)($votesA * 4.2 + $commentsA * 3.5 + ($a['likesCount'] ?? 0) * 2 + 20);
+        $viewsB = !empty($b['viewsCount']) ? $b['viewsCount'] : (int)($votesB * 4.2 + $commentsB * 3.5 + ($b['likesCount'] ?? 0) * 2 + 20);
+
+        $popA = ($votesA * 7) + ($commentsA * 14) + ($viewsA * 0.5) + (($a['likesCount'] ?? 0) * 4);
+        $popB = ($votesB * 7) + ($commentsB * 14) + ($viewsB * 0.5) + (($b['likesCount'] ?? 0) * 4);
+
+        $scoreA = (($popA * 12) / pow($ageA + 2, 1.15)) + (180 * exp(-$ageA / 14)) + (!empty($a['featured']) ? 30 : 0);
+        $scoreB = (($popB * 12) / pow($ageB + 2, 1.15)) + (180 * exp(-$ageB / 14)) + (!empty($b['featured']) ? 30 : 0);
+
+        if ($scoreA == $scoreB) return 0;
+        return ($scoreA > $scoreB) ? -1 : 1;
+    });
 
     return $output;
 }

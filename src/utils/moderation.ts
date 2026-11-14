@@ -76,7 +76,12 @@ export function moderateText(text: string): ModerationResult {
 }
 
 /**
- * Validates whether an issue title is phrased properly as a question suitable for YES/NO voting.
+ * Validates whether an issue title can serve as a binary YES/NO question or poll proposition.
+ * Supports:
+ * - Direct questions ending in "?" (e.g. "Should remote work be standard?")
+ * - Short sharp propositions (e.g. "Ban plastic bags?", "End NYSC now?")
+ * - Statement preambles followed by a question (e.g. "Fuel subsidy removed: should it return?")
+ * - Binary choice or tag inquiries (e.g. "50/50 rent in marriage: Yes or No?", "Remote workers are more productive, agree?")
  */
 export function validateIssueQuestion(title: string): {
   isQuestion: boolean;
@@ -90,50 +95,65 @@ export function validateIssueQuestion(title: string): {
       isQuestion: false,
       severity: 'invalid',
       reason: 'Question is too short (must be at least 5 characters).',
-      suggestion: 'Type a complete question that voters can answer YES or NO.'
+      suggestion: 'Type a question or binary proposition that voters can answer YES or NO.'
     };
   }
 
   const hasQuestionMark = trimmed.includes('?');
-  const questionWords = [
-    'should', 'is', 'are', 'do', 'does', 'did', 'can', 'could', 'would', 'will',
-    'shall', 'has', 'have', 'was', 'were', 'must', 'ought', 'why', 'what', 'how',
-    'who', 'where', 'when', 'which', 'am'
-  ];
 
+  // Any title ending with or containing a question mark is treated as a valid debate question
+  if (hasQuestionMark) {
+    return {
+      isQuestion: true,
+      severity: 'valid'
+    };
+  }
+
+  // Check for binary polarity phrases anywhere in the statement (e.g. "Yes or No", "Agree or Disagree")
+  const binaryPolarityPattern = /\b(yes\s+or\s+no|agree\s+or\s+disagree|support\s+or\s+oppose|fair\s+or\s+unfair|right\s+or\s+wrong|true\s+or\s+false|good\s+or\s+bad)\b/i;
+  const hasBinaryPrompt = binaryPolarityPattern.test(trimmed);
+
+  // Check for question starter words at the start of the title OR right after a clause separator (colon, dash, period, semicolon, newline)
+  const clauseQuestionPattern = /(?:^|[:;\-—.\n])\s*(should|is|are|do|does|did|can|could|would|will|shall|has|have|was|were|must|ought|am)\b/i;
+  const hasQuestionClause = clauseQuestionPattern.test(trimmed);
+
+  // Check for direct proposition starters (e.g. "Ban commercial bikes", "Legalize cannabis", "Abolish bride price")
+  const propositionStarters = ['ban', 'legalize', 'scrap', 'end', 'abolish', 'mandate', 'prohibit', 'tax', 'allow'];
   const firstWord = (trimmed.split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
-  const startsWithQuestionWord = questionWords.includes(firstWord);
+  const isProposition = propositionStarters.includes(firstWord);
 
-  // If it starts with a declarative indicator without a question mark:
+  // If the user included a question clause, binary tag, or proposition but simply omitted the '?'
+  if (hasQuestionClause || hasBinaryPrompt || isProposition) {
+    return {
+      isQuestion: true,
+      severity: 'valid'
+    };
+  }
+
+  // Pure declarative starters without a question mark or question phrasing
   const declarativeStarters = [
     'i think', 'i believe', 'we must', 'we need to', 'everyone knows',
-    'the problem is', 'it sucks', 'stop', 'ban all', 'never'
+    'the problem is', 'it sucks', 'never', 'in my opinion'
   ];
   const startsWithDeclarative = declarativeStarters.some(starter => 
     trimmed.toLowerCase().startsWith(starter)
   );
 
-  if (startsWithDeclarative && !hasQuestionMark) {
+  if (startsWithDeclarative) {
     return {
       isQuestion: false,
       severity: 'warning',
-      reason: 'This reads like a statement or rant rather than a question.',
-      suggestion: `Try rephrasing as a YES/NO question, e.g. "Should we ${trimmed.replace(/^(i think|we need to|we must)\s+/i, '')}?"`
+      reason: 'This reads like a personal statement or opinion rather than a binary poll.',
+      suggestion: 'Frame it with a question mark "?" or a clear dilemma (e.g. "... should this be allowed?" or "... do you agree?").'
     };
   }
 
-  if (!hasQuestionMark && !startsWithQuestionWord) {
-    return {
-      isQuestion: false,
-      severity: 'warning',
-      reason: 'This does not appear to be a question.',
-      suggestion: 'YesOrNo works best when phrased as a question starting with "Should...", "Is...", "Do you support...", and ending with "?"'
-    };
-  }
-
+  // General statement fallback
   return {
-    isQuestion: true,
-    severity: 'valid'
+    isQuestion: false,
+    severity: 'warning',
+    reason: 'This does not appear to be a question or binary proposition.',
+    suggestion: 'YesOrNo works best with questions or topics voters can answer YES or NO to. Tip: End with a question mark "?" or add a clear dilemma.'
   };
 }
 
