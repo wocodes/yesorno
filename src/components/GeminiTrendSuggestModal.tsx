@@ -40,6 +40,8 @@ const CATEGORY_OPTIONS: IssueCategory[] = [
 ];
 
 const INSPIRATION_PILLS = [
+  { label: '💔 Pre-Wedding Secret & Confession', context: 'captivating true-life confession of secret child or debt discovered before wedding with high-voltage social hook' },
+  { label: '💸 ₦2.5M Salary vs Family Black Tax', context: 'emotional true story of cutting off entitled siblings and toxic family black tax demands in Lagos' },
   { label: '⛽ Dangote Petrol Pricing', context: 'Dangote refinery petrol pricing and direct marketer sales' },
   { label: '💵 Naira Float & Inflation', context: 'floating the Naira, dollar liquidity, and food price inflation' },
   { label: '🏛️ 2027 Coalition Politics', context: '2027 presidential election coalitions and opposition merger' },

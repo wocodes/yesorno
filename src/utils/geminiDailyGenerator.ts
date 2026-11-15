@@ -577,15 +577,15 @@ Identify the core point of controversy, tension, or policy dilemma where citizen
 Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts as a Nigerian for Nigerians.
 
 Rules:
-1. Format: Vary the title format naturally:
+1. Format: Vary the title format naturally across these styles:
+   - Captivating True-Life Story / Confession Hook (e.g. "CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?", "TRUE STORY: I earn ₦2.5M in Lagos and refuse to fund my 30-year-old brother's lifestyle — am I being selfish?", "I secretly took a DNA test on our 2-year-old son behind my wife's back: was I wrong?")
    - Short & sharp direct question (e.g. "End NYSC now?", "Ban plastic bags?")
    - Statement preamble + question (e.g. "Dangote refinery cuts petrol price: will filling stations drop pump prices?")
    - Direct binary polarity hot-take (e.g. "50/50 rent in marriage: Yes or No?")
    Every title must strictly end with a single "?" and require a YES or NO.
-2. Description: 2-3 punchy sentences giving a sharp take on both sides:
-   - Sentence 1: Why the YES camp defends their position with real arguments.
-   - Sentence 2: Why the NO camp firmly objects or calls it absurd.
-   - Sentence 3: The real-world stakes for regular citizens.
+2. Description: 2-3 punchy, emotional sentences. CRITICAL SOCIAL MEDIA RULE:
+   - Because social media link previews (X, WhatsApp, Facebook, LinkedIn) only highlight the first 8-15 words, FRONT-LOAD AN IRRESISTIBLE HOOK in the very first sentence (e.g. "I was cleaning my husband's car when a secret birth certificate fell out...", "My mother-in-law moved into our flat for 'two weeks' and it has now been 14 months with zero plans to leave...").
+   - Then outline the emotional dilemma: why the YES camp passionately insists one choice is necessary, and why the NO camp strongly objects.
 3. Category: Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].
 4. TrendContext: 1-2 sentence summary of the specific current news or real-time trend that sparked this debate.
 5. Tags: 3 to 5 relevant hashtags or keywords.
@@ -706,6 +706,26 @@ export async function fetchTrendingQuestionSuggestions(params: {
   const excludeSet = new Set((params.excludeTitles || []).map((t) => t.toLowerCase().trim()));
 
   const currentPool: QuestionSuggestion[] = [
+    {
+      title: 'CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?',
+      description: 'I was cleaning my fiancé\'s car when I discovered court child support documents and a birth certificate with his name. He wept on his knees saying he was terrified of losing me, while his parents are begging me to swallow it and proceed to the altar. Advocates say building a marriage on deliberate deception is emotional suicide, while elders argue past baggage shouldn\'t destroy genuine love.',
+      category: 'Family & Home',
+      tags: ['RelationshipConfessions', 'PreMaritalLies', 'WeddingDilemma', 'TrustAndBetrayal', 'FamilySecrets'],
+      trendContext: 'Sparked by viral anonymous confession threads on social media regarding relationship deal-breakers and pre-wedding disclosures.',
+      trendScore: 98,
+      xRank: 1,
+      platforms: ['x', 'google_news']
+    },
+    {
+      title: 'TRUE LIFE: I earn ₦2.8M in Lagos and refuse to pay my 30-year-old brother ₦400k monthly — am I being selfish: Yes or No?',
+      description: 'My parents called a family meeting to accuse me of witchcraft and pride after I stopped funding my elder brother\'s lounge lifestyle. He refuses entry-level jobs while expecting me to bankroll his rent and fuel. Young professionals insist endless black tax destroys generational wealth, but cultural traditionalists argue that abandoning your own flesh and blood is taboo.',
+      category: 'Counselling',
+      tags: ['BlackTax', 'FamilyEntitlement', 'FinancialBoundaries', 'LagosLiving', 'ToxicRelatives'],
+      trendContext: 'Debated heavily across Nigerian youth financial independence forums and social media black-tax discourse.',
+      trendScore: 96,
+      xRank: 2,
+      platforms: ['x', 'google_news']
+    },
     {
       title: 'Dangote refinery selling petrol directly to marketers: will national pump prices drop below ₦1,000?',
       description: 'Consumers and transport unions expect direct domestic supply to dismantle import cartels and bring down transportation fares. Marketers caution that financing costs, distribution margins, and crude exchange rates will keep pump prices elevated.',
