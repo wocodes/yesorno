@@ -3,7 +3,7 @@ import {
   Search, Users2, ShieldCheck, CheckCircle2,
   Clock, Activity, Vote, MessageSquare, FileText, Download,
   RefreshCw, Copy, Check, Eye, SlidersHorizontal, Filter,
-  ChevronLeft, ChevronRight, X, Award, Sparkles, UserCheck
+  ChevronLeft, ChevronRight, X, Award, Sparkles, UserCheck, ExternalLink
 } from 'lucide-react';
 import { AdminUserRecord } from '../types';
 
@@ -11,6 +11,20 @@ interface AdminUsersTableProps {
   users: AdminUserRecord[];
   isLoading: boolean;
   onRefresh: () => void;
+  onOpenProfile?: (target: {
+    username?: string;
+    name?: string;
+    avatar?: string;
+    email?: string;
+    role?: string;
+    id?: string;
+    bio?: string;
+    region?: string;
+    isVerified?: boolean;
+    verificationBadge?: string;
+    groups?: string[];
+    interests?: string[];
+  }) => void;
 }
 
 export function formatTableDate(iso?: string): { formatted: string; relative: string; full: string; isRecent: boolean } {
@@ -52,6 +66,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
   users,
   isLoading,
   onRefresh,
+  onOpenProfile,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'registered' | 'verified' | 'seed'>('all');
@@ -432,12 +447,31 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                       {/* User Column */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => onOpenProfile?.({
+                              id: user.id,
+                              name: user.name,
+                              username: user.username,
+                              email: user.email,
+                              avatar: user.avatar,
+                              role: user.role,
+                              bio: user.bio,
+                              region: user.region,
+                              isVerified: user.isVerified,
+                              verificationBadge: user.verificationBadge,
+                              groups: user.groups,
+                              interests: user.interests
+                            })}
+                            disabled={!onOpenProfile}
+                            className="relative shrink-0 group/avatar cursor-pointer text-left focus:outline-none disabled:cursor-default"
+                            title={`View ${user.name}'s Profile`}
+                          >
                             {user.avatar ? (
                               <img
                                 src={user.avatar}
                                 alt={user.name}
-                                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-white/10"
+                                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-white/10 group-hover/avatar:ring-2 group-hover/avatar:ring-brand-500 transition-all"
                                 onError={(e) => {
                                   // Fallback to initials if image fails
                                   (e.currentTarget as HTMLElement).style.display = 'none';
@@ -445,7 +479,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                               />
                             ) : null}
                             <div
-                              className="w-9 h-9 rounded-full bg-brand-500/20 text-brand-600 dark:text-brand-300 font-bold text-xs flex items-center justify-center border border-brand-500/30"
+                              className="w-9 h-9 rounded-full bg-brand-500/20 text-brand-600 dark:text-brand-300 font-bold text-xs flex items-center justify-center border border-brand-500/30 group-hover/avatar:ring-2 group-hover/avatar:ring-brand-500 transition-all"
                               style={{ display: user.avatar ? 'none' : 'flex' }}
                             >
                               {user.name.slice(0, 2).toUpperCase()}
@@ -456,15 +490,53 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                                 title="Active within last 24h"
                               />
                             )}
-                          </div>
+                          </button>
 
                           <div className="min-w-0 max-w-[180px]">
-                            <div className="font-bold text-ink-950 dark:text-white truncate flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onOpenProfile?.({
+                                id: user.id,
+                                name: user.name,
+                                username: user.username,
+                                email: user.email,
+                                avatar: user.avatar,
+                                role: user.role,
+                                bio: user.bio,
+                                region: user.region,
+                                isVerified: user.isVerified,
+                                verificationBadge: user.verificationBadge,
+                                groups: user.groups,
+                                interests: user.interests
+                              })}
+                              disabled={!onOpenProfile}
+                              className="font-bold text-ink-950 dark:text-white truncate flex items-center gap-1.5 text-left hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer disabled:cursor-default disabled:hover:no-underline max-w-full"
+                              title={`View ${user.name}'s Profile`}
+                            >
                               <span className="truncate">{user.name}</span>
-                            </div>
-                            <div className="text-[11px] text-slate-400 font-mono truncate">
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onOpenProfile?.({
+                                id: user.id,
+                                name: user.name,
+                                username: user.username,
+                                email: user.email,
+                                avatar: user.avatar,
+                                role: user.role,
+                                bio: user.bio,
+                                region: user.region,
+                                isVerified: user.isVerified,
+                                verificationBadge: user.verificationBadge,
+                                groups: user.groups,
+                                interests: user.interests
+                              })}
+                              disabled={!onOpenProfile}
+                              className="text-[11px] text-slate-400 font-mono truncate hover:text-brand-500 hover:underline cursor-pointer text-left block max-w-full disabled:cursor-default disabled:hover:no-underline"
+                              title={`View @${user.username || user.email.split('@')[0]}'s Profile`}
+                            >
                               @{user.username || user.email.split('@')[0]}
-                            </div>
+                            </button>
                             <div className="text-[10px] text-slate-500 dark:text-zinc-400 truncate flex items-center gap-1">
                               <span className="truncate">{user.email}</span>
                               <button
@@ -589,14 +661,40 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedUser(user)}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-brand-500 hover:text-white text-slate-700 dark:text-zinc-200 text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>Inspect</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {onOpenProfile && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenProfile({
+                                id: user.id,
+                                name: user.name,
+                                username: user.username,
+                                email: user.email,
+                                avatar: user.avatar,
+                                role: user.role,
+                                bio: user.bio,
+                                region: user.region,
+                                isVerified: user.isVerified,
+                                verificationBadge: user.verificationBadge,
+                                groups: user.groups,
+                                interests: user.interests
+                              })}
+                              className="px-2.5 py-1.5 rounded-lg bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-300 hover:text-white text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer border border-brand-500/20"
+                              title={`Go to ${user.name}'s profile`}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span className="hidden sm:inline">Profile</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedUser(user)}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-brand-500 hover:text-white text-slate-700 dark:text-zinc-200 text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Inspect</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -660,15 +758,38 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
 
             {/* Modal Header: Avatar & Core Identifiers */}
             <div className="flex items-start gap-4 pr-8">
-              <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = selectedUser;
+                  setSelectedUser(null);
+                  onOpenProfile?.({
+                    id: target.id,
+                    name: target.name,
+                    username: target.username,
+                    email: target.email,
+                    avatar: target.avatar,
+                    role: target.role,
+                    bio: target.bio,
+                    region: target.region,
+                    isVerified: target.isVerified,
+                    verificationBadge: target.verificationBadge,
+                    groups: target.groups,
+                    interests: target.interests
+                  });
+                }}
+                disabled={!onOpenProfile}
+                className="relative shrink-0 text-left cursor-pointer group focus:outline-none disabled:cursor-default"
+                title="View Public Profile"
+              >
                 {selectedUser.avatar ? (
                   <img
                     src={selectedUser.avatar}
                     alt={selectedUser.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500/40"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500/40 group-hover:scale-105 group-hover:border-brand-500 transition-all"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-600 dark:text-brand-300 font-extrabold text-xl flex items-center justify-center border-2 border-brand-500/30">
+                  <div className="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-600 dark:text-brand-300 font-extrabold text-xl flex items-center justify-center border-2 border-brand-500/30 group-hover:scale-105 group-hover:border-brand-500 transition-all">
                     {selectedUser.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -680,13 +801,37 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                     <ShieldCheck className="w-3.5 h-3.5" />
                   </div>
                 )}
-              </div>
+              </button>
 
               <div className="space-y-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg sm:text-xl font-extrabold text-ink-950 dark:text-white">
-                    {selectedUser.name}
-                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedUser;
+                      setSelectedUser(null);
+                      onOpenProfile?.({
+                        id: target.id,
+                        name: target.name,
+                        username: target.username,
+                        email: target.email,
+                        avatar: target.avatar,
+                        role: target.role,
+                        bio: target.bio,
+                        region: target.region,
+                        isVerified: target.isVerified,
+                        verificationBadge: target.verificationBadge,
+                        groups: target.groups,
+                        interests: target.interests
+                      });
+                    }}
+                    disabled={!onOpenProfile}
+                    className="text-lg sm:text-xl font-extrabold text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer disabled:cursor-default disabled:hover:no-underline text-left inline-flex items-center gap-1.5"
+                    title="View Public Profile"
+                  >
+                    <span>{selectedUser.name}</span>
+                    <ExternalLink className="w-4 h-4 opacity-50" />
+                  </button>
                   {selectedUser.userType === 'registered' ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       Registered Citizen
@@ -699,7 +844,31 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                 </div>
 
                 <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
-                  <span>@{selectedUser.username || selectedUser.email.split('@')[0]}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedUser;
+                      setSelectedUser(null);
+                      onOpenProfile?.({
+                        id: target.id,
+                        name: target.name,
+                        username: target.username,
+                        email: target.email,
+                        avatar: target.avatar,
+                        role: target.role,
+                        bio: target.bio,
+                        region: target.region,
+                        isVerified: target.isVerified,
+                        verificationBadge: target.verificationBadge,
+                        groups: target.groups,
+                        interests: target.interests
+                      });
+                    }}
+                    disabled={!onOpenProfile}
+                    className="hover:text-brand-500 hover:underline cursor-pointer disabled:cursor-default"
+                  >
+                    @{selectedUser.username || selectedUser.email.split('@')[0]}
+                  </button>
                   <span>•</span>
                   <span className="text-brand-600 dark:text-brand-400 font-semibold">{selectedUser.role}</span>
                 </div>
@@ -856,17 +1025,46 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
-              <div className="text-[11px] font-mono text-slate-400">
+            <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between gap-3">
+              <div className="text-[11px] font-mono text-slate-400 truncate">
                 User ID: {selectedUser.id}
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedUser(null)}
-                className="btn-brand text-xs py-2 px-5 cursor-pointer"
-              >
-                Done
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {onOpenProfile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedUser;
+                      setSelectedUser(null);
+                      onOpenProfile({
+                        id: target.id,
+                        name: target.name,
+                        username: target.username,
+                        email: target.email,
+                        avatar: target.avatar,
+                        role: target.role,
+                        bio: target.bio,
+                        region: target.region,
+                        isVerified: target.isVerified,
+                        verificationBadge: target.verificationBadge,
+                        groups: target.groups,
+                        interests: target.interests
+                      });
+                    }}
+                    className="py-2 px-3.5 rounded-xl bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-300 hover:text-white font-bold text-xs border border-brand-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>View Profile</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="btn-brand text-xs py-2 px-5 cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         </div>
