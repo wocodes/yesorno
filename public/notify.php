@@ -432,23 +432,41 @@ $logEntry = json_encode([
 
 @file_put_contents(__DIR__ . '/notifications.log', $logEntry, FILE_APPEND | LOCK_EX);
 
-// Return JSON response
-echo json_encode([
-    'success' => true,
-    'test_mode' => $isTest,
-    'event' => $eventType,
-    'mailSent' => $mailSent,
-    'timestamp' => $timestamp,
-    'diagnostics' => $isTest ? [
-        'targetRecipient' => $targetRecipient,
-        'fromEmail' => $fromEmail,
-        'currentUser' => get_current_user(),
-        'serverAdmin' => isset($_SERVER['SERVER_ADMIN']) ? $_SERVER['SERVER_ADMIN'] : null,
-        'mail_function_exists' => function_exists('mail'),
-        'disabled_functions' => ini_get('disable_functions'),
-        'sendmail_path' => ini_get('sendmail_path'),
-        'mailErrors' => $mailErrors,
-        'hsendmailDebug' => $hsendmailDebug
-    ] : null,
-    'message' => $mailSent ? 'Notification email dispatched successfully' : 'Notification processed (mail transport pending server delivery)'
-]);
+    // Network probe to check outgoing socket/SMTP reachability
+    $socketChecks = [];
+    $testHosts = [
+        'smtp.hostinger.com:465' => ['smtp.hostinger.com', 465],
+        'smtp.gmail.com:587' => ['smtp.gmail.com', 587],
+        'api.resend.com:443' => ['api.resend.com', 443]
+    ];
+    foreach ($testHosts as $label => $target) {
+        $fp = @fsockopen($target[0], $target[1], $errno, $errstr, 2);
+        if ($fp) {
+            $socketChecks[$label] = 'CONNECTED';
+            fclose($fp);
+        } else {
+            $socketChecks[$label] = "FAILED ({$errno}: {$errstr})";
+        }
+    }
+
+    // Return JSON response
+    echo json_encode([
+        'success' => true,
+        'test_mode' => $isTest,
+        'event' => $eventType,
+        'mailSent' => $mailSent,
+        'timestamp' => $timestamp,
+        'diagnostics' => $isTest ? [
+            'targetRecipient' => $targetRecipient,
+            'fromEmail' => $fromEmail,
+            'currentUser' => get_current_user(),
+            'serverAdmin' => isset($_SERVER['SERVER_ADMIN']) ? $_SERVER['SERVER_ADMIN'] : null,
+            'mail_function_exists' => function_exists('mail'),
+            'disabled_functions' => ini_get('disable_functions'),
+            'sendmail_path' => ini_get('sendmail_path'),
+            'mailErrors' => $mailErrors,
+            'hsendmailDebug' => $hsendmailDebug,
+            'socketChecks' => $socketChecks
+        ] : null,
+        'message' => $mailSent ? 'Notification email dispatched successfully' : 'Notification processed (mail transport pending server delivery)'
+    ]);
