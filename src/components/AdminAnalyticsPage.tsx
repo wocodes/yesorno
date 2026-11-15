@@ -27,6 +27,20 @@ interface Props {
   theme: ThemeMode;
   onNavigate: (view: AppView) => void;
   onOpenIssue: (issue: Issue) => void;
+  onOpenProfile?: (target: {
+    username?: string;
+    name?: string;
+    avatar?: string;
+    email?: string;
+    role?: string;
+    id?: string;
+    bio?: string;
+    region?: string;
+    isVerified?: boolean;
+    verificationBadge?: string;
+    groups?: string[];
+    interests?: string[];
+  }) => void;
 }
 
 export const AdminAnalyticsPage: React.FC<Props> = ({
@@ -36,6 +50,7 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
   theme,
   onNavigate,
   onOpenIssue,
+  onOpenProfile,
 }) => {
   const [store, setStore] = useState<AdminAnalyticsStore>(() => loadAnalyticsStore());
   const [clickFilter, setClickFilter] = useState<'all' | 'button' | 'link'>('all');
@@ -710,6 +725,7 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
           users={adminUsers}
           isLoading={isLoadingUsers}
           onRefresh={loadUsersData}
+          onOpenProfile={onOpenProfile}
         />
       ) : (
         <>

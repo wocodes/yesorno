@@ -20,6 +20,12 @@ export function resolveUserProfile(
     avatar?: string;
     role?: string;
     id?: string;
+    bio?: string;
+    region?: string;
+    isVerified?: boolean;
+    verificationBadge?: string;
+    groups?: string[];
+    interests?: string[];
   },
   issues: Issue[],
   currentUser: UserProfile | null
@@ -197,16 +203,17 @@ export function resolveUserProfile(
   const resolvedUsername = targetUsername || cleanHandle(resolvedName.split(' ')[0]) || 'member';
 
   return {
-    id: `user-${resolvedUsername}`,
+    id: target.id || `user-${resolvedUsername}`,
     name: resolvedName,
     username: resolvedUsername,
     email: targetEmail || undefined,
     role: target.role || 'Civic Participant',
-    bio: 'Participating in civic decisions and consensus building.',
+    bio: target.bio || 'Participating in civic decisions and consensus building.',
     avatar: target.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resolvedName)}&backgroundColor=4f46e5,0d9488,d97706,e11d48`,
-    region: 'Local District',
-    groups: ['Community Member'],
-    isVerified: false,
+    region: (target.region as any) || 'Local District',
+    groups: target.groups && target.groups.length > 0 ? target.groups : ['Community Member'],
+    interests: (target.interests as any) || [],
+    isVerified: typeof target.isVerified === 'boolean' ? target.isVerified : false,
   };
 }
 

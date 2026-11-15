@@ -505,8 +505,26 @@ export function App() {
     }
   }, []);
 
+  const previousViewBeforeProfileRef = useRef<AppView>('app');
+
   // Open user profile page
-  const handleOpenProfile = (target: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => {
+  const handleOpenProfile = (target: {
+    username?: string;
+    name?: string;
+    avatar?: string;
+    email?: string;
+    role?: string;
+    id?: string;
+    bio?: string;
+    region?: string;
+    isVerified?: boolean;
+    verificationBadge?: string;
+    groups?: string[];
+    interests?: string[];
+  }) => {
+    if (currentView !== 'profile') {
+      previousViewBeforeProfileRef.current = currentView;
+    }
     const resolved = resolveUserProfile(target, issues, currentUser);
     setActiveProfileUser(resolved);
     setActiveDetailIssue(null);
@@ -2034,7 +2052,7 @@ export function App() {
             issues={issues}
             onBack={() => {
               setActiveProfileUser(null);
-              handleNavigate('app');
+              handleNavigate(previousViewBeforeProfileRef.current || 'app');
             }}
             onOpenIssue={(iss) => {
               recordUserInterestFromIssue(iss);
@@ -2098,6 +2116,7 @@ export function App() {
             colorTone={colorTone}
             theme={theme}
             onNavigate={handleNavigate}
+            onOpenProfile={handleOpenProfile}
             onOpenIssue={(iss) => {
               recordUserInterestFromIssue(iss);
               setActiveDetailIssue(iss);
