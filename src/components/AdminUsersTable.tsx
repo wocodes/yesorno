@@ -3,9 +3,11 @@ import {
   Search, Users2, ShieldCheck, CheckCircle2,
   Clock, Activity, Vote, MessageSquare, FileText, Download,
   RefreshCw, Copy, Check, Eye, SlidersHorizontal, Filter,
-  ChevronLeft, ChevronRight, X, Award, Sparkles, UserCheck, ExternalLink
+  ChevronLeft, ChevronRight, X, Award, UserCheck, ExternalLink,
+  Bot
 } from 'lucide-react';
 import { AdminUserRecord } from '../types';
+import { isSystemCreatedUser } from '../data/seedPersonas';
 
 interface AdminUsersTableProps {
   users: AdminUserRecord[];
@@ -69,7 +71,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
   onOpenProfile,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'registered' | 'verified' | 'seed'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'real' | 'system' | 'verified'>('all');
   const [sortField, setSortField] = useState<'lastActionAt' | 'lastLoginAt' | 'registeredAt' | 'votesCount' | 'issuesCount' | 'name'>('lastActionAt');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,23 +90,19 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
 
   // High-level KPI aggregations
   const totalCount = users.length;
-  const registeredCount = useMemo(() => users.filter((u) => u.userType === 'registered').length, [users]);
-  const seedCount = useMemo(() => users.filter((u) => u.userType === 'seed').length, [users]);
+  const realCount = useMemo(() => users.filter((u) => !isSystemCreatedUser(u)).length, [users]);
+  const systemCount = useMemo(() => users.filter((u) => isSystemCreatedUser(u)).length, [users]);
   const verifiedCount = useMemo(() => users.filter((u) => u.isVerified).length, [users]);
-  const activeParticipantsCount = useMemo(
-    () => users.filter((u) => (u.votesCount + u.issuesCount + u.commentsCount) > 0).length,
-    [users]
-  );
 
   // Filter & Sort
   const filteredAndSortedUsers = useMemo(() => {
     let list = [...users];
 
-    // Filter by type
-    if (typeFilter === 'registered') {
-      list = list.filter((u) => u.userType === 'registered');
-    } else if (typeFilter === 'seed') {
-      list = list.filter((u) => u.userType === 'seed');
+    // Filter by type: real vs system created (also supports legacy 'registered' / 'seed')
+    if (typeFilter === 'real' || (typeFilter as any) === 'registered') {
+      list = list.filter((u) => !isSystemCreatedUser(u));
+    } else if (typeFilter === 'system' || (typeFilter as any) === 'seed') {
+      list = list.filter((u) => isSystemCreatedUser(u));
     } else if (typeFilter === 'verified') {
       list = list.filter((u) => u.isVerified);
     }
@@ -179,7 +177,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
       `"@${(u.username || '').replace(/"/g, '""')}"`,
       `"${u.email.replace(/"/g, '""')}"`,
       `"${(u.role || '').replace(/"/g, '""')}"`,
-      `"${u.userType}"`,
+      `"${!isSystemCreatedUser(u) ? 'Real User' : 'System Created (AI Persona)'}"`,
       u.isVerified ? 'YES' : 'NO',
       `"${u.verificationBadge}"`,
       `"${u.registeredAt || ''}"`,
@@ -206,9 +204,18 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* KPI Overview Summary Cards */}
+      {/* KPI Overview Summary Cards (Interactive Filters) */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="card p-4 space-y-1 bg-gradient-to-br from-slate-900/5 to-transparent dark:from-white/5">
+        <button
+          type="button"
+          onClick={() => setTypeFilter('all')}
+          className={`card p-4 space-y-1 text-left transition-all cursor-pointer border ${
+            typeFilter === 'all'
+              ? 'ring-2 ring-brand-500 border-brand-500 bg-brand-500/5'
+              : 'hover:border-brand-500/30 bg-gradient-to-br from-slate-900/5 to-transparent dark:from-white/5'
+          }`}
+          title="Click to show all system users"
+        >
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-semibold">
             <span>Total System Users</span>
             <Users2 className="w-4 h-4 text-brand-500" />
@@ -217,24 +224,64 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
             {isLoading ? '...' : totalCount}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-zinc-400">
-            {registeredCount} Registered • {seedCount} Seed Personas
+            {realCount} Real Citizens • {systemCount} AI Personas
           </div>
-        </div>
+        </button>
 
-        <div className="card p-4 space-y-1 bg-gradient-to-br from-emerald-500/5 to-transparent">
+        <button
+          type="button"
+          onClick={() => setTypeFilter('real')}
+          className={`card p-4 space-y-1 text-left transition-all cursor-pointer border ${
+            typeFilter === 'real'
+              ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/10'
+              : 'hover:border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent'
+          }`}
+          title="Click to filter to only real registered human citizens"
+        >
           <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-            <span>Registered Accounts</span>
+            <span>Real Users (Citizens)</span>
             <UserCheck className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold font-mono text-ink-950 dark:text-white">
-            {isLoading ? '...' : registeredCount}
+            {isLoading ? '...' : realCount}
           </div>
           <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
-            Real citizen signups &amp; Google logins
+            Human citizen signups &amp; Google logins
           </div>
-        </div>
+        </button>
 
-        <div className="card p-4 space-y-1 bg-gradient-to-br from-sky-500/5 to-transparent">
+        <button
+          type="button"
+          onClick={() => setTypeFilter('system')}
+          className={`card p-4 space-y-1 text-left transition-all cursor-pointer border ${
+            typeFilter === 'system'
+              ? 'ring-2 ring-purple-500 border-purple-500 bg-purple-500/10'
+              : 'hover:border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-transparent'
+          }`}
+          title="Click to filter to system-created personas that AI uses to reply, vote, or create issues"
+        >
+          <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-semibold">
+            <span>System Created (AI)</span>
+            <Bot className="w-4 h-4 text-purple-500" />
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-ink-950 dark:text-white">
+            {isLoading ? '...' : systemCount}
+          </div>
+          <div className="text-[11px] text-purple-600 dark:text-purple-400">
+            AI engine for questions, votes &amp; replies
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTypeFilter('verified')}
+          className={`card p-4 space-y-1 text-left transition-all cursor-pointer border ${
+            typeFilter === 'verified'
+              ? 'ring-2 ring-sky-500 border-sky-500 bg-sky-500/10'
+              : 'hover:border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-transparent'
+          }`}
+          title="Click to filter to verified accounts"
+        >
           <div className="flex items-center justify-between text-xs text-sky-600 dark:text-sky-400 font-semibold">
             <span>Verified Identities</span>
             <ShieldCheck className="w-4 h-4 text-sky-500" />
@@ -245,20 +292,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
           <div className="text-[11px] text-sky-600 dark:text-sky-400">
             Google OAuth &amp; Official credentials
           </div>
-        </div>
-
-        <div className="card p-4 space-y-1 bg-gradient-to-br from-purple-500/5 to-transparent">
-          <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-semibold">
-            <span>Active Participants</span>
-            <Activity className="w-4 h-4 text-purple-500" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-ink-950 dark:text-white">
-            {isLoading ? '...' : activeParticipantsCount}
-          </div>
-          <div className="text-[11px] text-purple-600 dark:text-purple-400">
-            Recorded votes, issues, or replies
-          </div>
-        </div>
+        </button>
       </section>
 
       {/* Interactive Toolbar & Controls */}
@@ -320,46 +354,53 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
             <button
               type="button"
               onClick={() => setTypeFilter('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 typeFilter === 'all'
-                  ? 'bg-brand-500 text-white shadow-xs'
+                  ? 'bg-brand-600 text-white shadow-soft ring-2 ring-brand-500/20'
                   : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/10'
               }`}
             >
-              All Users ({totalCount})
+              <Users2 className="w-3.5 h-3.5" />
+              <span>All Users ({totalCount})</span>
             </button>
             <button
               type="button"
-              onClick={() => setTypeFilter('registered')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                typeFilter === 'registered'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/10'
+              onClick={() => setTypeFilter('real')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                typeFilter === 'real'
+                  ? 'bg-emerald-600 text-white shadow-soft ring-2 ring-emerald-500/20'
+                  : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-500/30'
               }`}
+              title="Show only real registered human citizen users"
             >
-              Registered Only ({registeredCount})
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Real Users ({realCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('system')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                typeFilter === 'system'
+                  ? 'bg-purple-600 text-white shadow-soft ring-2 ring-purple-500/20'
+                  : 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 border border-purple-500/30'
+              }`}
+              title="Show system created personas used by AI to reply, vote, or create issues"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>System Created / AI ({systemCount})</span>
             </button>
             <button
               type="button"
               onClick={() => setTypeFilter('verified')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 typeFilter === 'verified'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/10'
+                  ? 'bg-sky-600 text-white shadow-soft ring-2 ring-sky-500/20'
+                  : 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20 border border-sky-500/30'
               }`}
+              title="Show verified Google or official accounts"
             >
-              Verified Accounts ({verifiedCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setTypeFilter('seed')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                typeFilter === 'seed'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/10'
-              }`}
-            >
-              Seed Personas ({seedCount})
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Verified ({verifiedCount})</span>
             </button>
           </div>
 
@@ -563,13 +604,16 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                             {user.role || 'Civic Participant'}
                           </div>
                           <div>
-                            {user.userType === 'registered' ? (
+                            {!isSystemCreatedUser(user) ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                <UserCheck className="w-2.5 h-2.5" /> Registered User
+                                <UserCheck className="w-2.5 h-2.5" /> Real User
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                                <Sparkles className="w-2.5 h-2.5" /> Seed Persona
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                                title="System created persona used by AI to reply, vote, or create issues"
+                              >
+                                <Bot className="w-2.5 h-2.5" /> System AI Persona
                               </span>
                             )}
                           </div>
@@ -832,13 +876,15 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                     <span>{selectedUser.name}</span>
                     <ExternalLink className="w-4 h-4 opacity-50" />
                   </button>
-                  {selectedUser.userType === 'registered' ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Registered Citizen
+                  {!isSystemCreatedUser(selectedUser) ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3 text-emerald-500" />
+                      <span>Real Citizen / Human</span>
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                      Seed Persona
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                      <Bot className="w-3 h-3 text-purple-500" />
+                      <span>System Created AI Persona</span>
                     </span>
                   )}
                 </div>
@@ -896,6 +942,24 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* AI Persona Notice Banner */}
+            {isSystemCreatedUser(selectedUser) && (
+              <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-500/30 flex items-start gap-3">
+                <div className="p-1.5 rounded-xl bg-purple-500 text-white shrink-0 mt-0.5">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5 text-xs text-purple-950 dark:text-purple-200">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>Autonomous AI Engine Persona</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-200/70 dark:bg-purple-500/20 font-mono">system-persona</span>
+                  </div>
+                  <p className="text-[11px] text-purple-700 dark:text-purple-300 leading-relaxed">
+                    This account is a system-created persona utilized by our background AI curator to publish culturally authentic civic dilemmas, stimulate debate with reasoned perspectives, and engage in threaded comment rebuttals.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* 4-Stat Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

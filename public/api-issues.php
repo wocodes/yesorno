@@ -978,6 +978,27 @@ function handle_save_user_profile(?PDO $pdo, array $profile, string $profilesFal
 function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
     $usersMap = [];
 
+    // Load seed personas to classify real vs system users accurately
+    $seedFile = __DIR__ . '/data/seed_personas.json';
+    $seedPersonasMap = [];
+    if (file_exists($seedFile)) {
+        $spData = json_decode(@file_get_contents($seedFile), true);
+        if (is_array($spData)) {
+            foreach ($spData as $sp) {
+                $eKey = strtolower(trim($sp['email'] ?? ''));
+                if ($eKey) {
+                    $seedPersonasMap[$eKey] = $sp;
+                }
+                if (!empty($sp['id'])) {
+                    $seedPersonasMap[strtolower(trim($sp['id']))] = $sp;
+                }
+                if (!empty($sp['username'])) {
+                    $seedPersonasMap['@' . strtolower(trim($sp['username']))] = $sp;
+                }
+            }
+        }
+    }
+
     if ($pdo) {
         try {
             // 1. Load all stored user profiles
@@ -1101,12 +1122,17 @@ function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
                 }
             }
 
-            // 5. Gather all unique emails (from profiles, responses, issues, replies)
+            // 5. Gather all unique emails (from profiles, responses, issues, replies, and seed personas)
+            $seedEmails = array_filter(array_keys($seedPersonasMap), function($k) {
+                return strpos($k, '@') !== false && strpos($k, '@') > 0;
+            });
+
             $allEmails = array_unique(array_merge(
                 array_keys($usersMap),
                 array_keys($voteAgg),
                 array_keys($issueAgg),
-                array_keys($replyAgg)
+                array_keys($replyAgg),
+                $seedEmails
             ));
 
             $resultUsers = [];
@@ -1123,24 +1149,39 @@ function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
                 $emailParts = explode('@', $email);
                 $fallbackHandle = preg_replace('/[^a-z0-9_]/i', '_', $emailParts[0] ?? 'user');
 
+                // Check against seed personas map
+                $matchedSeed = $seedPersonasMap[$email] ?? ($seedPersonasMap[strtolower($id)] ?? null);
+                if (!$matchedSeed && !empty($profile['username'])) {
+                    $matchedSeed = $seedPersonasMap['@' . strtolower(trim($profile['username']))] ?? null;
+                }
+                if (!$matchedSeed && !empty($profile['id'])) {
+                    $matchedSeed = $seedPersonasMap[strtolower(trim($profile['id']))] ?? null;
+                }
+
                 $name = !empty($profile['name']) ? $profile['name'] : (
-                    !empty($vData['sample_name']) ? $vData['sample_name'] : (
-                        !empty($iData['sample_name']) ? $iData['sample_name'] : (
-                            !empty($rData['sample_name']) ? $rData['sample_name'] : ucwords(str_replace(['.', '_', '-'], ' ', $emailParts[0] ?? 'User'))
+                    !empty($matchedSeed['name']) ? $matchedSeed['name'] : (
+                        !empty($vData['sample_name']) ? $vData['sample_name'] : (
+                            !empty($iData['sample_name']) ? $iData['sample_name'] : (
+                                !empty($rData['sample_name']) ? $rData['sample_name'] : ucwords(str_replace(['.', '_', '-'], ' ', $emailParts[0] ?? 'User'))
+                            )
                         )
                     )
                 );
 
-                $username = !empty($profile['username']) ? $profile['username'] : $fallbackHandle;
-                $role = !empty($profile['role']) ? $profile['role'] : (!empty($vData['sample_role']) ? $vData['sample_role'] : 'Civic Participant');
-                $bio = $profile['bio'] ?? '';
-                $avatar = $profile['avatar'] ?? '';
-                $region = $profile['region'] ?? '';
+                $username = !empty($profile['username']) ? $profile['username'] : (!empty($matchedSeed['username']) ? $matchedSeed['username'] : $fallbackHandle);
+                $role = !empty($profile['role']) ? $profile['role'] : (!empty($matchedSeed['role']) ? $matchedSeed['role'] : (!empty($vData['sample_role']) ? $vData['sample_role'] : 'Civic Participant'));
+                $bio = !empty($profile['bio']) ? $profile['bio'] : ($matchedSeed['bio'] ?? '');
+                $avatar = !empty($profile['avatar']) ? $profile['avatar'] : ($matchedSeed['avatar'] ?? '');
+                $region = !empty($profile['region']) ? $profile['region'] : ($matchedSeed['region'] ?? '');
                 $groups = $profile['groups'] ?? [];
-                $interests = $profile['interests'] ?? [];
+                $interests = !empty($profile['interests']) ? $profile['interests'] : ($matchedSeed['interests'] ?? []);
 
-                // Determine userType: registered vs seed
-                $isSeed = (strpos($id, 'pers-') === 0) || (($profile['userType'] ?? '') === 'seed');
+                if ($matchedSeed && (empty($id) || strpos($id, 'usr_') === 0)) {
+                    $id = $matchedSeed['id'] ?? $id;
+                }
+
+                // Determine userType: registered (real citizen) vs seed (system AI persona)
+                $isSeed = ($matchedSeed !== null) || (strpos($id, 'pers-') === 0) || (($profile['userType'] ?? '') === 'seed') || (isset($profile['id']) && strpos($profile['id'], 'pers-') === 0);
                 $userType = $isSeed ? 'seed' : 'registered';
 
                 // Determine isVerified & badge
