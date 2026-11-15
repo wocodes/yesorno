@@ -90,6 +90,8 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [isDraftRestored, setIsDraftRestored] = useState(false);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const draftDebounceTimer = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+  const lastEditingIssueIdRef = useRef<string | undefined>(undefined);
 
   const handleConfirmTrendSuggestion = (sug: {
     title: string;
@@ -129,7 +131,17 @@ export const CreateIssueModal: React.FC<Props> = ({
   const [alias] = useState(() => generateCivicAlias());
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
+      isInitializedRef.current = false;
+      lastEditingIssueIdRef.current = undefined;
+      return;
+    }
+
+    const editingChanged = editingIssue?.id !== lastEditingIssueIdRef.current;
+    if (!isInitializedRef.current || editingChanged) {
+      isInitializedRef.current = true;
+      lastEditingIssueIdRef.current = editingIssue?.id;
+
       if (editingIssue) {
         setTitle(editingIssue.title);
         setDescription(editingIssue.description || '');
@@ -182,7 +194,7 @@ export const CreateIssueModal: React.FC<Props> = ({
         }
       }
     }
-  }, [isOpen, editingIssue, currentUser]);
+  }, [isOpen, editingIssue]);
 
   // Debounced Autosave Draft to server profile (only when not editing an existing issue)
   useEffect(() => {
@@ -193,8 +205,8 @@ export const CreateIssueModal: React.FC<Props> = ({
       const hasContent = Boolean(title.trim() || description.trim() || images.length > 0);
       if (hasContent) {
         onSaveDraft?.({
-          title: title.trim(),
-          description: description.trim(),
+          title,
+          description,
           category,
           tagsInput: tagsInput.trim(),
           durationLabel: duration.label,
@@ -205,7 +217,7 @@ export const CreateIssueModal: React.FC<Props> = ({
           updatedAt: new Date().toISOString()
         });
       }
-    }, 700);
+    }, 1500);
 
     return () => {
       if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
@@ -213,6 +225,7 @@ export const CreateIssueModal: React.FC<Props> = ({
   }, [title, description, category, tagsInput, duration, visibility, isAnonymous, images, isOpen, editingIssue]);
 
   const handleDiscardDraft = () => {
+    if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
     setTitle('');
     setDescription('');
     setShowDescription(false);
@@ -362,6 +375,7 @@ export const CreateIssueModal: React.FC<Props> = ({
       creatorVoiceNote: creatorVoice || undefined
     };
 
+    if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
     if (onCreateIssue) {
       onCreateIssue(newIssue);
     }
