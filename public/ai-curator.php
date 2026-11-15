@@ -934,8 +934,10 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
             . "   - Statement preamble + question (e.g. 'Fuel subsidy removed: should it be brought back?', 'Dangote refinery cuts petrol price: will filling stations drop pump prices?')\n"
             . "   - Direct binary polarity hot-take (e.g. '50/50 rent in marriage: Yes or No?', 'A man earning ₦150k has no business dating in Lagos: agree?')\n"
             . "   - Provocative civic question (e.g. 'Should politicians seeking foreign healthcare be stripped of office?')\n"
-            . "2. \"description\": 2 to 4 punchy sentences. CRITICAL SOCIAL MEDIA RULE:\n"
-            . "   - Because social media link previews (X, WhatsApp, Facebook, LinkedIn) only highlight the first 8-15 words, FRONT-LOAD AN IRRESISTIBLE HOOK in the very first sentence (e.g. 'I was cleaning my husband\\'s car when a birth certificate with his name fell out...', 'My mother-in-law moved in for \"two weeks\" and it has now been 14 months without an exit date...').\n"
+            . "2. \"description\": 2 to 4 punchy sentences. CRITICAL SOCIAL MEDIA & NIGERIAN REALISM RULE:\n"
+            . "   - STRICTLY AVOID Western concepts: NO 'court-ordered child support', 'child support receipts', 'alimony', 'pre-nups', or 'credit scores' — these DO NOT exist in Nigerian daily life!\n"
+            . "   - Use authentic Nigerian situations: bank transfer debit alerts for 'creche/feeding money', a child hidden in the village introduced as a 'nephew' who called him 'Daddy', mother-in-law coming for Omugwo and locking the kitchen, or ₦14M joint building savings used to secretly buy land in in-law's name.\n"
+            . "   - Because social media link previews (X, WhatsApp, Facebook, LinkedIn) only highlight the first 8-15 words, FRONT-LOAD AN IRRESISTIBLE HOOK in the very first sentence (e.g. 'I was using my fiancé\\'s phone to turn on hotspot when repeated bank debit alerts popped up for ₦120k with narration \"Junior feeding\"...', 'My mother-in-law moved in for \"two weeks\" and it has now been 14 months without an exit date...').\n"
             . "   - Then outline the emotional dilemma: why the YES camp insists one action is necessary, and why the NO camp passionately calls it betrayal or heartless.\n"
             . "3. \"category\": Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].\n"
             . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['DangoteRefinery', 'PetrolPrices', 'CommuterRights']).\n"
@@ -1553,6 +1555,9 @@ Do NOT always start with 'Should...'. Alternate across these punchy styles:
 Every question must end with a single '?' and strictly elicit a YES or NO.
 
 PROVOCATION, LANGUAGE & SARCASM INSTRUCTIONS:
+- CRITICAL REGIONAL RULE (NIGERIAN REALITIES ONLY — ZERO WESTERN CONCEPTS):
+  - Absolutely NO Western concepts: NO 'court-ordered child support', 'child support receipts', 'alimony', 'pre-nuptial agreements', or 'credit scores' — these DO NOT exist in Nigerian daily life!
+  - Ground dilemmas in authentic Nigerian occurrences: mobile bank debit alerts ('Junior feeding money / school fees'), children in the village introduced as 'nephews' who call the man 'Daddy', mothers-in-law coming for 'Omugwo' and refusing to leave, joint house savings secretly diverted to buy land in mother's name, Proof of Funds (POF) Japa visa betrayals, or ₦2.5M salary Black Tax entitlement.
 - CRITICAL: NO BIG GRAMMAR, NO TECHNICAL ESSAY JARGON.
   - Strictly avoid phrases like 'from a practical standpoint', 'structural framework', 'mitigate friction', 'socioeconomic paradigm', 'macroeconomic implications', 'institutional accountability', 'concomitant'.
   - Sound like REAL PEOPLE on Nigerian Twitter/X, in a bus, salon, barber shop, or cafeteria. Simple, conversational English that any layperson gets in 2 seconds.
