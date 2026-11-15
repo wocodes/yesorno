@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, CheckCircle2, UserPlus, UserCheck, Share2, 
   ThumbsUp, ThumbsDown, MessageSquare, Layers, MapPin, 
@@ -13,7 +13,9 @@ import {
   getUserPerspectives, 
   getUserVotes, 
   getUserReplies,
-  isFollowingUser 
+  isFollowingUser,
+  fetchRemoteUserProfile,
+  cleanHandle
 } from '../utils/userProfile';
 import { formatRelativeTime } from '../utils/summary';
 import { VoicePlayer } from './VoicePlayer';
@@ -30,6 +32,7 @@ interface Props {
   onToggleFollow: (profile: PublicUserProfile) => void;
   onOpenSettings?: () => void;
   onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
+  onProfileResolved?: (updatedProfile: PublicUserProfile) => void;
   userVotes?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
   userLikes?: Record<string, boolean>;
   userFavorites?: Record<string, boolean>;
@@ -41,7 +44,7 @@ interface Props {
 }
 
 export const UserProfilePage: React.FC<Props> = ({
-  profile,
+  profile: initialProfile,
   currentUser,
   issues,
   onBack,
@@ -51,6 +54,7 @@ export const UserProfilePage: React.FC<Props> = ({
   onToggleFollow,
   onOpenSettings,
   onOpenProfile,
+  onProfileResolved,
   userVotes = {},
   userLikes = {},
   userFavorites = {},
@@ -62,6 +66,45 @@ export const UserProfilePage: React.FC<Props> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'issues' | 'votes' | 'perspectives' | 'replies' | 'about'>('issues');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [remoteProfile, setRemoteProfile] = useState<PublicUserProfile | null>(null);
+
+  // Reset remote profile when target username changes
+  useEffect(() => {
+    setRemoteProfile(null);
+  }, [initialProfile.username]);
+
+  // Fetch full registered user profile from backend database to ensure real Full Name is rendered
+  useEffect(() => {
+    let isMounted = true;
+    const u = cleanHandle(initialProfile.username);
+    const em = initialProfile.email;
+
+    fetchRemoteUserProfile({ username: u, email: em }).then((serverProfile) => {
+      if (isMounted && serverProfile) {
+        setRemoteProfile(serverProfile);
+        if (onProfileResolved) {
+          onProfileResolved(serverProfile);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialProfile.username, initialProfile.email]);
+
+  // Merge initial profile props with fetched remote profile
+  const profile = useMemo<PublicUserProfile>(() => {
+    if (!remoteProfile) return initialProfile;
+    return {
+      ...initialProfile,
+      ...remoteProfile,
+      name: remoteProfile.name || initialProfile.name,
+      avatar: remoteProfile.avatar || initialProfile.avatar,
+      bio: remoteProfile.bio || initialProfile.bio,
+      role: remoteProfile.role || initialProfile.role,
+    };
+  }, [initialProfile, remoteProfile]);
 
   // Derived user content (all sorted by latest timestamp)
   const createdIssues = useMemo(() => getUserCreatedIssues(profile, issues), [profile, issues]);

@@ -48,7 +48,7 @@ import { ContactPage } from './components/ContactPage';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { checkAndTriggerDailyGeminiPosts } from './utils/geminiDailyGenerator';
-import { resolveUserProfile } from './utils/userProfile';
+import { resolveUserProfile, fetchRemoteUserProfile } from './utils/userProfile';
 import { 
   Filter, Home, User, Vote, Clock, Plus, Bookmark, Compass, Search, Sparkles, ArrowUp
 } from 'lucide-react';
@@ -479,6 +479,13 @@ export function App() {
         setActiveDetailIssue(null);
         setCurrentView('profile');
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+        // Asynchronously fetch full registered user profile from server
+        fetchRemoteUserProfile({ username: userHandle }).then((serverProfile) => {
+          if (serverProfile) {
+            setActiveProfileUser(serverProfile);
+          }
+        });
       } else if (hash === 'contact') {
         setActiveDetailIssue(null);
         setCurrentView('contact');
@@ -502,6 +509,13 @@ export function App() {
       setActiveProfileUser(resolved);
       setActiveDetailIssue(null);
       setCurrentView('profile');
+
+      // Asynchronously fetch full registered user profile from server
+      fetchRemoteUserProfile({ username: userHandle }).then((serverProfile) => {
+        if (serverProfile) {
+          setActiveProfileUser(serverProfile);
+        }
+      });
     }
   }, []);
 
@@ -531,6 +545,15 @@ export function App() {
     setCurrentView('profile');
     window.location.hash = `profile/${encodeURIComponent(resolved.username)}`;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+    // If profile name is unconfirmed or identical to handle, asynchronously query server profile
+    if (!target.name || target.name === target.username || target.name.startsWith('@')) {
+      fetchRemoteUserProfile({ username: resolved.username, email: resolved.email }).then((serverProfile) => {
+        if (serverProfile) {
+          setActiveProfileUser(serverProfile);
+        }
+      });
+    }
   };
 
   // Toggle follow user profile
@@ -2048,6 +2071,7 @@ export function App() {
         {currentView === 'profile' && activeProfileUser ? (
           <UserProfilePage
             profile={activeProfileUser}
+            onProfileResolved={(p) => setActiveProfileUser(p)}
             currentUser={currentUser}
             issues={issues}
             onBack={() => {

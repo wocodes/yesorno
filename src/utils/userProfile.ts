@@ -3,6 +3,30 @@ import { TOP_CREATORS_AND_VOTERS, DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, getSavedPr
 import { SEED_PERSONAS } from '../data/seedPersonas';
 
 /**
+ * In-memory cache for profiles fetched from the server / database
+ */
+const REMOTE_PROFILE_CACHE = new Map<string, PublicUserProfile>();
+
+// Pre-fill cache from browser localStorage on load
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    const raw = localStorage.getItem('cached_remote_profiles');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        Object.entries(parsed).forEach(([key, val]) => {
+          if (val && typeof val === 'object') {
+            REMOTE_PROFILE_CACHE.set(key.toLowerCase(), val as PublicUserProfile);
+          }
+        });
+      }
+    }
+  } catch (e) {
+    // Ignore storage parse issues
+  }
+}
+
+/**
  * Normalizes a handle or username into clean lowercase without @ prefix
  */
 export function cleanHandle(handle?: string | null): string {
@@ -234,6 +258,14 @@ export function resolveUserProfile(
         };
       }
     }
+  }
+
+  // 6.5. Check cached remote database profiles
+  if (targetUsername && REMOTE_PROFILE_CACHE.has(targetUsername)) {
+    return REMOTE_PROFILE_CACHE.get(targetUsername)!;
+  }
+  if (targetEmail && REMOTE_PROFILE_CACHE.has(targetEmail)) {
+    return REMOTE_PROFILE_CACHE.get(targetEmail)!;
   }
 
   // 7. Fallback generated public profile
@@ -477,4 +509,78 @@ export function isFollowingUser(target: PublicUserProfile, currentUser: UserProf
       (fLower.includes(targetName) || targetName.includes(fLower))
     );
   });
+}
+
+/**
+ * Asynchronously fetches a registered user profile from the server database by username or email.
+ * Updates in-memory and local caches so subsequent views resolve synchronously.
+ */
+export async function fetchRemoteUserProfile(identifier: {
+  username?: string;
+  email?: string;
+}): Promise<PublicUserProfile | null> {
+  const username = cleanHandle(identifier.username);
+  const email = (identifier.email || '').trim().toLowerCase();
+
+  if (!username && !email) return null;
+
+  if (username && REMOTE_PROFILE_CACHE.has(username)) {
+    return REMOTE_PROFILE_CACHE.get(username)!;
+  }
+  if (email && REMOTE_PROFILE_CACHE.has(email)) {
+    return REMOTE_PROFILE_CACHE.get(email)!;
+  }
+
+  try {
+    const query = new URLSearchParams({ action: 'get_profile' });
+    if (username) query.set('username', username);
+    if (email) query.set('email', email);
+
+    const res = await fetch(`/api-issues.php?${query.toString()}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.success && data.profile) {
+      const p = data.profile;
+      const cleanUser = cleanHandle(p.username) || username;
+      const rawName = (p.name || '').trim();
+      const realName = rawName.startsWith('@') ? rawName.slice(1) : (rawName || cleanUser);
+
+      const resolved: PublicUserProfile = {
+        id: p.id || `user-${cleanUser}`,
+        name: realName,
+        username: cleanUser,
+        email: p.email || (email || undefined),
+        role: p.role || 'Verified Member',
+        bio: p.bio || 'Active civic contributor shaping public policy and neighborhood consensus.',
+        avatar: p.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(realName)}&backgroundColor=4f46e5,0d9488,d97706,e11d48`,
+        region: p.region || 'Local District',
+        groups: Array.isArray(p.groups) && p.groups.length > 0 ? p.groups : ['District 4 Council', 'Community Member'],
+        interests: Array.isArray(p.interests) ? p.interests : [],
+        isVerified: typeof p.isVerified === 'boolean' ? p.isVerified : true,
+        verificationBadge: p.verificationBadge || (p.role?.toLowerCase().includes('google') ? 'google' : 'resident'),
+      };
+
+      if (cleanUser) REMOTE_PROFILE_CACHE.set(cleanUser, resolved);
+      if (resolved.email) REMOTE_PROFILE_CACHE.set(resolved.email.toLowerCase(), resolved);
+
+      // Persist in localStorage for instant synchronous loads next time
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const raw = localStorage.getItem('cached_remote_profiles');
+          const stored = raw ? JSON.parse(raw) : {};
+          if (cleanUser) stored[cleanUser] = resolved;
+          if (resolved.email) stored[resolved.email.toLowerCase()] = resolved;
+          localStorage.setItem('cached_remote_profiles', JSON.stringify(stored));
+        } catch (e) {
+          // ignore storage error
+        }
+      }
+
+      return resolved;
+    }
+  } catch (err) {
+    console.warn('Could not fetch remote user profile:', err);
+  }
+
+  return null;
 }

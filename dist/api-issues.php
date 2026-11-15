@@ -926,19 +926,55 @@ function handle_atomic_reaction(PDO $pdo, array $payload) {
 // USER PROFILE PERSISTENCE (Multi-Device Sync)
 // -------------------------------------------------------------
 
-function handle_get_user_profile(?PDO $pdo, string $email, string $profilesFallbackPath): ?array {
-    $emailKey = strtolower(trim($email));
-    if ($emailKey === '') return null;
+function handle_get_user_profile(?PDO $pdo, ?string $email, string $profilesFallbackPath, ?string $username = null): ?array {
+    $emailKey = strtolower(trim($email ?? ''));
+    $usernameKey = strtolower(ltrim(trim($username ?? ''), '@'));
+    if ($emailKey === '' && $usernameKey === '') return null;
 
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(email) = :email LIMIT 1");
-            $stmt->execute([':email' => $emailKey]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && !empty($row['user_data'])) {
-                $decoded = json_decode($row['user_data'], true);
-                if (is_array($decoded)) {
-                    return $decoded;
+            if ($emailKey !== '') {
+                $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(email) = :email LIMIT 1");
+                $stmt->execute([':email' => $emailKey]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && !empty($row['user_data'])) {
+                    $decoded = json_decode($row['user_data'], true);
+                    if (is_array($decoded)) {
+                        return $decoded;
+                    }
+                }
+            }
+
+            if ($usernameKey !== '') {
+                // 1. Try SQLite json_extract
+                try {
+                    $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(json_extract(user_data, '$.username')) = :u OR lower(json_extract(user_data, '$.username')) = :at_u LIMIT 1");
+                    $stmt->execute([':u' => $usernameKey, ':at_u' => '@' . $usernameKey]);
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($row && !empty($row['user_data'])) {
+                        $decoded = json_decode($row['user_data'], true);
+                        if (is_array($decoded)) {
+                            return $decoded;
+                        }
+                    }
+                } catch (Exception $eJson) {
+                    // Fallback to substring query if json_extract is unavailable in SQLite build
+                }
+
+                // 2. Fallback like search
+                $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(user_data) LIKE :pattern LIMIT 20");
+                $stmt->execute([':pattern' => '%' . $usernameKey . '%']);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $r) {
+                    if (!empty($r['user_data'])) {
+                        $decoded = json_decode($r['user_data'], true);
+                        if (is_array($decoded)) {
+                            $u = strtolower(ltrim(trim($decoded['username'] ?? ''), '@'));
+                            if ($u === $usernameKey) {
+                                return $decoded;
+                            }
+                        }
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -949,8 +985,38 @@ function handle_get_user_profile(?PDO $pdo, string $email, string $profilesFallb
     if (file_exists($profilesFallbackPath)) {
         $raw = @file_get_contents($profilesFallbackPath);
         $map = $raw ? json_decode($raw, true) : null;
-        if (is_array($map) && isset($map[$emailKey]) && is_array($map[$emailKey])) {
-            return $map[$emailKey];
+        if (is_array($map)) {
+            if ($emailKey !== '' && isset($map[$emailKey]) && is_array($map[$emailKey])) {
+                return $map[$emailKey];
+            }
+            if ($usernameKey !== '') {
+                foreach ($map as $prof) {
+                    if (is_array($prof)) {
+                        $u = strtolower(ltrim(trim($prof['username'] ?? ''), '@'));
+                        if ($u === $usernameKey) {
+                            return $prof;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Check seed personas file as well
+    $seedFile = __DIR__ . '/data/seed_personas.json';
+    if (file_exists($seedFile)) {
+        $seedRaw = @file_get_contents($seedFile);
+        $seedList = $seedRaw ? json_decode($seedRaw, true) : null;
+        if (is_array($seedList)) {
+            foreach ($seedList as $p) {
+                if (is_array($p)) {
+                    $pEmail = strtolower(trim($p['email'] ?? ''));
+                    $pUsername = strtolower(ltrim(trim($p['username'] ?? ''), '@'));
+                    if (($emailKey !== '' && $pEmail === $emailKey) || ($usernameKey !== '' && $pUsername === $usernameKey)) {
+                        return $p;
+                    }
+                }
+            }
         }
     }
 
@@ -1362,7 +1428,8 @@ if (!$pdo) {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (isset($_GET['action']) && $_GET['action'] === 'get_profile') {
             $email = trim($_GET['email'] ?? '');
-            $profile = handle_get_user_profile(null, $email, $profilesFallbackPath);
+            $username = trim($_GET['username'] ?? $_GET['handle'] ?? '');
+            $profile = handle_get_user_profile(null, $email, $profilesFallbackPath, $username);
             echo json_encode(['success' => true, 'profile' => $profile]);
             exit;
         }
@@ -1381,7 +1448,8 @@ if (!$pdo) {
             $act = $payload['action'] ?? null;
             if ($act === 'get_profile') {
                 $email = trim($payload['email'] ?? '');
-                $profile = handle_get_user_profile(null, $email, $profilesFallbackPath);
+                $username = trim($payload['username'] ?? $payload['handle'] ?? '');
+                $profile = handle_get_user_profile(null, $email, $profilesFallbackPath, $username);
                 echo json_encode(['success' => true, 'profile' => $profile]);
                 exit;
             }
@@ -1411,7 +1479,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if (isset($_GET['action']) && $_GET['action'] === 'get_profile') {
         $email = trim($_GET['email'] ?? '');
-        $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
+        $username = trim($_GET['username'] ?? $_GET['handle'] ?? '');
+        $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath, $username);
         echo json_encode(['success' => true, 'profile' => $profile]);
         exit;
     }
@@ -1442,7 +1511,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'get_profile':
             $email = trim($payload['email'] ?? '');
-            $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath);
+            $username = trim($payload['username'] ?? $payload['handle'] ?? '');
+            $profile = handle_get_user_profile($pdo, $email, $profilesFallbackPath, $username);
             echo json_encode(['success' => true, 'profile' => $profile]);
             exit;
 
