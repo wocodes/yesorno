@@ -238,4 +238,5 @@ export interface PublicUserProfile {
   followersCount?: number;
   isVerified?: boolean;
   verificationBadge?: string;
+  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string } | 'YES' | 'NO'>;
 }
