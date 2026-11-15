@@ -195,6 +195,17 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
                 ':tags' => json_encode(['TaxReform', 'FaithInstitutions', 'EducationCost', 'Economy']),
                 ':now' => gmdate('Y-m-d\TH:i:s\Z')
             ]);
+
+            // Auto-attribute Catherine Mbawuike's perspective on Lagos dating issue
+            $pdo->exec("
+                UPDATE responses 
+                SET author_name = 'Catherine Mbawuike',
+                    author_username = 'stylushairs1',
+                    author_email = 'stylushairs1@gmail.com',
+                    author_role = 'Verified Google Account',
+                    is_anonymous = 0
+                WHERE id = 'vote-1794733633630-abx0'
+            ");
         } catch (Exception $e) {}
 
         return $pdo;

@@ -31,7 +31,7 @@ export const VoteModal: React.FC<Props> = ({
   const [choice, setChoice] = useState<VoteChoice | null>(initialChoice || existingVoteChoice || null);
   const [note, setNote] = useState('');
   const [voiceAttachment, setVoiceAttachment] = useState<VoiceAttachment | null>(null);
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(currentUser?.defaultAnonymous ?? false);
   const [authorName, setAuthorName] = useState(currentUser?.name || '');
   const [authorRole, setAuthorRole] = useState(currentUser?.role || '');
   const [generatedAlias] = useState(() => generateCivicAlias());
@@ -44,7 +44,7 @@ export const VoteModal: React.FC<Props> = ({
       setChoice(initialChoice || existingVoteChoice || null);
       setNote('');
       setVoiceAttachment(null);
-      setIsAnonymous(currentUser?.defaultAnonymous ?? true);
+      setIsAnonymous(currentUser?.defaultAnonymous ?? false);
       setAuthorName(currentUser?.name || '');
       setAuthorRole(currentUser?.role || '');
     }

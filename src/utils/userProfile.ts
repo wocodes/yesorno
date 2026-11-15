@@ -343,6 +343,15 @@ export function getUserVotes(
   const userEmail = (user.email || '').toLowerCase();
   const userName = user.name.toLowerCase();
 
+  const userResponseIds = new Set<string>();
+  if (user.votedIssues) {
+    Object.values(user.votedIssues).forEach(v => {
+      if (typeof v === 'object' && v && (v as any).responseId) {
+        userResponseIds.add((v as any).responseId);
+      }
+    });
+  }
+
   const voteMap = new Map<string, UserVoteRecord>();
 
   // 1. Scan all issue responses for this user's submissions
@@ -353,7 +362,7 @@ export function getUserVotes(
       const rEmail = (resp.authorEmail || '').toLowerCase();
       const rName = (resp.authorName || '').toLowerCase();
 
-      const isMatch = Boolean(
+      const isMatch = userResponseIds.has(resp.id) || Boolean(
         (userHandle && rUsername === userHandle) ||
         (userEmail && rEmail === userEmail) ||
         (userName && rName === userName)
@@ -391,10 +400,15 @@ export function getUserVotes(
       if (targetIssue) {
         const choice: VoteChoice = typeof raw === 'string' ? (raw as VoteChoice) : raw.choice;
         const responseId = typeof raw === 'object' ? raw.responseId : undefined;
+        const matchedResp = responseId ? targetIssue.responses.find(r => r.id === responseId) : undefined;
+
         voteMap.set(issueId, {
           issue: targetIssue,
           choice,
-          createdAt: targetIssue.createdAt,
+          createdAt: matchedResp?.createdAt || targetIssue.createdAt,
+          note: matchedResp?.note,
+          voiceNote: matchedResp?.voiceNote,
+          likesCount: matchedResp?.likesCount,
           responseId
         });
       }
@@ -464,24 +478,34 @@ export function getUserPerspectives(
   const userEmail = (user.email || '').toLowerCase();
   const userName = user.name.toLowerCase();
 
+  const userResponseIds = new Set<string>();
+  if (user.votedIssues) {
+    Object.values(user.votedIssues).forEach(v => {
+      if (typeof v === 'object' && v && (v as any).responseId) {
+        userResponseIds.add((v as any).responseId);
+      }
+    });
+  }
+
   const results: Array<{ issue: Issue; response: VoteSubmission }> = [];
 
   for (const issue of issues) {
     if (issue.isDeletedByAuthor) continue;
     for (const resp of issue.responses) {
-      if (resp.isAnonymous) continue;
+      const isKnownUserResp = userResponseIds.has(resp.id);
+      if (resp.isAnonymous && !isKnownUserResp) continue;
 
       const rUsername = cleanHandle(resp.authorUsername);
       const rEmail = (resp.authorEmail || '').toLowerCase();
       const rName = (resp.authorName || '').toLowerCase();
 
-      const isMatch = Boolean(
+      const isMatch = isKnownUserResp || Boolean(
         (userHandle && rUsername === userHandle) ||
         (userEmail && rEmail === userEmail) ||
         (userName && rName === userName)
       );
 
-      if (isMatch) {
+      if (isMatch && (resp.note || resp.voiceNote)) {
         results.push({ issue, response: resp });
       }
     }

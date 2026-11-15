@@ -81,7 +81,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
   // Inline Quick Reply State
   const [replyChoice, setReplyChoice] = useState<VoteChoice>(userVoteChoice || 'YES');
   const [replyNote, setReplyNote] = useState('');
-  const [replyAnon, setReplyAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? true);
+  const [replyAnon, setReplyAnon] = useState<boolean>(currentUser?.defaultAnonymous ?? false);
   const [alias] = useState(() => generateCivicAlias());
 
   // Keep replyChoice synced when userVoteChoice prop updates
