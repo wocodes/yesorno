@@ -582,6 +582,9 @@ export async function fetchRemoteUserProfile(identifier: {
         interests: Array.isArray(p.interests) ? p.interests : [],
         isVerified: typeof p.isVerified === 'boolean' ? p.isVerified : true,
         verificationBadge: p.verificationBadge || (p.role?.toLowerCase().includes('google') ? 'google' : 'resident'),
+        votedIssues: p.votedIssues || undefined,
+        followingCreators: Array.isArray(p.followingCreators) ? p.followingCreators : undefined,
+        followersCount: typeof p.followersCount === 'number' ? p.followersCount : undefined,
       };
 
       if (cleanUser) REMOTE_PROFILE_CACHE.set(cleanUser, resolved);

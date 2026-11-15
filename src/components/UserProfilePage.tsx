@@ -103,6 +103,9 @@ export const UserProfilePage: React.FC<Props> = ({
       avatar: remoteProfile.avatar || initialProfile.avatar,
       bio: remoteProfile.bio || initialProfile.bio,
       role: remoteProfile.role || initialProfile.role,
+      votedIssues: remoteProfile.votedIssues || initialProfile.votedIssues,
+      followingCreators: remoteProfile.followingCreators || initialProfile.followingCreators,
+      followersCount: typeof remoteProfile.followersCount === 'number' ? remoteProfile.followersCount : initialProfile.followersCount,
     };
   }, [initialProfile, remoteProfile]);
 
@@ -111,6 +114,13 @@ export const UserProfilePage: React.FC<Props> = ({
   const userVotesList = useMemo(() => getUserVotes(profile, issues, currentUser, userVotes), [profile, issues, currentUser, userVotes]);
   const userPerspectives = useMemo(() => getUserPerspectives(profile, issues), [profile, issues]);
   const userReplies = useMemo(() => getUserReplies(profile, issues), [profile, issues]);
+
+  // Auto-surface user activity immediately if they have cast votes but haven't authored issues
+  useEffect(() => {
+    if (createdIssues.length === 0 && userVotesList.length > 0 && activeTab === 'issues') {
+      setActiveTab('votes');
+    }
+  }, [createdIssues.length, userVotesList.length]);
 
   const totalVotesReceived = useMemo(() => {
     return createdIssues.reduce((sum, issue) => sum + (issue.yesCount || 0) + (issue.noCount || 0), 0);
