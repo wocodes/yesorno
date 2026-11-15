@@ -355,19 +355,54 @@ $headers[] = 'X-Mailer: PHP/' . phpversion();
 
 $headersStr = implode("\r\n", $headers);
 
-// Dispatch Email with envelope sender fallbacks
-$mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
+// Capture PHP errors/warnings during mail dispatch
+$mailErrors = [];
+set_error_handler(function($errno, $errstr, $errline = null) use (&$mailErrors) {
+    $mailErrors[] = "[{$errno}] {$errstr}";
+    return true;
+});
+
+// Try standard mail() first
+$mailSent = mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
 if (!$mailSent) {
-    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-fadmin@{$fromDomain}");
-}
-if (!$mailSent) {
-    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-fnoreply@{$fromDomain}");
-}
-if (!$mailSent) {
-    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr);
+    $mailSent = mail($targetRecipient, $subject, $messageBody, $headersStr);
 }
 
-$lastError = error_get_last();
+restore_error_handler();
+
+// If mail() failed, attempt direct pipe to sendmail / hsendmail with stderr capture
+$hsendmailDebug = null;
+if (!$mailSent && function_exists('proc_open')) {
+    $sendmailBin = !empty(ini_get('sendmail_path')) ? explode(' ', trim(ini_get('sendmail_path')))[0] : '/usr/sbin/sendmail';
+    $descriptors = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w']
+    ];
+    $cmd = "{$sendmailBin} -t -i -f{$fromEmail}";
+    $proc = @proc_open($cmd, $descriptors, $pipes);
+    if (is_resource($proc)) {
+        $rawEmail = "To: {$targetRecipient}\r\n" . $headersStr . "\r\nSubject: {$subject}\r\n\r\n" . $messageBody;
+        fwrite($pipes[0], $rawEmail);
+        fclose($pipes[0]);
+        $hstdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $hstderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+        $hstatus = proc_close($proc);
+        
+        $hsendmailDebug = [
+            'cmd' => $cmd,
+            'exitCode' => $hstatus,
+            'stdout' => $hstdout,
+            'stderr' => $hstderr
+        ];
+        
+        if ($hstatus === 0) {
+            $mailSent = true;
+        }
+    }
+}
 
 // Log to notifications.log on server for audit trail & permanent backup
 $logEntry = json_encode([
@@ -376,7 +411,8 @@ $logEntry = json_encode([
     'user' => ['name' => $userName, 'email' => $userEmail, 'role' => $userRole],
     'data' => $data,
     'mailSent' => $mailSent,
-    'lastError' => $lastError,
+    'mailErrors' => $mailErrors,
+    'hsendmailDebug' => $hsendmailDebug,
     'ip' => $ip
 ], JSON_UNESCAPED_SLASHES) . "\n";
 
@@ -392,10 +428,13 @@ echo json_encode([
     'diagnostics' => $isTest ? [
         'targetRecipient' => $targetRecipient,
         'fromEmail' => $fromEmail,
+        'currentUser' => get_current_user(),
+        'serverAdmin' => isset($_SERVER['SERVER_ADMIN']) ? $_SERVER['SERVER_ADMIN'] : null,
         'mail_function_exists' => function_exists('mail'),
         'disabled_functions' => ini_get('disable_functions'),
         'sendmail_path' => ini_get('sendmail_path'),
-        'lastError' => $lastError
+        'mailErrors' => $mailErrors,
+        'hsendmailDebug' => $hsendmailDebug
     ] : null,
     'message' => $mailSent ? 'Notification email dispatched successfully' : 'Notification processed (mail transport pending server delivery)'
 ]);
