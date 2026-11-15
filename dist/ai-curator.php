@@ -1901,33 +1901,8 @@ function build_curator_issue_slug($title, $id) {
 }
 
 function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSlug, $persona, $choice, $note) {
-    if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) return false;
-    
-    $payload = [
-        'event' => 'author_comment',
-        'user' => [
-            'name' => $persona['name'],
-            'email' => $persona['email'],
-            'role' => $persona['role']
-        ],
-        'data' => [
-            'recipientEmail' => $recipientEmail,
-            'issueTitle' => $issueTitle,
-            'choice' => $choice,
-            'note' => $note,
-            'url' => 'https://yesorno.chillon.top/' . $issueSlug
-        ]
-    ];
-
-    $ch = curl_init('https://yesorno.chillon.top/notify.php');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-    @curl_exec($ch);
-    @curl_close($ch);
-    return true;
+    // Automated simulation incubation must never dispatch external emails to avoid burning server mail quotas
+    return false;
 }
 
 function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash') {
