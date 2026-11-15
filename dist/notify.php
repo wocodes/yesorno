@@ -379,27 +379,41 @@ if (!$mailSent && function_exists('proc_open')) {
         1 => ['pipe', 'w'],
         2 => ['pipe', 'w']
     ];
-    $cmd = "{$sendmailBin} -t -i -f{$fromEmail}";
-    $proc = @proc_open($cmd, $descriptors, $pipes);
-    if (is_resource($proc)) {
-        $rawEmail = "To: {$targetRecipient}\r\n" . $headersStr . "\r\nSubject: {$subject}\r\n\r\n" . $messageBody;
-        fwrite($pipes[0], $rawEmail);
-        fclose($pipes[0]);
-        $hstdout = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        $hstderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-        $hstatus = proc_close($proc);
-        
-        $hsendmailDebug = [
-            'cmd' => $cmd,
-            'exitCode' => $hstatus,
-            'stdout' => $hstdout,
-            'stderr' => $hstderr
-        ];
-        
-        if ($hstatus === 0) {
-            $mailSent = true;
+    
+    // Test multiple sender variations to see if rate limit is per-sender or per-account
+    $candidateSenders = [
+        $fromEmail,
+        'alerts@' . $fromDomain,
+        'info@' . $fromDomain,
+        ''
+    ];
+    
+    foreach ($candidateSenders as $candSender) {
+        $fromFlag = !empty($candSender) ? " -f{$candSender}" : '';
+        $cmd = "{$sendmailBin} -t -i{$fromFlag}";
+        $proc = @proc_open($cmd, $descriptors, $pipes);
+        if (is_resource($proc)) {
+            $senderHeader = !empty($candSender) ? "From: YesOrNo <{$candSender}>\r\n" : "From: YesOrNo System <{$fromEmail}>\r\n";
+            $rawEmail = "To: {$targetRecipient}\r\n" . $senderHeader . "Reply-To: {$fromEmail}\r\nSubject: {$subject}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n" . $messageBody;
+            fwrite($pipes[0], $rawEmail);
+            fclose($pipes[0]);
+            $hstdout = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $hstderr = stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
+            $hstatus = proc_close($proc);
+            
+            $hsendmailDebug = [
+                'cmd' => $cmd,
+                'exitCode' => $hstatus,
+                'stdout' => $hstdout,
+                'stderr' => $hstderr
+            ];
+            
+            if ($hstatus === 0) {
+                $mailSent = true;
+                break;
+            }
         }
     }
 }
