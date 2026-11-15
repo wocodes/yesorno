@@ -2,13 +2,14 @@
 /**
  * YesOrNo - Admin Real-Time Event Notification Dispatcher
  * Sends instant email alerts to william.odiomonafe@gmail.com whenever
- * a user registers, logs in, posts an issue, comments, or shares an issue.
+ * a user registers, posts an issue, sends a contact message, etc.
+ * Supports: Direct SSL/TLS SMTP, Resend API, and Native Hostinger Sendmail
  */
 
-// Allow CORS from any origin (so notifications work from both yesorno.chillon.top and local testing)
+// Allow CORS from any origin
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With, Authorization');
 header('Content-Type: application/json; charset=UTF-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -20,14 +21,53 @@ $adminEmail = 'william.odiomonafe@gmail.com';
 $siteUrl = 'https://yesorno.chillon.top';
 $timestamp = date('Y-m-d H:i:s T');
 $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'Unknown';
+$configFile = __DIR__ . '/data/email_config.json';
+
+// Helper: Load Email Configuration
+function load_email_config($filePath) {
+    $defaults = [
+        'transport' => 'auto', // 'auto', 'resend', 'smtp', or 'mail'
+        'smtp_host' => 'smtp.hostinger.com',
+        'smtp_port' => 465,
+        'smtp_secure' => 'ssl', // 'ssl' or 'tls'
+        'smtp_user' => '',
+        'smtp_pass' => '',
+        'smtp_from' => 'notifications@chillon.top',
+        'smtp_from_name' => 'YesOrNo System',
+        'resend_api_key' => ''
+    ];
+    if (file_exists($filePath)) {
+        $raw = @file_get_contents($filePath);
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return array_merge($defaults, $decoded);
+        }
+    }
+    return $defaults;
+}
+
+$emailConfig = load_email_config($configFile);
 
 // Support GET ?test=1 for instant verification via browser or curl
 $isTest = isset($_GET['test']) && ($_GET['test'] === '1' || $_GET['test'] === 'true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !$isTest) {
+    if (isset($_GET['config']) && $_GET['config'] === '1') {
+        $safeConfig = $emailConfig;
+        if (!empty($safeConfig['smtp_pass'])) {
+            $safeConfig['smtp_pass'] = '••••••••';
+        }
+        if (!empty($safeConfig['resend_api_key'])) {
+            $safeConfig['resend_api_key'] = substr($safeConfig['resend_api_key'], 0, 6) . '••••••••';
+        }
+        echo json_encode(['success' => true, 'config' => $safeConfig]);
+        exit;
+    }
+
     echo json_encode([
         'status' => 'online',
         'endpoint' => 'YesOrNo Notification Gateway',
+        'adminEmail' => $adminEmail,
         'instructions' => 'Send POST JSON payload with { event, user, data } or visit ?test=1 to dispatch a test email.'
     ]);
     exit;
@@ -62,6 +102,21 @@ if ($isTest) {
         echo json_encode(['success' => false, 'error' => 'Invalid JSON payload']);
         exit;
     }
+
+    // Handle Admin config update action
+    if (isset($payload['action']) && $payload['action'] === 'save_email_config') {
+        $incoming = isset($payload['config']) && is_array($payload['config']) ? $payload['config'] : [];
+        if (!empty($incoming['smtp_pass']) && $incoming['smtp_pass'] === '••••••••') {
+            $incoming['smtp_pass'] = $emailConfig['smtp_pass'];
+        }
+        if (!empty($incoming['resend_api_key']) && strpos($incoming['resend_api_key'], '••••') !== false) {
+            $incoming['resend_api_key'] = $emailConfig['resend_api_key'];
+        }
+        $merged = array_merge($emailConfig, $incoming);
+        @file_put_contents($configFile, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        echo json_encode(['success' => true, 'message' => 'Email gateway configuration saved successfully']);
+        exit;
+    }
 }
 
 $eventType = isset($payload['event']) ? trim($payload['event']) : 'generic';
@@ -81,7 +136,7 @@ $extraHtml = "";
 
 switch ($eventType) {
     case 'test':
-        $badgeColor = '#3b82f6'; // Blue
+        $badgeColor = '#3b82f6';
         $badgeText = 'TEST ALERT VERIFICATION';
         $subject = "[YesOrNo Alert] ✅ Test Email: Your Notification Gateway is Working!";
         $headline = "This is a test notification confirming email delivery to william.odiomonafe@gmail.com.";
@@ -100,10 +155,18 @@ switch ($eventType) {
             $safeRole = htmlspecialchars($userRole);
             $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Assigned Role:</td><td style='padding:8px 0;color:#f8fafc;'>{$safeRole}</td></tr>";
         }
+        if (!empty($data['region'])) {
+            $safeRegion = htmlspecialchars($data['region']);
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Region / Location:</td><td style='padding:8px 0;color:#f8fafc;'>{$safeRegion}</td></tr>";
+        }
+        if (!empty($data['interests'])) {
+            $safeInterests = htmlspecialchars($data['interests']);
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Selected Interests:</td><td style='padding:8px 0;color:#38bdf8;'>{$safeInterests}</td></tr>";
+        }
         break;
 
     case 'login':
-        $badgeColor = '#3b82f6'; // Blue
+        $badgeColor = '#3b82f6';
         $badgeText = 'USER LOGGED IN';
         $subject = "[YesOrNo Alert] 🔑 User Logged In: {$userName} ({$userEmail})";
         $headline = "A user just signed in to YesOrNo.";
@@ -112,7 +175,7 @@ switch ($eventType) {
         break;
 
     case 'create_issue':
-        $badgeColor = '#8b5cf6'; // Violet
+        $badgeColor = '#8b5cf6';
         $badgeText = 'NEW ISSUE POSTED';
         $issueTitle = isset($data['title']) ? htmlspecialchars($data['title']) : 'Untitled Issue';
         $category = isset($data['category']) ? htmlspecialchars($data['category']) : 'General';
@@ -130,42 +193,8 @@ switch ($eventType) {
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Issue Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:600;'>Open Live Issue →</a></td></tr>";
         break;
 
-    case 'comment':
-        $badgeColor = '#f59e0b'; // Amber
-        $badgeText = 'NEW PERSPECTIVE / COMMENT';
-        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Issue';
-        $choice = isset($data['choice']) ? htmlspecialchars($data['choice']) : 'VOTE';
-        $note = isset($data['note']) && !empty($data['note']) ? htmlspecialchars($data['note']) : '(No written text)';
-        $hasVoice = isset($data['hasVoice']) && $data['hasVoice'] ? '🎙️ Yes (Voice Note Attached)' : 'No';
-        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
-
-        $choiceColor = $choice === 'YES' ? '#10b981' : ($choice === 'NO' ? '#f43f5e' : '#f59e0b');
-
-        $subject = "[YesOrNo Alert] 💬 New Comment on: \"{$issueTitle}\"";
-        $headline = "A new perspective/comment was just added to an issue!";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Issue:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Vote Stance:</td><td style='padding:8px 0;color:{$choiceColor};font-weight:800;font-size:15px;'>{$choice}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Perspective / Note:</td><td style='padding:10px;background:#1e293b;border-radius:8px;color:#f1f5f9;line-height:1.5;'>{$note}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Audio Note:</td><td style='padding:8px 0;color:#cbd5e1;'>{$hasVoice}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Issue Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:600;'>View Issue Thread →</a></td></tr>";
-        break;
-
-    case 'share':
-        $badgeColor = '#06b6d4'; // Cyan
-        $badgeText = 'ISSUE SHARED';
-        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Issue';
-        $platform = isset($data['platform']) ? htmlspecialchars($data['platform']) : 'Direct Link / Social';
-        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
-
-        $subject = "[YesOrNo Alert] 🚀 Issue Shared to {$platform}: \"{$issueTitle}\"";
-        $headline = "An issue is being shared to social media!";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Issue Shared:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Platform / Channel:</td><td style='padding:8px 0;color:#38bdf8;font-weight:700;'>{$platform}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Share Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:600;'>{$issueUrl}</a></td></tr>";
-        break;
-
     case 'contact_message':
-        $badgeColor = '#0ea5e9'; // Sky blue
+        $badgeColor = '#0ea5e9';
         $badgeText = 'NEW CONTACT MESSAGE';
         $category = isset($data['category']) ? htmlspecialchars($data['category']) : 'General Inquiry';
         $subjectText = isset($data['subject']) && !empty($data['subject']) ? htmlspecialchars($data['subject']) : "Inquiry regarding {$category}";
@@ -176,53 +205,6 @@ switch ($eventType) {
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Category:</td><td style='padding:8px 0;color:#38bdf8;font-weight:700;font-size:14px;'>{$category}</td></tr>";
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Subject:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$subjectText}</td></tr>";
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Message:</td><td style='padding:14px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.6;font-size:13px;white-space:pre-wrap;'>{$messageText}</td></tr>";
-        break;
-
-    case 'author_comment':
-        $badgeColor = '#6366f1'; // Indigo
-        $badgeText = 'NEW PERSPECTIVE ON YOUR DEBATE';
-        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Your Debate';
-        $choice = isset($data['choice']) ? htmlspecialchars($data['choice']) : 'VOTE';
-        $note = isset($data['note']) && !empty($data['note']) ? htmlspecialchars($data['note']) : '';
-        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
-        $choiceColor = $choice === 'YES' ? '#10b981' : ($choice === 'NO' ? '#f43f5e' : '#f59e0b');
-
-        $subject = "[YesOrNo] 💬 New perspective on: \"{$issueTitle}\"";
-        $headline = "Someone just weighed in on your question!";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Your Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Their Stance:</td><td style='padding:8px 0;color:{$choiceColor};font-weight:800;font-size:15px;'>Voted {$choice}</td></tr>";
-        if (!empty($note)) {
-            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Their Reason:</td><td style='padding:12px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.5;'>{$note}</td></tr>";
-        }
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>Open Live Debate & Reply →</a></td></tr>";
-        break;
-
-    case 'author_reply':
-        $badgeColor = '#3b82f6'; // Blue
-        $badgeText = 'DIRECT REPLY TO YOUR COMMENT';
-        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Debate Thread';
-        $replyContent = isset($data['content']) ? htmlspecialchars($data['content']) : '';
-        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
-
-        $subject = "[YesOrNo] ↩️ {$userName} replied to your comment";
-        $headline = "{$userName} replied directly to your perspective!";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;'>Their Reply:</td><td style='padding:12px;background:#1e293b;border-radius:10px;color:#f1f5f9;line-height:1.5;'>{$replyContent}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Thread Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>View Reply in Thread →</a></td></tr>";
-        break;
-
-    case 'author_reaction':
-        $badgeColor = '#ec4899'; // Pink
-        $badgeText = 'NEW REACTION';
-        $emoji = isset($data['emoji']) ? htmlspecialchars($data['emoji']) : '👍';
-        $issueTitle = isset($data['issueTitle']) ? htmlspecialchars($data['issueTitle']) : 'Your Debate';
-        $issueUrl = isset($data['url']) ? $data['url'] : $siteUrl;
-
-        $subject = "[YesOrNo] {$emoji} New reaction on: \"{$issueTitle}\"";
-        $headline = "Someone reacted with {$emoji} to your debate!";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Reaction:</td><td style='padding:8px 0;font-size:24px;'>{$emoji}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate:</td><td style='padding:8px 0;color:#f8fafc;font-weight:700;'>{$issueTitle}</td></tr>";
-        $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Debate Link:</td><td style='padding:8px 0;'><a href='{$issueUrl}' style='color:#38bdf8;text-decoration:none;font-weight:700;'>View Live Debate →</a></td></tr>";
         break;
 }
 
@@ -303,47 +285,12 @@ $messageBody = "
 </html>
 ";
 
-// Determine target recipient (author or admin)
 $targetRecipient = (!empty($data['recipientEmail']) && filter_var($data['recipientEmail'], FILTER_VALIDATE_EMAIL))
     ? trim($data['recipientEmail'])
     : $adminEmail;
 
-// Check if recipient opted out of activity notifications (explicit payload or SQLite profile)
-$notificationsDisabled = false;
-if (isset($data['recipientNotificationsEnabled']) && $data['recipientNotificationsEnabled'] === false) {
-    $notificationsDisabled = true;
-} else if ($targetRecipient !== $adminEmail) {
-    try {
-        $dbPath = __DIR__ . '/data/yesorno.sqlite';
-        if (file_exists($dbPath)) {
-            $pdo = new PDO('sqlite:' . $dbPath);
-            $stmt = $pdo->prepare("SELECT user_data FROM user_profiles WHERE lower(email) = :email LIMIT 1");
-            $stmt->execute([':email' => strtolower($targetRecipient)]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && !empty($row['user_data'])) {
-                $uData = json_decode($row['user_data'], true);
-                if (is_array($uData) && isset($uData['notificationsEnabled']) && $uData['notificationsEnabled'] === false) {
-                    $notificationsDisabled = true;
-                }
-            }
-        }
-    } catch (Exception $e) {
-        // Continue normally
-    }
-}
-
-if ($notificationsDisabled) {
-    echo json_encode([
-        'success' => true,
-        'skipped' => true,
-        'message' => 'User disabled notifications in profile settings'
-    ]);
-    exit;
-}
-
-// Email Headers
 $fromDomain = 'chillon.top';
-$fromEmail = 'notifications@' . $fromDomain;
+$fromEmail = !empty($emailConfig['smtp_from']) ? $emailConfig['smtp_from'] : ('notifications@' . $fromDomain);
 
 $headers = [];
 $headers[] = 'MIME-Version: 1.0';
@@ -352,49 +299,201 @@ $headers[] = "From: YesOrNo System <{$fromEmail}>";
 $headers[] = 'Reply-To: ' . (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL) ? $userEmail : $fromEmail);
 $headers[] = "Return-Path: <{$fromEmail}>";
 $headers[] = 'X-Mailer: PHP/' . phpversion();
-
 $headersStr = implode("\r\n", $headers);
 
-// Capture PHP errors/warnings during mail dispatch
-$mailErrors = [];
-set_error_handler(function($errno, $errstr, $errline = null) use (&$mailErrors) {
-    $mailErrors[] = "[{$errno}] {$errstr}";
-    return true;
-});
+// ============================================================================
+// Transport 1: Resend API (HTTP REST)
+// ============================================================================
+function send_via_resend($to, $subj, $html, $apiKey, $fromEmail) {
+    if (empty($apiKey)) return ['success' => false, 'error' => 'Missing Resend API Key'];
+    $ch = curl_init('https://api.resend.com/emails');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+        'from' => 'YesOrNo <' . $fromEmail . '>',
+        'to' => [$to],
+        'subject' => $subj,
+        'html' => $html
+    ]));
+    $res = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
 
-// Try standard mail() first
-$mailSent = mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
-if (!$mailSent) {
-    $mailSent = mail($targetRecipient, $subject, $messageBody, $headersStr);
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return ['success' => true, 'response' => json_decode($res, true)];
+    }
+    return ['success' => false, 'error' => $curlErr ? $curlErr : "HTTP {$httpCode}: {$res}"];
 }
 
-restore_error_handler();
+// ============================================================================
+// Transport 2: Direct RFC 5321 SSL/TLS SMTP Socket
+// ============================================================================
+function send_via_smtp($to, $subj, $html, $config) {
+    $host = !empty($config['smtp_host']) ? trim($config['smtp_host']) : 'smtp.hostinger.com';
+    $port = !empty($config['smtp_port']) ? (int)$config['smtp_port'] : 465;
+    $secure = !empty($config['smtp_secure']) ? trim($config['smtp_secure']) : ($port === 465 ? 'ssl' : 'tls');
+    $user = !empty($config['smtp_user']) ? trim($config['smtp_user']) : '';
+    $pass = !empty($config['smtp_pass']) ? trim($config['smtp_pass']) : '';
+    $from = !empty($config['smtp_from']) ? trim($config['smtp_from']) : $user;
+    $fromName = !empty($config['smtp_from_name']) ? trim($config['smtp_from_name']) : 'YesOrNo System';
 
-// If mail() failed, attempt direct pipe to sendmail / hsendmail with stderr capture
-$hsendmailDebug = null;
-if (!$mailSent && function_exists('proc_open')) {
-    $sendmailBin = !empty(ini_get('sendmail_path')) ? explode(' ', trim(ini_get('sendmail_path')))[0] : '/usr/sbin/sendmail';
-    $descriptors = [
-        0 => ['pipe', 'r'],
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w']
-    ];
-    
-    // Test multiple sender variations to see if rate limit is per-sender or per-account
-    $candidateSenders = [
-        $fromEmail,
-        'alerts@' . $fromDomain,
-        'info@' . $fromDomain,
-        ''
-    ];
-    
-    foreach ($candidateSenders as $candSender) {
-        $fromFlag = !empty($candSender) ? " -f{$candSender}" : '';
-        $cmd = "{$sendmailBin} -t -i{$fromFlag}";
+    if (empty($user) || empty($pass)) {
+        return ['success' => false, 'error' => 'Missing SMTP username or password'];
+    }
+
+    $proto = ($secure === 'ssl') ? 'ssl://' : '';
+    $socket = @fsockopen($proto . $host, $port, $errno, $errstr, 5);
+    if (!$socket) {
+        return ['success' => false, 'error' => "SMTP Connection failed to {$host}:{$port} - {$errstr} ({$errno})"];
+    }
+
+    $read = function() use ($socket) {
+        $data = '';
+        while ($str = fgets($socket, 515)) {
+            $data .= $str;
+            if (substr($str, 3, 1) === ' ') break;
+        }
+        return $data;
+    };
+    $write = function($cmd) use ($socket) {
+        fputs($socket, $cmd . "\r\n");
+    };
+
+    $greeting = $read();
+    if (substr($greeting, 0, 3) !== '220') {
+        fclose($socket);
+        return ['success' => false, 'error' => "SMTP Greeting failed: {$greeting}"];
+    }
+
+    $write("EHLO " . (gethostname() ?: 'yesorno.chillon.top'));
+    $read();
+
+    if ($secure === 'tls') {
+        $write("STARTTLS");
+        $tlsResp = $read();
+        if (substr($tlsResp, 0, 3) !== '220') {
+            fclose($socket);
+            return ['success' => false, 'error' => "STARTTLS failed: {$tlsResp}"];
+        }
+        stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        $write("EHLO " . (gethostname() ?: 'yesorno.chillon.top'));
+        $read();
+    }
+
+    $write("AUTH LOGIN");
+    $authAsk = $read();
+    if (substr($authAsk, 0, 3) !== '334') {
+        fclose($socket);
+        return ['success' => false, 'error' => "AUTH LOGIN not accepted: {$authAsk}"];
+    }
+
+    $write(base64_encode($user));
+    $read();
+    $write(base64_encode($pass));
+    $authResp = $read();
+    if (substr($authResp, 0, 3) !== '235') {
+        fclose($socket);
+        return ['success' => false, 'error' => "SMTP Authentication failed: {$authResp}"];
+    }
+
+    $write("MAIL FROM: <{$from}>");
+    $mfResp = $read();
+    if (substr($mfResp, 0, 3) !== '250') {
+        fclose($socket);
+        return ['success' => false, 'error' => "MAIL FROM rejected: {$mfResp}"];
+    }
+
+    $write("RCPT TO: <{$to}>");
+    $rcptResp = $read();
+    if (substr($rcptResp, 0, 3) !== '250' && substr($rcptResp, 0, 3) !== '251') {
+        fclose($socket);
+        return ['success' => false, 'error' => "RCPT TO rejected: {$rcptResp}"];
+    }
+
+    $write("DATA");
+    $dataResp = $read();
+    if (substr($dataResp, 0, 3) !== '354') {
+        fclose($socket);
+        return ['success' => false, 'error' => "DATA rejected: {$dataResp}"];
+    }
+
+    $emailData = "MIME-Version: 1.0\r\n" .
+                 "Content-Type: text/html; charset=UTF-8\r\n" .
+                 "From: {$fromName} <{$from}>\r\n" .
+                 "To: <{$to}>\r\n" .
+                 "Subject: {$subj}\r\n" .
+                 "Date: " . date('r') . "\r\n\r\n" .
+                 $html . "\r\n.\r\n";
+
+    $write($emailData);
+    $sendResp = $read();
+    $write("QUIT");
+    fclose($socket);
+
+    if (substr($sendResp, 0, 3) === '250') {
+        return ['success' => true, 'response' => trim($sendResp)];
+    }
+    return ['success' => false, 'error' => "SMTP Delivery failed: {$sendResp}"];
+}
+
+// ============================================================================
+// Multi-Transport Dispatch Logic
+// ============================================================================
+$mailSent = false;
+$activeTransport = 'none';
+$transportDetails = null;
+
+// 1. Try Resend if configured
+if (!$mailSent && !empty($emailConfig['resend_api_key'])) {
+    $resendRes = send_via_resend($targetRecipient, $subject, $messageBody, $emailConfig['resend_api_key'], $fromEmail);
+    if ($resendRes['success']) {
+        $mailSent = true;
+        $activeTransport = 'resend';
+        $transportDetails = $resendRes;
+    } else {
+        $transportDetails = ['resend_error' => $resendRes['error']];
+    }
+}
+
+// 2. Try SMTP if configured
+if (!$mailSent && !empty($emailConfig['smtp_user']) && !empty($emailConfig['smtp_pass'])) {
+    $smtpRes = send_via_smtp($targetRecipient, $subject, $messageBody, $emailConfig);
+    if ($smtpRes['success']) {
+        $mailSent = true;
+        $activeTransport = 'smtp';
+        $transportDetails = $smtpRes;
+    } else {
+        $transportDetails = ['smtp_error' => $smtpRes['error']];
+    }
+}
+
+// 3. Fallback to Hostinger PHP sendmail (EXACTLY ONE SINGLE ATTEMPT to avoid rate limit spikes)
+if (!$mailSent) {
+    $mailErrors = [];
+    set_error_handler(function($errno, $errstr) use (&$mailErrors) {
+        $mailErrors[] = "[{$errno}] {$errstr}";
+        return true;
+    });
+
+    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
+    restore_error_handler();
+
+    if ($mailSent) {
+        $activeTransport = 'php_mail';
+    } else {
+        // Attempt single direct proc_open pipe if mail() failed
+        $sendmailBin = !empty(ini_get('sendmail_path')) ? explode(' ', trim(ini_get('sendmail_path')))[0] : '/usr/sbin/sendmail';
+        $cmd = "{$sendmailBin} -t -i -f{$fromEmail}";
+        $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
         $proc = @proc_open($cmd, $descriptors, $pipes);
         if (is_resource($proc)) {
-            $senderHeader = !empty($candSender) ? "From: YesOrNo <{$candSender}>\r\n" : "From: YesOrNo System <{$fromEmail}>\r\n";
-            $rawEmail = "To: {$targetRecipient}\r\n" . $senderHeader . "Reply-To: {$fromEmail}\r\nSubject: {$subject}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n" . $messageBody;
+            $rawEmail = "To: {$targetRecipient}\r\n" . $headersStr . "\r\nSubject: {$subject}\r\n\r\n" . $messageBody;
             fwrite($pipes[0], $rawEmail);
             fclose($pipes[0]);
             $hstdout = stream_get_contents($pipes[1]);
@@ -402,17 +501,16 @@ if (!$mailSent && function_exists('proc_open')) {
             $hstderr = stream_get_contents($pipes[2]);
             fclose($pipes[2]);
             $hstatus = proc_close($proc);
-            
-            $hsendmailDebug = [
-                'cmd' => $cmd,
-                'exitCode' => $hstatus,
-                'stdout' => $hstdout,
-                'stderr' => $hstderr
-            ];
-            
+
             if ($hstatus === 0) {
                 $mailSent = true;
-                break;
+                $activeTransport = 'sendmail_pipe';
+            } else {
+                $activeTransport = 'sendmail_failed';
+                $transportDetails = [
+                    'exitCode' => $hstatus,
+                    'stderr' => trim($hstderr)
+                ];
             }
         }
     }
@@ -425,48 +523,34 @@ $logEntry = json_encode([
     'user' => ['name' => $userName, 'email' => $userEmail, 'role' => $userRole],
     'data' => $data,
     'mailSent' => $mailSent,
-    'mailErrors' => $mailErrors,
-    'hsendmailDebug' => $hsendmailDebug,
+    'transport' => $activeTransport,
+    'transportDetails' => $transportDetails,
     'ip' => $ip
 ], JSON_UNESCAPED_SLASHES) . "\n";
 
+@file_put_contents(__DIR__ . '/data/notifications.log', $logEntry, FILE_APPEND | LOCK_EX);
+
+// Also mirror to legacy public root log for compatibility
 @file_put_contents(__DIR__ . '/notifications.log', $logEntry, FILE_APPEND | LOCK_EX);
 
-    // Network probe to check outgoing socket/SMTP reachability
-    $socketChecks = [];
-    $testHosts = [
-        'smtp.hostinger.com:465' => ['smtp.hostinger.com', 465],
-        'smtp.gmail.com:587' => ['smtp.gmail.com', 587],
-        'api.resend.com:443' => ['api.resend.com', 443]
-    ];
-    foreach ($testHosts as $label => $target) {
-        $fp = @fsockopen($target[0], $target[1], $errno, $errstr, 2);
-        if ($fp) {
-            $socketChecks[$label] = 'CONNECTED';
-            fclose($fp);
-        } else {
-            $socketChecks[$label] = "FAILED ({$errno}: {$errstr})";
-        }
-    }
-
-    // Return JSON response
-    echo json_encode([
-        'success' => true,
-        'test_mode' => $isTest,
-        'event' => $eventType,
-        'mailSent' => $mailSent,
-        'timestamp' => $timestamp,
-        'diagnostics' => $isTest ? [
-            'targetRecipient' => $targetRecipient,
-            'fromEmail' => $fromEmail,
-            'currentUser' => get_current_user(),
-            'serverAdmin' => isset($_SERVER['SERVER_ADMIN']) ? $_SERVER['SERVER_ADMIN'] : null,
-            'mail_function_exists' => function_exists('mail'),
-            'disabled_functions' => ini_get('disable_functions'),
-            'sendmail_path' => ini_get('sendmail_path'),
-            'mailErrors' => $mailErrors,
-            'hsendmailDebug' => $hsendmailDebug,
-            'socketChecks' => $socketChecks
-        ] : null,
-        'message' => $mailSent ? 'Notification email dispatched successfully' : 'Notification processed (mail transport pending server delivery)'
-    ]);
+// Return JSON response
+echo json_encode([
+    'success' => true,
+    'test_mode' => $isTest,
+    'event' => $eventType,
+    'mailSent' => $mailSent,
+    'transport' => $activeTransport,
+    'timestamp' => $timestamp,
+    'targetRecipient' => $targetRecipient,
+    'diagnostics' => $isTest ? [
+        'targetRecipient' => $targetRecipient,
+        'fromEmail' => $fromEmail,
+        'activeTransport' => $activeTransport,
+        'transportDetails' => $transportDetails,
+        'mail_function_exists' => function_exists('mail'),
+        'sendmail_path' => ini_get('sendmail_path')
+    ] : null,
+    'message' => $mailSent 
+        ? "Notification email dispatched successfully via {$activeTransport} to {$targetRecipient}" 
+        : "Notification recorded in audit log (mail transport pending server delivery)"
+]);

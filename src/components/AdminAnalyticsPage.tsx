@@ -113,16 +113,18 @@ export const AdminAnalyticsPage: React.FC<Props> = ({
 
       const res = await fetch(endpoint);
       const json = await res.json().catch(() => null);
-      if (json && json.success) {
-        setTestEmailStatus('Test alert dispatched to william.odiomonafe@gmail.com! Check your inbox (and spam).');
+      if (json && json.mailSent) {
+        setTestEmailStatus(`✅ Test email delivered via ${json.transport || 'mail'} to william.odiomonafe@gmail.com!`);
+      } else if (json && json.success) {
+        setTestEmailStatus(`📋 Notification logged to audit trail (Transport: ${json.transport || 'queued'}). Recipient: william.odiomonafe@gmail.com`);
       } else {
-        setTestEmailStatus('Test request delivered to server. Check william.odiomonafe@gmail.com.');
+        setTestEmailStatus('⚠️ Notification gateway responded with error.');
       }
     } catch {
       setTestEmailStatus('Trigger sent to server. Check william.odiomonafe@gmail.com.');
     } finally {
       setIsSendingTest(false);
-      setTimeout(() => setTestEmailStatus(null), 8000);
+      setTimeout(() => setTestEmailStatus(null), 10000);
     }
   };
 
