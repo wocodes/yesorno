@@ -929,7 +929,7 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
             . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts as a Nigerian for Nigerians.\n\n"
             . "For each suggestion, provide:\n"
             . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (strictly ending with a single '?'). VARY THE FORMAT across these styles:\n"
-            . "   - Captivating True-Life Story / Confession Hook (e.g. 'CONFESSION: I caught my fiancé\\'s family hiding a 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?', 'TRUE LIFE: I earn ₦2.5M in Lagos and refuse to pay my 30-year-old brother ₦400k monthly — am I selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong?')\n"
+            . "   - Captivating True-Life Story / Dilemma Hook (DO NOT prefix with labels like 'CONFESSION:' or 'TRUE STORY:' — jump directly into the raw first-person hook, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?')\n"
             . "   - Short & sharp direct question (e.g. 'End NYSC now?', 'Ban plastic bags?', 'Checking partner\\'s phone: justified?')\n"
             . "   - Statement preamble + question (e.g. 'Fuel subsidy removed: should it be brought back?', 'Dangote refinery cuts petrol price: will filling stations drop pump prices?')\n"
             . "   - Direct binary polarity hot-take (e.g. '50/50 rent in marriage: Yes or No?', 'A man earning ₦150k has no business dating in Lagos: agree?')\n"
@@ -1530,8 +1530,8 @@ TOPIC ROTATION & NIGERIAN REALITIES:
 
 QUESTION FORMAT VARIETY (VARY YOUR STYLE!):
 Do NOT always start with 'Should...'. Alternate across these punchy styles:
-* Captivating True-Life Story / Confession Hook (Emotional & Viral):
-  e.g. 'CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?', 'TRUE LIFE: I earn ₦2.5M in Lagos and refuse to fund my 30-year-old brother\\'s lavish lifestyle — am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?'
+* Captivating True-Life Story / Dilemma Hook (Emotional & Viral):
+  (DO NOT use prefix labels like 'CONFESSION:' or 'TRUE LIFE STORY:'. Start directly with the raw situation, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?')
   CRITICAL FOR SOCIAL SHARING: The first 8 to 12 words of the title and description MUST be a high-voltage, jaw-dropping hook that stops people from scrolling on Twitter/X, WhatsApp, or Facebook!
 * Short & Sharp Direct Question (3 to 8 words):
   e.g. 'End NYSC now?', 'Abolish bride price completely?', 'Checking partner\\'s phone: justified?', 'Ban commercial bikes on expressways?'

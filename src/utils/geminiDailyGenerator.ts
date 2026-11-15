@@ -578,7 +578,7 @@ Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on 
 
 Rules:
 1. Format: Vary the title format naturally across these styles:
-   - Captivating True-Life Story / Confession Hook (e.g. "CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?", "TRUE STORY: I earn ₦2.5M in Lagos and refuse to fund my 30-year-old brother's lifestyle — am I being selfish?", "I secretly took a DNA test on our 2-year-old son behind my wife's back: was I wrong?")
+   - Captivating True-Life Story / Dilemma Hook (DO NOT use prefix labels like "CONFESSION:" or "TRUE LIFE:". Jump straight into the raw first-person situation, e.g. "I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?", "I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother's lifestyle: am I being selfish?", "I secretly took a DNA test on our 2-year-old son behind my wife's back: was I wrong to doubt her?")
    - Short & sharp direct question (e.g. "End NYSC now?", "Ban plastic bags?")
    - Statement preamble + question (e.g. "Dangote refinery cuts petrol price: will filling stations drop pump prices?")
    - Direct binary polarity hot-take (e.g. "50/50 rent in marriage: Yes or No?")
@@ -707,7 +707,7 @@ export async function fetchTrendingQuestionSuggestions(params: {
 
   const currentPool: QuestionSuggestion[] = [
     {
-      title: 'CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?',
+      title: 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?',
       description: 'I was cleaning my fiancé\'s car when I discovered court child support documents and a birth certificate with his name. He wept on his knees saying he was terrified of losing me, while his parents are begging me to swallow it and proceed to the altar. Advocates say building a marriage on deliberate deception is emotional suicide, while elders argue past baggage shouldn\'t destroy genuine love.',
       category: 'Family & Home',
       tags: ['RelationshipConfessions', 'PreMaritalLies', 'WeddingDilemma', 'TrustAndBetrayal', 'FamilySecrets'],
@@ -717,7 +717,7 @@ export async function fetchTrendingQuestionSuggestions(params: {
       platforms: ['x', 'google_news']
     },
     {
-      title: 'TRUE LIFE: I earn ₦2.8M in Lagos and refuse to pay my 30-year-old brother ₦400k monthly — am I being selfish: Yes or No?',
+      title: 'I earn ₦2.8M in Lagos and refuse to pay my 30-year-old brother ₦400k monthly: am I being selfish?',
       description: 'My parents called a family meeting to accuse me of witchcraft and pride after I stopped funding my elder brother\'s lounge lifestyle. He refuses entry-level jobs while expecting me to bankroll his rent and fuel. Young professionals insist endless black tax destroys generational wealth, but cultural traditionalists argue that abandoning your own flesh and blood is taboo.',
       category: 'Counselling',
       tags: ['BlackTax', 'FamilyEntitlement', 'FinancialBoundaries', 'LagosLiving', 'ToxicRelatives'],
