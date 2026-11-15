@@ -578,13 +578,14 @@ Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on 
 
 Rules:
 1. Format: Vary the title format naturally across these styles:
-   - Captivating True-Life Story / Dilemma Hook (DO NOT use prefix labels like "CONFESSION:" or "TRUE LIFE:". Jump straight into the raw first-person situation, e.g. "I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?", "I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother's lifestyle: am I being selfish?", "I secretly took a DNA test on our 2-year-old son behind my wife's back: was I wrong to doubt her?")
+   - Captivating True-Life Story / Dilemma Hook (DO NOT use prefix labels like "CONFESSION:" or "TRUE LIFE:". Jump straight into the raw first-person situation, e.g. "I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?", "My mother-in-law moved into our flat for 'two weeks' and refuses to leave after 10 months: should I pack out?", "My husband secretly bought land in his mother's name with our joint savings: should I divorce him?", "I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother's lifestyle: am I being selfish?")
    - Short & sharp direct question (e.g. "End NYSC now?", "Ban plastic bags?")
    - Statement preamble + question (e.g. "Dangote refinery cuts petrol price: will filling stations drop pump prices?")
    - Direct binary polarity hot-take (e.g. "50/50 rent in marriage: Yes or No?")
    Every title must strictly end with a single "?" and require a YES or NO.
-2. Description: 2-3 punchy, emotional sentences. CRITICAL SOCIAL MEDIA RULE:
-   - Because social media link previews (X, WhatsApp, Facebook, LinkedIn) only highlight the first 8-15 words, FRONT-LOAD AN IRRESISTIBLE HOOK in the very first sentence (e.g. "I was cleaning my husband's car when a secret birth certificate fell out...", "My mother-in-law moved into our flat for 'two weeks' and it has now been 14 months with zero plans to leave...").
+2. Description & Realism: 2-3 punchy, emotional sentences grounded in authentic Nigerian realities:
+   - Must be realistic and deeply relatable: in-law dominance, joint savings betrayal, black tax entitlement, pre-marital secrets, genotype dilemmas, or bride price inflation.
+   - CRITICAL SOCIAL MEDIA RULE: The very first 8-15 words MUST be an irresistible, jaw-dropping hook that stops users from scrolling on Twitter/X, WhatsApp, or Facebook link previews.
    - Then outline the emotional dilemma: why the YES camp passionately insists one choice is necessary, and why the NO camp strongly objects.
 3. Category: Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].
 4. TrendContext: 1-2 sentence summary of the specific current news or real-time trend that sparked this debate.
@@ -724,6 +725,26 @@ export async function fetchTrendingQuestionSuggestions(params: {
       trendContext: 'Debated heavily across Nigerian youth financial independence forums and social media black-tax discourse.',
       trendScore: 96,
       xRank: 2,
+      platforms: ['x', 'google_news']
+    },
+    {
+      title: 'My mother-in-law moved into our flat for \'two weeks\' and refuses to leave after 10 months: should I pack out?',
+      description: 'She locked my kitchen pantry, dictates our meals, and insults my family whenever my husband goes to work. My husband begs me to endure her behavior to avoid family curses and village gossip, but my mental health is completely broken. Modern wives say walking out will force the husband to set boundaries, while traditional aunts warn that packing out means surrendering your home to in-laws.',
+      category: 'Family & Home',
+      tags: ['InLawDilemma', 'MarriageBoundaries', 'ToxicMotherInLaw', 'LagosMarriages', 'FamilyTension'],
+      trendContext: 'Centered around viral discussions regarding in-law boundaries and marital independence in Nigerian homes.',
+      trendScore: 97,
+      xRank: 3,
+      platforms: ['x', 'google_news']
+    },
+    {
+      title: 'My husband of 5 years secretly bought a plot of land in his mother\'s name using our joint savings: should I divorce him?',
+      description: 'We spent four painful years scrimping in a rented apartment in Gbagada to save ₦14 Million for our family house foundation. I only discovered the deed was issued solely in his mother\'s name when the property developer called for documentation clearance. Disillusioned women advise withdrawing remaining funds and filing for separation immediately, but church counselors insist confrontation and prayer can heal financial betrayal.',
+      category: 'Counselling',
+      tags: ['FinancialBetrayal', 'JointAccounts', 'SecretAssets', 'MarriageTrust', 'NigerianFamilies'],
+      trendContext: 'Stemming from widespread conversations on joint spousal finances and secret asset diversion in Nigerian marriages.',
+      trendScore: 95,
+      xRank: 4,
       platforms: ['x', 'google_news']
     },
     {

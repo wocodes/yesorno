@@ -1,5 +1,6 @@
 import { Issue, PublicUserProfile, UserProfile, VoteSubmission } from '../types';
 import { TOP_CREATORS_AND_VOTERS, DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, getSavedProfileByEmail } from './auth';
+import { SEED_PERSONAS } from '../data/seedPersonas';
 
 /**
  * Normalizes a handle or username into clean lowercase without @ prefix
@@ -85,7 +86,37 @@ export function resolveUserProfile(
     }
   }
 
-  // 3. Check TOP_CREATORS_AND_VOTERS
+  // 3. Check SEED_PERSONAS (including Madam Rose and community personas)
+  const seedPersona = SEED_PERSONAS.find(p => {
+    const pHandle = cleanHandle(p.username);
+    const pName = p.name.toLowerCase();
+    const pEmail = (p.email || '').toLowerCase();
+    return Boolean(
+      (targetUsername && pHandle === targetUsername) ||
+      (targetName && pName === targetNameLower) ||
+      (targetEmail && pEmail === targetEmail) ||
+      (target.id && p.id === target.id)
+    );
+  });
+
+  if (seedPersona) {
+    return {
+      id: seedPersona.id,
+      name: seedPersona.name,
+      username: cleanHandle(seedPersona.username),
+      email: seedPersona.email,
+      role: seedPersona.role,
+      bio: seedPersona.bio,
+      avatar: seedPersona.avatar,
+      region: (seedPersona.region as any) || 'Africa & Middle East',
+      groups: [seedPersona.role, 'Civic Contributor'],
+      interests: (seedPersona.interests as any) || ['Counselling', 'Family & Home'],
+      isVerified: Boolean(seedPersona.isVerified ?? true),
+      verificationBadge: seedPersona.verificationBadge || (seedPersona.name === 'Madam Rose' ? 'official_counsellor' : undefined),
+    };
+  }
+
+  // 4. Check TOP_CREATORS_AND_VOTERS
   const topCreator = TOP_CREATORS_AND_VOTERS.find(c => {
     const cHandle = cleanHandle(c.handle);
     const cName = c.name.toLowerCase();
