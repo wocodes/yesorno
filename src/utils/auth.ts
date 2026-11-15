@@ -1,4 +1,5 @@
 import { UserProfile, Issue, AdminUserRecord } from '../types';
+import { getFirstTouchAcquisitionSource } from './acquisition';
 
 /**
  * Checks whether the app is running on a local development environment
@@ -306,10 +307,13 @@ export function saveStoredUser(user: UserProfile | null): void {
   try {
     if (user) {
       const now = new Date().toISOString();
+      const acq = getFirstTouchAcquisitionSource();
       const enrichedUser: UserProfile = {
         ...user,
         registeredAt: user.registeredAt || now,
         lastLoginAt: user.lastLoginAt || now,
+        acquisitionSource: user.acquisitionSource || acq.channel,
+        registrationSource: user.registrationSource || (acq as unknown as Record<string, unknown>),
       };
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(enrichedUser));
       // Also persist by email so preferences stick even across sign-out / sign-in

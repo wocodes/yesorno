@@ -31,9 +31,14 @@ export function resolveUserProfile(
   issues: Issue[],
   currentUser: UserProfile | null
 ): PublicUserProfile {
-  const targetUsername = cleanHandle(target.username);
+  const cleanedHandleFromTarget = cleanHandle(target.username) || cleanHandle(target.name?.startsWith('@') ? target.name : '');
+  const targetUsername = cleanedHandleFromTarget;
   const targetEmail = (target.email || '').trim().toLowerCase();
-  const targetName = (target.name || '').trim();
+  let rawTargetName = (target.name || '').trim();
+  if (rawTargetName.startsWith('@')) {
+    rawTargetName = '';
+  }
+  const targetName = rawTargetName;
   const targetNameLower = targetName.toLowerCase();
 
   // 1. Check if matching current authenticated user
@@ -232,7 +237,16 @@ export function resolveUserProfile(
   }
 
   // 7. Fallback generated public profile
-  const resolvedName = targetName || (targetUsername ? `@${targetUsername}` : 'Civic Member');
+  let resolvedName = targetName;
+  if (!resolvedName || resolvedName.startsWith('@') || (targetUsername && resolvedName.toLowerCase() === targetUsername.toLowerCase())) {
+    if (targetUsername) {
+      // Convert handle like tobi_alabi or madam_rose or william.odio into proper Full Name
+      const words = targetUsername.split(/[._-]/).filter(Boolean);
+      resolvedName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    } else {
+      resolvedName = 'Civic Member';
+    }
+  }
   const resolvedUsername = targetUsername || cleanHandle(resolvedName.split(' ')[0]) || 'member';
 
   return {

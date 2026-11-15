@@ -1259,6 +1259,11 @@ function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
                 $lastActionAt = $lastActionObj ? $lastActionObj['at'] : $lastLoginAt;
                 $lastAction = $lastActionObj ? $lastActionObj['desc'] : 'Active on YesOrNo platform';
 
+                $acquisitionSource = !empty($profile['acquisitionSource']) ? $profile['acquisitionSource'] : (
+                    $isSeed ? 'AI Seed Engine' : 'Direct / Organic'
+                );
+                $landingPath = $profile['registrationSource']['landingPath'] ?? ($profile['landingPath'] ?? null);
+
                 $resultUsers[] = [
                     'id' => $id,
                     'name' => $name,
@@ -1280,6 +1285,8 @@ function handle_admin_users(?PDO $pdo, string $profilesFallbackPath): array {
                     'commentsCount' => $commentsCount,
                     'groups' => $groups,
                     'interests' => $interests,
+                    'acquisitionSource' => $acquisitionSource,
+                    'landingPath' => $landingPath,
                 ];
             }
 

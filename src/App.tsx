@@ -840,10 +840,10 @@ export function App() {
         });
       }
 
-      // Notify admin email on registration (login notifications suppressed per admin preference)
+      // Notify admin email on registration and send welcome email with trending questions to user
       const isNewUser = !user.onboardingCompleted || !getSavedProfileByEmail(user.email);
       if (isNewUser) {
-        notifyAdminUserRegistered(user, 'Account Registration');
+        notifyAdminUserRegistered(user, 'Account Registration', issues.slice(0, 4));
       }
 
       if (!user.onboardingCompleted) {
@@ -909,7 +909,7 @@ export function App() {
     setSortBy('for-you');
     setRegionScope('my-region-worldwide');
     setInterestScope('my-interests-mixed');
-    notifyAdminUserRegistered(updatedUser, 'Completed Onboarding & Profile Setup');
+    notifyAdminUserRegistered(updatedUser, 'Completed Onboarding & Profile Setup', issues.slice(0, 4));
     addToast(
       'success',
       'Personalized Feed Ready!',

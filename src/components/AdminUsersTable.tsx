@@ -4,7 +4,7 @@ import {
   Clock, Activity, Vote, MessageSquare, FileText, Download,
   RefreshCw, Copy, Check, Eye, SlidersHorizontal, Filter,
   ChevronLeft, ChevronRight, X, Award, UserCheck, ExternalLink,
-  Bot
+  Bot, Compass
 } from 'lucide-react';
 import { AdminUserRecord } from '../types';
 import { isSystemCreatedUser } from '../data/seedPersonas';
@@ -62,6 +62,49 @@ export function formatTableDate(iso?: string): { formatted: string; relative: st
   } catch {
     return { formatted: iso, relative: '—', full: iso, isRecent: false };
   }
+}
+
+function renderAcquisitionBadge(source?: string, landing?: string) {
+  if (!source) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-white/5 text-slate-500">
+        Direct / Link
+      </span>
+    );
+  }
+  const s = source.toLowerCase();
+  let badgeColor = 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-white/10';
+  if (s.includes('twitter') || s.includes('x (')) {
+    badgeColor = 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20';
+  } else if (s.includes('whatsapp')) {
+    badgeColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  } else if (s.includes('facebook') || s.includes('meta')) {
+    badgeColor = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+  } else if (s.includes('instagram')) {
+    badgeColor = 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20';
+  } else if (s.includes('google')) {
+    badgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  } else if (s.includes('linkedin')) {
+    badgeColor = 'bg-blue-600/10 text-blue-700 dark:text-blue-300 border-blue-600/20';
+  } else if (s.includes('tiktok')) {
+    badgeColor = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+  } else if (s.includes('system') || s.includes('seed')) {
+    badgeColor = 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+  }
+
+  return (
+    <div className="space-y-0.5 max-w-[150px]">
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border truncate max-w-full ${badgeColor}`}>
+        <Compass className="w-2.5 h-2.5 shrink-0" />
+        <span className="truncate">{source}</span>
+      </span>
+      {landing && landing !== '/' && (
+        <div className="text-[10px] text-slate-400 font-mono truncate" title={`Landed on: ${landing}`}>
+          {landing}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
@@ -159,6 +202,8 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
       'Email Address',
       'Role / Title',
       'User Type',
+      'Acquisition Channel',
+      'Initial Landing Path',
       'Is Verified',
       'Verification Badge',
       'Date Registered',
@@ -178,6 +223,8 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
       `"${u.email.replace(/"/g, '""')}"`,
       `"${(u.role || '').replace(/"/g, '""')}"`,
       `"${!isSystemCreatedUser(u) ? 'Real User' : 'System Created (AI Persona)'}"`,
+      `"${(u.acquisitionSource || 'Direct / Unknown').replace(/"/g, '""')}"`,
+      `"${(u.landingPath || '').replace(/"/g, '""')}"`,
       u.isVerified ? 'YES' : 'NO',
       `"${u.verificationBadge}"`,
       `"${u.registeredAt || ''}"`,
@@ -441,6 +488,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
               <tr className="bg-slate-100/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
                 <th className="py-3 px-4">User</th>
                 <th className="py-3 px-3">Role &amp; Classification</th>
+                <th className="py-3 px-3">Acquisition Channel</th>
                 <th className="py-3 px-3">Verified</th>
                 <th className="py-3 px-3">Date Registered</th>
                 <th className="py-3 px-3">Last Login</th>
@@ -452,14 +500,14 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 font-sans">
               {isLoading && paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-500" />
                     <span>Loading system users directory from database...</span>
                   </td>
                 </tr>
               ) : paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <Users2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-semibold text-ink-950 dark:text-white">No users match your criteria</p>
                     <p className="text-xs text-slate-400 mt-1">Try adjusting your search terms or filter selection.</p>
@@ -618,6 +666,11 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                             )}
                           </div>
                         </div>
+                      </td>
+
+                      {/* First-Touch Acquisition Channel */}
+                      <td className="py-3 px-3">
+                        {renderAcquisitionBadge(user.acquisitionSource, user.landingPath)}
                       </td>
 
                       {/* Verified Badge */}
@@ -1025,6 +1078,24 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
                   <span className="text-[10px] text-slate-400 block">
                     ({formatTableDate(selectedUser.lastLoginAt).relative})
                   </span>
+                </div>
+
+                <div className="sm:col-span-2 pt-2 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">First-Touch Acquisition Channel:</span>
+                    <strong className="text-ink-950 dark:text-white font-semibold flex items-center gap-1.5 mt-0.5">
+                      <Compass className="w-3.5 h-3.5 text-brand-500" />
+                      <span>{selectedUser.acquisitionSource || 'Direct / Organic Navigation'}</span>
+                    </strong>
+                  </div>
+                  {selectedUser.landingPath && (
+                    <div className="text-right">
+                      <span className="text-slate-400 block text-[11px]">Initial Landing Page:</span>
+                      <code className="text-[11px] bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded font-mono text-ink-950 dark:text-white">
+                        {selectedUser.landingPath}
+                      </code>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -83,6 +83,22 @@ export const UserProfilePage: React.FC<Props> = ({
 
   const isFollowing = useMemo(() => isFollowingUser(profile, currentUser), [profile, currentUser]);
 
+  // Ensure user's Full Name is always prominently displayed
+  const userFullName = useMemo(() => {
+    if (isOwnProfile && currentUser?.name && !currentUser.name.startsWith('@')) {
+      return currentUser.name;
+    }
+    let n = (profile.name || '').trim();
+    if (n.startsWith('@')) n = n.slice(1);
+    if (!n || (profile.username && n.toLowerCase() === profile.username.toLowerCase())) {
+      const parts = (profile.username || n).split(/[._-]/).filter(Boolean);
+      if (parts.length > 0) {
+        return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+      }
+    }
+    return n || 'Civic Neighbor';
+  }, [profile, isOwnProfile, currentUser]);
+
   const handleCopyProfileLink = () => {
     playHapticChime('tap');
     const url = `${window.location.origin}/#profile/${encodeURIComponent(profile.username)}`;
@@ -213,10 +229,10 @@ export const UserProfilePage: React.FC<Props> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-ink-950 dark:text-white tracking-tight">
-                {profile.name}
+                {userFullName}
               </h1>
               <span className="text-xs sm:text-sm font-semibold text-brand-600 dark:text-brand-400">
-                @{profile.username}
+                @{profile.username.replace(/^@/, '')}
               </span>
 
               {profile.role && (

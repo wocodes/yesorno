@@ -151,6 +151,21 @@ switch ($eventType) {
         $headline = "A new user has registered on YesOrNo!";
         $method = isset($data['method']) ? htmlspecialchars($data['method']) : 'Standard / Google Sign-Up';
         $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Registration Method:</td><td style='padding:8px 0;color:#f8fafc;font-weight:600;'>{$method}</td></tr>";
+        
+        // Traffic Acquisition Source Attribution
+        if (!empty($data['acquisitionSource']) || !empty($data['channel'])) {
+            $safeChannel = htmlspecialchars($data['acquisitionSource'] ?? $data['channel']);
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Acquisition Channel:</td><td style='padding:8px 0;color:#10b981;font-weight:700;'>{$safeChannel}</td></tr>";
+        }
+        if (!empty($data['landingPath'])) {
+            $safeLanding = htmlspecialchars($data['landingPath']);
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Landing Page:</td><td style='padding:8px 0;color:#cbd5e1;'>{$safeLanding}</td></tr>";
+        }
+        if (!empty($data['referrer']) && $data['referrer'] !== 'direct') {
+            $safeRef = htmlspecialchars($data['referrer']);
+            $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Original Referrer:</td><td style='padding:8px 0;color:#cbd5e1;'>{$safeRef}</td></tr>";
+        }
+
         if (!empty($userRole)) {
             $safeRole = htmlspecialchars($userRole);
             $extraHtml .= "<tr><td style='padding:8px 0;color:#94a3b8;font-weight:600;'>Assigned Role:</td><td style='padding:8px 0;color:#f8fafc;'>{$safeRole}</td></tr>";
@@ -443,77 +458,316 @@ function send_via_smtp($to, $subj, $html, $config) {
 }
 
 // ============================================================================
-// Multi-Transport Dispatch Logic
+// Multi-Transport Dispatch Helper Function
 // ============================================================================
-$mailSent = false;
-$activeTransport = 'none';
-$transportDetails = null;
+function dispatch_single_email($to, $subj, $html, $config, $fromEmail) {
+    $mailSent = false;
+    $activeTransport = 'none';
+    $transportDetails = null;
 
-// 1. Try Resend if configured
-if (!$mailSent && !empty($emailConfig['resend_api_key'])) {
-    $resendRes = send_via_resend($targetRecipient, $subject, $messageBody, $emailConfig['resend_api_key'], $fromEmail);
-    if ($resendRes['success']) {
-        $mailSent = true;
-        $activeTransport = 'resend';
-        $transportDetails = $resendRes;
-    } else {
-        $transportDetails = ['resend_error' => $resendRes['error']];
+    // 1. Try Resend if configured
+    if (!$mailSent && !empty($config['resend_api_key'])) {
+        $resendRes = send_via_resend($to, $subj, $html, $config['resend_api_key'], $fromEmail);
+        if ($resendRes['success']) {
+            $mailSent = true;
+            $activeTransport = 'resend';
+            $transportDetails = $resendRes;
+        } else {
+            $transportDetails = ['resend_error' => $resendRes['error']];
+        }
     }
-}
 
-// 2. Try SMTP if configured
-if (!$mailSent && !empty($emailConfig['smtp_user']) && !empty($emailConfig['smtp_pass'])) {
-    $smtpRes = send_via_smtp($targetRecipient, $subject, $messageBody, $emailConfig);
-    if ($smtpRes['success']) {
-        $mailSent = true;
-        $activeTransport = 'smtp';
-        $transportDetails = $smtpRes;
-    } else {
-        $transportDetails = ['smtp_error' => $smtpRes['error']];
+    // 2. Try SMTP if configured
+    if (!$mailSent && !empty($config['smtp_user']) && !empty($config['smtp_pass'])) {
+        $smtpRes = send_via_smtp($to, $subj, $html, $config);
+        if ($smtpRes['success']) {
+            $mailSent = true;
+            $activeTransport = 'smtp';
+            $transportDetails = $smtpRes;
+        } else {
+            $transportDetails = ['smtp_error' => $smtpRes['error']];
+        }
     }
-}
 
-// 3. Fallback to Hostinger PHP sendmail (EXACTLY ONE SINGLE ATTEMPT to avoid rate limit spikes)
-if (!$mailSent) {
-    $mailErrors = [];
-    set_error_handler(function($errno, $errstr) use (&$mailErrors) {
-        $mailErrors[] = "[{$errno}] {$errstr}";
-        return true;
-    });
+    // 3. Fallback to Hostinger PHP sendmail
+    if (!$mailSent) {
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-type: text/html; charset=UTF-8',
+            "From: YesOrNo <{$fromEmail}>",
+            "Reply-To: {$fromEmail}",
+            "Return-Path: <{$fromEmail}>",
+            'X-Mailer: PHP/' . phpversion()
+        ];
+        $headersStr = implode("\r\n", $headers);
 
-    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
-    restore_error_handler();
+        $mailErrors = [];
+        set_error_handler(function($errno, $errstr) use (&$mailErrors) {
+            $mailErrors[] = "[{$errno}] {$errstr}";
+            return true;
+        });
 
-    if ($mailSent) {
-        $activeTransport = 'php_mail';
-    } else {
-        // Attempt single direct proc_open pipe if mail() failed
-        $sendmailBin = !empty(ini_get('sendmail_path')) ? explode(' ', trim(ini_get('sendmail_path')))[0] : '/usr/sbin/sendmail';
-        $cmd = "{$sendmailBin} -t -i -f{$fromEmail}";
-        $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-        $proc = @proc_open($cmd, $descriptors, $pipes);
-        if (is_resource($proc)) {
-            $rawEmail = "To: {$targetRecipient}\r\n" . $headersStr . "\r\nSubject: {$subject}\r\n\r\n" . $messageBody;
-            fwrite($pipes[0], $rawEmail);
-            fclose($pipes[0]);
-            $hstdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            $hstderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
-            $hstatus = proc_close($proc);
+        $mailSent = @mail($to, $subj, $html, $headersStr, "-f{$fromEmail}");
+        restore_error_handler();
 
-            if ($hstatus === 0) {
-                $mailSent = true;
-                $activeTransport = 'sendmail_pipe';
-            } else {
-                $activeTransport = 'sendmail_failed';
-                $transportDetails = [
-                    'exitCode' => $hstatus,
-                    'stderr' => trim($hstderr)
-                ];
+        if ($mailSent) {
+            $activeTransport = 'php_mail';
+        } else {
+            // Attempt single direct proc_open pipe if mail() failed
+            $sendmailBin = !empty(ini_get('sendmail_path')) ? explode(' ', trim(ini_get('sendmail_path')))[0] : '/usr/sbin/sendmail';
+            $cmd = "{$sendmailBin} -t -i -f{$fromEmail}";
+            $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+            $proc = @proc_open($cmd, $descriptors, $pipes);
+            if (is_resource($proc)) {
+                $rawEmail = "To: {$to}\r\n" . $headersStr . "\r\nSubject: {$subj}\r\n\r\n" . $html;
+                fwrite($pipes[0], $rawEmail);
+                fclose($pipes[0]);
+                $hstdout = stream_get_contents($pipes[1]);
+                fclose($pipes[1]);
+                $hstderr = stream_get_contents($pipes[2]);
+                fclose($pipes[2]);
+                $hstatus = proc_close($proc);
+
+                if ($hstatus === 0) {
+                    $mailSent = true;
+                    $activeTransport = 'sendmail_pipe';
+                } else {
+                    $activeTransport = 'sendmail_failed';
+                    $transportDetails = [
+                        'exitCode' => $hstatus,
+                        'stderr' => trim($hstderr)
+                    ];
+                }
             }
         }
     }
+
+    return [
+        'sent' => $mailSent,
+        'transport' => $activeTransport,
+        'details' => $transportDetails
+    ];
+}
+
+// Helper: Retrieve Trending Issues for Welcome Email
+function get_welcome_trending_issues(array $providedIssues = []): array {
+    if (!empty($providedIssues) && is_array($providedIssues)) {
+        return array_slice($providedIssues, 0, 4);
+    }
+    $dbPath = __DIR__ . '/data/yesorno.sqlite';
+    if (file_exists($dbPath)) {
+        try {
+            $pdo = new PDO("sqlite:" . $dbPath);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $stmt = $pdo->query("
+                SELECT id, title, category, yes_count, no_count, views_count
+                FROM issues
+                WHERE is_deleted = 0
+                ORDER BY (yes_count + no_count + coalesce(views_count, 0) + coalesce(likes_count, 0)) DESC
+                LIMIT 4
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($rows)) return $rows;
+        } catch (Exception $e) {
+            // Ignore
+        }
+    }
+    return [
+        [
+            'id' => 'trending-1',
+            'title' => 'Should couples have full access to each other\'s phones and banking apps?',
+            'category' => 'Counselling',
+            'yes_count' => 142,
+            'no_count' => 198
+        ],
+        [
+            'id' => 'trending-2',
+            'title' => 'Is remote work more productive than compulsory 5-day office presence for Nigerian tech talent?',
+            'category' => 'Workplace & Career',
+            'yes_count' => 285,
+            'no_count' => 43
+        ],
+        [
+            'id' => 'trending-3',
+            'title' => 'Should extended family financial support (Black Tax) have strict personal percentage caps?',
+            'category' => 'Family & Home',
+            'yes_count' => 312,
+            'no_count' => 88
+        ]
+    ];
+}
+
+// Helper: Build User Welcome HTML Email
+function build_user_welcome_email_html(string $userName, string $userEmail, array $issues, string $siteUrl): string {
+    $safeName = htmlspecialchars($userName);
+    $safeEmail = htmlspecialchars($userEmail);
+    $issuesList = get_welcome_trending_issues($issues);
+
+    $cardsHtml = "";
+    foreach ($issuesList as $iss) {
+        $id = htmlspecialchars($iss['id'] ?? 'explore');
+        $title = htmlspecialchars($iss['title'] ?? 'Community Question');
+        $category = htmlspecialchars($iss['category'] ?? 'Civic');
+        $yes = (int)($iss['yesCount'] ?? ($iss['yes_count'] ?? 10));
+        $no = (int)($iss['noCount'] ?? ($iss['no_count'] ?? 5));
+        $total = $yes + $no;
+        $yesPct = $total > 0 ? round(($yes / $total) * 100) : 50;
+        $noPct = 100 - $yesPct;
+        $issueUrl = "{$siteUrl}/#issue/{$id}";
+
+        $cardsHtml .= "
+        <div style='margin-bottom:14px;padding:16px 18px;background:#1e293b;border-radius:16px;border:1px solid #334155;'>
+          <div style='margin-bottom:8px;'>
+            <span style='font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(99,102,241,0.25);color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;'>
+              {$category}
+            </span>
+            <span style='float:right;font-size:11px;color:#94a3b8;font-weight:600;'>
+              {$total} votes
+            </span>
+          </div>
+          <a href='{$issueUrl}' style='display:block;font-size:14px;font-weight:700;color:#f8fafc;text-decoration:none;margin-bottom:12px;line-height:1.4;'>
+            {$title}
+          </a>
+          <table width='100%' cellpadding='0' cellspacing='0'>
+            <tr>
+              <td style='vertical-align:middle;'>
+                <div style='font-size:11px;color:#94a3b8;margin-bottom:4px;'>
+                  <span style='color:#10b981;font-weight:700;'>YES {$yesPct}%</span>
+                  <span style='color:#f43f5e;font-weight:700;margin-left:12px;'>NO {$noPct}%</span>
+                </div>
+                <div style='background:#334155;height:6px;border-radius:999px;overflow:hidden;'>
+                  <table width='100%' height='6' cellpadding='0' cellspacing='0'>
+                    <tr>
+                      <td width='{$yesPct}%' style='background:#10b981;height:6px;'></td>
+                      <td width='{$noPct}%' style='background:#f43f5e;height:6px;'></td>
+                    </tr>
+                  </table>
+                </div>
+              </td>
+              <td style='width:105px;text-align:right;padding-left:14px;vertical-align:middle;'>
+                <a href='{$issueUrl}' style='display:inline-block;padding:7px 14px;background:#10b981;color:#ffffff;font-size:11px;font-weight:800;border-radius:10px;text-decoration:none;'>
+                  Vote Now →
+                </a>
+              </td>
+            </tr>
+          </table>
+        </div>";
+    }
+
+    return "
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Welcome to YesOrNo</title>
+</head>
+<body style='margin:0;padding:0;background-color:#090d16;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;color:#f8fafc;'>
+  <table width='100%' cellpadding='0' cellspacing='0' style='background-color:#090d16;padding:32px 12px;'>
+    <tr>
+      <td align='center'>
+        <table width='100%' cellpadding='0' cellspacing='0' style='max-width:580px;background:#0f172a;border-radius:24px;border:1px solid #1e293b;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);'>
+          
+          <!-- Gradient Header -->
+          <tr>
+            <td style='background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0d9488 100%);padding:36px 32px 28px;text-align:center;'>
+              <div style='display:inline-block;padding:6px 14px;background:rgba(255,255,255,0.2);backdrop-filter:blur(8px);border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px;'>
+                🎉 Welcome to the Community
+              </div>
+              <h1 style='margin:0;font-size:26px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;'>
+                Welcome to YesOrNo, {$safeName}!
+              </h1>
+              <p style='margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.92);line-height:1.5;'>
+                Your perspective matters. Deliberate, vote on real public dilemmas, and shape civic consensus.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Intro Message -->
+          <tr>
+            <td style='padding:28px 32px 16px;'>
+              <p style='margin:0 0 16px;font-size:14px;line-height:1.6;color:#cbd5e1;'>
+                Thanks for joining <strong>YesOrNo</strong>! Whether it&apos;s relationship dilemmas, workplace ethics, national economy, or community consensus &mdash; this is the open platform where every vote and perspective counts.
+              </p>
+              
+              <div style='padding:16px 20px;background:#1e293b;border-radius:16px;border-left:4px solid #10b981;margin-bottom:24px;'>
+                <div style='font-size:13px;font-weight:700;color:#f8fafc;margin-bottom:4px;'>
+                  ✨ How to participate in 3 easy steps:
+                </div>
+                <div style='font-size:12px;color:#94a3b8;line-height:1.6;'>
+                  1. <strong>Vote YES or NO</strong> on open community dilemmas.<br>
+                  2. <strong>Add your perspective or voice note</strong> to explain your reasoning.<br>
+                  3. <strong>Watch live consensus form</strong> as people deliberate in real time.
+                </div>
+              </div>
+
+              <!-- Hottest Questions Section Header -->
+              <div style='margin-bottom:14px;'>
+                <h3 style='margin:0;font-size:15px;font-weight:800;color:#ffffff;'>
+                  🔥 Hot &amp; Trending Debates (Vote Now)
+                </h3>
+                <p style='margin:4px 0 0;font-size:12px;color:#94a3b8;'>
+                  Here are some of the most debated questions currently active on the platform:
+                </p>
+              </div>
+              
+              <!-- Trending Issues Cards -->
+              {$cardsHtml}
+
+              <!-- Main CTA -->
+              <div style='text-align:center;margin:32px 0 16px;'>
+                <a href='{$siteUrl}' style='display:inline-block;padding:14px 32px;background:#6366f1;color:#ffffff;font-size:14px;font-weight:800;border-radius:16px;text-decoration:none;box-shadow:0 4px 16px rgba(99,102,241,0.45);'>
+                  Explore All Questions &amp; Start Voting →
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style='padding:20px 32px;background:#090d16;border-top:1px solid #1e293b;text-align:center;'>
+              <p style='margin:0 0 6px;font-size:12px;color:#64748b;'>
+                YesOrNo &bull; The Open Civic Deliberation &amp; Consensus Platform
+              </p>
+              <p style='margin:0;font-size:11px;color:#475569;'>
+                Sent to {$safeEmail} because you created an account on YesOrNo.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>";
+}
+
+// ============================================================================
+// Multi-Transport Dispatch Execution
+// ============================================================================
+
+// 1. Dispatch Primary Notification (Admin Alert or custom trigger)
+$primaryDispatch = dispatch_single_email($targetRecipient, $subject, $messageBody, $emailConfig, $fromEmail);
+$mailSent = $primaryDispatch['sent'];
+$activeTransport = $primaryDispatch['transport'];
+$transportDetails = $primaryDispatch['details'];
+
+// 2. Dispatch User Welcome Email on Registration
+$welcomeSent = false;
+$welcomeTransport = 'none';
+
+$isRealUserEmail = !empty($userEmail) 
+    && filter_var($userEmail, FILTER_VALIDATE_EMAIL)
+    && strtolower($userEmail) !== strtolower($adminEmail)
+    && strpos(strtolower($userEmail), '@yesorno.ng') === false;
+
+if (($eventType === 'register' || $eventType === 'welcome') && $isRealUserEmail) {
+    $welcomeSubj = "Welcome to YesOrNo, {$userName}! 👋 Here are trending questions to get started";
+    $welcomeBody = build_user_welcome_email_html($userName, $userEmail, $data['trendingIssues'] ?? [], $siteUrl);
+    $welcomeDispatch = dispatch_single_email($userEmail, $welcomeSubj, $welcomeBody, $emailConfig, $fromEmail);
+    $welcomeSent = $welcomeDispatch['sent'];
+    $welcomeTransport = $welcomeDispatch['transport'];
 }
 
 // Log to notifications.log on server for audit trail & permanent backup
@@ -540,6 +794,8 @@ echo json_encode([
     'event' => $eventType,
     'mailSent' => $mailSent,
     'transport' => $activeTransport,
+    'welcomeSent' => $welcomeSent,
+    'welcomeTransport' => $welcomeTransport,
     'timestamp' => $timestamp,
     'targetRecipient' => $targetRecipient,
     'diagnostics' => $isTest ? [

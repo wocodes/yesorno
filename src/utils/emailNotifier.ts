@@ -1,8 +1,10 @@
 import { UserProfile, Issue, VoteSubmission, CommentReply } from '../types';
 import { buildIssueSlug } from './share';
+import { getFirstTouchAcquisitionSource } from './acquisition';
 
 export type NotificationEvent =
   | 'register'
+  | 'welcome'
   | 'login'
   | 'create_issue'
   | 'comment'
@@ -97,14 +99,31 @@ export async function sendAdminNotification(payload: NotifyPayload): Promise<boo
 }
 
 /**
- * Triggered whenever a new user registers on YesOrNo
+ * Triggered whenever a new user registers on YesOrNo.
+ * Dispatches an alert to the platform administrator AND sends a beautifully designed
+ * Welcome Email featuring trending debates to the newly registered citizen.
  */
 export function notifyAdminUserRegistered(
   user: UserProfile,
-  method = 'Standard Sign-Up'
+  method = 'Standard Sign-Up',
+  trendingIssues?: Issue[]
 ): void {
   const throttleKey = `register:${user.email || user.id}`;
   if (shouldThrottle(throttleKey, 10000)) return;
+
+  const acq = getFirstTouchAcquisitionSource();
+  const acquisitionChannel = user.acquisitionSource || acq.channel;
+  const landingPath = (user.registrationSource as any)?.landingPath || acq.landingPath;
+  const referrer = (user.registrationSource as any)?.referrer || acq.referrer;
+
+  const trendingPayload = (trendingIssues || []).slice(0, 4).map(i => ({
+    id: i.id,
+    title: i.title,
+    category: i.category,
+    yes_count: i.yesCount || 0,
+    no_count: i.noCount || 0,
+    views_count: i.viewsCount || 0
+  }));
 
   sendAdminNotification({
     event: 'register',
@@ -117,6 +136,45 @@ export function notifyAdminUserRegistered(
       method,
       region: user.region || 'Not selected',
       interests: (user.interests || []).join(', '),
+      acquisitionSource: acquisitionChannel,
+      channel: acquisitionChannel,
+      landingPath,
+      referrer,
+      trendingIssues: trendingPayload,
+    },
+  });
+}
+
+/**
+ * Sends a welcome email with trending questions to a newly registered user
+ */
+export function sendUserWelcomeEmail(
+  user: UserProfile,
+  trendingIssues?: Issue[]
+): void {
+  if (!user.email || user.email.includes('@yesorno.ng')) return;
+  const throttleKey = `welcome:${user.email}`;
+  if (shouldThrottle(throttleKey, 10000)) return;
+
+  const trendingPayload = (trendingIssues || []).slice(0, 4).map(i => ({
+    id: i.id,
+    title: i.title,
+    category: i.category,
+    yes_count: i.yesCount || 0,
+    no_count: i.noCount || 0,
+    views_count: i.viewsCount || 0
+  }));
+
+  sendAdminNotification({
+    event: 'welcome',
+    user: {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+    data: {
+      recipientEmail: user.email,
+      trendingIssues: trendingPayload,
     },
   });
 }

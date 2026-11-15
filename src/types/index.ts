@@ -50,6 +50,8 @@ export interface UserProfile {
   issuesCount?: number;
   commentsCount?: number;
   userType?: 'registered' | 'seed';
+  acquisitionSource?: string;
+  registrationSource?: Record<string, unknown>;
 }
 
 export interface AdminUserRecord {
@@ -73,6 +75,8 @@ export interface AdminUserRecord {
   commentsCount: number;
   groups?: string[];
   interests?: string[];
+  acquisitionSource?: string;
+  landingPath?: string;
 }
 
 export type VoiceFilterType = 'none' | 'deep' | 'high' | 'robot' | 'radio';
