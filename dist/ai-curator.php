@@ -929,7 +929,7 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
             . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts as a Nigerian for Nigerians.\n\n"
             . "For each suggestion, provide:\n"
             . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (strictly ending with a single '?'). VARY THE FORMAT across these styles:\n"
-            . "   - Captivating True-Life Story / Dilemma Hook (DO NOT prefix with labels like 'CONFESSION:' or 'TRUE STORY:' — jump directly into the raw first-person hook, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?')\n"
+            . "   - Captivating True-Life Story / Dilemma Hook (Curated under Madam Rose - Relationship Expert; DO NOT prefix with labels like 'CONFESSION:' or 'TRUE STORY:' — jump directly into the raw first-person situation, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'My mother-in-law moved into our flat for \"two weeks\" and refuses to leave after 10 months: should I pack out?', 'My husband secretly bought land in his mother\\'s name with our joint savings: should I divorce him?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?')\n"
             . "   - Short & sharp direct question (e.g. 'End NYSC now?', 'Ban plastic bags?', 'Checking partner\\'s phone: justified?')\n"
             . "   - Statement preamble + question (e.g. 'Fuel subsidy removed: should it be brought back?', 'Dangote refinery cuts petrol price: will filling stations drop pump prices?')\n"
             . "   - Direct binary polarity hot-take (e.g. '50/50 rent in marriage: Yes or No?', 'A man earning ₦150k has no business dating in Lagos: agree?')\n"
@@ -1523,7 +1523,16 @@ Create ONE direct, authentic, and rage-baiting binary question (strictly YES or 
 TOPIC ROTATION & NIGERIAN REALITIES:
 1. Politics & Policy: Mandatory civil service retirement at 50 for youth jobs, stripping politicians seeking foreign healthcare of office, state police weaponization, scrapping minimum wage, banning non-voters from passports.
 2. Economy & Finance: Floating the Naira (worst policy or necessary medicine?), fuel subsidy reinstatement, emergency food price caps on market traders, landlords demanding 2 years rent upfront, crypto banking integration.
-3. Dating & Relationships: 50/50 rent splitting in marriage, first date food bills with an uninvited entourage, checking partner's phone without permission, dating broke men/women in Lagos, ₦5M wedding budgets vs court weddings.
+3. Dating, Relationships & Marriage Realities (Curated by Madam Rose - Relationship Expert & Family Counsellor):
+   - Ground dilemmas in believable Nigerian realities:
+     * In-law interference (e.g. mother-in-law moving in indefinitely, dictating the kitchen, demanding bedroom access).
+     * Pre-marital disclosures (secret child discovered 2 weeks to wedding, hidden debt, concealed court marriage).
+     * Financial secrecy & joint accounts (spouse secretly sending millions from joint building savings to siblings or buying land in mother's name).
+     * DNA & paternity dilemmas (secret DNA test revealing paternity mismatch, family demanding paternity proof).
+     * Bride price inflation & wedding list extortion (family demanding ₦3M youth list settlement, expensive traditional rites vs couple's savings).
+     * Genotype AS+AS marrying (faith vs sickle cell realities), fertility friction.
+     * Toxic Black Tax (high-earning worker refusing to fund unemployed adult siblings living a luxury lounge lifestyle).
+     * Japa relocation (one spouse getting UK/Canada visa and demanding partner liquidate family assets).
 4. Culture & Society: Abolishing bride price completely, spraying crisp Naira at Owambe parties, calling older relatives by first names, genotype AS marrying AS (wickedness or faith?), cutting off toxic family black tax.
 5. Work, Career & Hustle: Japa vs ₦2.5M local salary, toxic weekend WhatsApp messages from bosses, remote USD tech jobs on local company time, unpaid weekend overtime, corporate entitlement.
 6. Business & Commerce: POS ₦500 withdrawal extortion, dollarized rent, market traders hiking prices arbitrarily.
@@ -1531,7 +1540,7 @@ TOPIC ROTATION & NIGERIAN REALITIES:
 QUESTION FORMAT VARIETY (VARY YOUR STYLE!):
 Do NOT always start with 'Should...'. Alternate across these punchy styles:
 * Captivating True-Life Story / Dilemma Hook (Emotional & Viral):
-  (DO NOT use prefix labels like 'CONFESSION:' or 'TRUE LIFE STORY:'. Start directly with the raw situation, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?')
+  (DO NOT use prefix labels like 'CONFESSION:' or 'TRUE LIFE STORY:'. Start directly with the raw situation, e.g. 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?', 'My mother-in-law moved into our flat for \"two weeks\" and refuses to leave after 10 months: should I pack out?', 'My husband secretly bought land in his mother\\'s name with our joint savings: should I divorce him?', 'I earn ₦2.8M in Lagos and refuse to fund my 30-year-old brother\\'s lifestyle: am I being selfish?')
   CRITICAL FOR SOCIAL SHARING: The first 8 to 12 words of the title and description MUST be a high-voltage, jaw-dropping hook that stops people from scrolling on Twitter/X, WhatsApp, or Facebook!
 * Short & Sharp Direct Question (3 to 8 words):
   e.g. 'End NYSC now?', 'Abolish bride price completely?', 'Checking partner\\'s phone: justified?', 'Ban commercial bikes on expressways?'
@@ -1730,8 +1739,46 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
     $viewsCount = (int)round(($totalVotes * rand(38, 52) / 10.0) + ($likesCount * 3) + rand(25, 75));
     $impressionsCount = (int)round($viewsCount * rand(18, 25) / 10.0);
 
-    // Choose Author Persona
-    $authorPersona = $personas[array_rand($personas)];
+    // Choose Author Persona (Dedicate Madam Rose for Relationships, Family, Marriage, Counselling & True-Life Stories)
+    $catLower = strtolower($debateData['category'] ?? '');
+    $ttlLower = strtolower($debateData['title'] ?? '');
+    $dscLower = strtolower($debateData['description'] ?? '');
+    $isRelationshipStory = (
+        strpos($catLower, 'counsel') !== false ||
+        strpos($catLower, 'family') !== false ||
+        strpos($catLower, 'gender') !== false ||
+        strpos($catLower, 'dating') !== false ||
+        strpos($ttlLower, 'fianc') !== false ||
+        strpos($ttlLower, 'wedding') !== false ||
+        strpos($ttlLower, 'husband') !== false ||
+        strpos($ttlLower, 'wife') !== false ||
+        strpos($ttlLower, 'marri') !== false ||
+        strpos($ttlLower, 'dating') !== false ||
+        strpos($ttlLower, 'in-law') !== false ||
+        strpos($ttlLower, 'mother-in-law') !== false ||
+        strpos($ttlLower, 'dna') !== false ||
+        strpos($ttlLower, 'brother') !== false ||
+        strpos($ttlLower, 'sister') !== false ||
+        strpos($ttlLower, 'secret') !== false ||
+        strpos($dscLower, 'fianc') !== false ||
+        strpos($dscLower, 'wedding') !== false ||
+        strpos($dscLower, 'husband') !== false ||
+        strpos($dscLower, 'wife') !== false ||
+        strpos($dscLower, 'mother-in-law') !== false
+    );
+
+    $authorPersona = null;
+    if ($isRelationshipStory) {
+        foreach ($personas as $p) {
+            if (($p['id'] ?? '') === 'pers-madam-rose' || strtolower($p['name'] ?? '') === 'madam rose') {
+                $authorPersona = $p;
+                break;
+            }
+        }
+    }
+    if (!$authorPersona) {
+        $authorPersona = $personas[array_rand($personas)];
+    }
 
     // Insert Issue
     $stmtIssue = $pdo->prepare("

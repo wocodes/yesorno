@@ -11,6 +11,11 @@ export interface SeedPersona {
   archetype: string;
   toneGuidelines: string;
   interests: string[];
+  avatar?: string;
+  city?: string;
+  displayPreference?: 'name' | 'username';
+  isVerified?: boolean;
+  verificationBadge?: string;
 }
 
 export const SEED_PERSONAS: SeedPersona[] = seedPersonasJson as SeedPersona[];

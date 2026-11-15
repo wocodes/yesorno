@@ -40,6 +40,7 @@ const CATEGORY_OPTIONS: IssueCategory[] = [
 ];
 
 const INSPIRATION_PILLS = [
+  { label: '🌹 Madam Rose: Relationship Realities', context: 'realistic, natural, and believable Nigerian relationship and family dilemmas curated by Madam Rose (relationship expert), without prefix labels' },
   { label: '💔 Pre-Wedding Secret Dilemma', context: 'captivating personal dilemma of a secret child or hidden debt discovered before wedding with high-voltage social hook, without adding labels' },
   { label: '💸 ₦2.5M Salary vs Family Black Tax', context: 'emotional real-life dilemma of cutting off entitled siblings and toxic family black tax demands in Lagos, without adding labels' },
   { label: '⛽ Dangote Petrol Pricing', context: 'Dangote refinery petrol pricing and direct marketer sales' },

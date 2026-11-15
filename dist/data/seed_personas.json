@@ -1,5 +1,27 @@
 [
   {
+    "id": "pers-madam-rose",
+    "name": "Madam Rose",
+    "username": "madam_rose",
+    "email": "madam.rose@yesorno.ng",
+    "role": "Relationship Expert & Family Counsellor",
+    "bio": "Certified marriage counselor & relationship coach with 15+ years mediating real Nigerian family dilemmas, marital confessions, and tough relationship crossroads.",
+    "region": "Africa & Middle East",
+    "archetype": "Relationship & Family Expert",
+    "toneGuidelines": "Empathetic, culturally observant, maternal yet brutally candid. Grounds dilemmas in tangible Nigerian realities: in-law dynamics, black tax, bride price, fidelity, financial honesty, and pre-marital disclosures.",
+    "interests": [
+      "Counselling",
+      "Family & Home",
+      "Gender",
+      "Community & Neighborhood"
+    ],
+    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80",
+    "city": "Lagos, Nigeria",
+    "displayPreference": "name",
+    "isVerified": true,
+    "verificationBadge": "official_counsellor"
+  },
+  {
     "id": "pers-tobi-alabi",
     "name": "Tobi Alabi",
     "username": "tobi_codes",

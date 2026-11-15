@@ -237,4 +237,5 @@ export interface PublicUserProfile {
   followingCreators?: string[];
   followersCount?: number;
   isVerified?: boolean;
+  verificationBadge?: string;
 }
