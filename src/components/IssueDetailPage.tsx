@@ -429,23 +429,26 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                   {relativeTime}
                 </span>
               </div>
-              {issue.isAnonymousAuthor || !onOpenProfile ? (
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate">
-                  {authorInfo.fullName}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile({
-                    username: authorInfo.username,
-                    name: authorInfo.fullName || authorInfo.displayName,
-                    avatar: authorInfo.avatarUrl,
-                    email: issue.creatorEmail,
-                  })}
-                  className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-ink-900 dark:hover:text-zinc-300 block truncate text-left cursor-pointer"
-                >
-                  {authorInfo.fullName}
-                </button>
+              {/* Optional subline handle when public preference is full name */}
+              {authorInfo.showSubline && authorInfo.subline && (
+                !onOpenProfile ? (
+                  <span className="text-[11px] text-slate-400 dark:text-zinc-500 block truncate font-mono">
+                    {authorInfo.subline}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile({
+                      username: authorInfo.username,
+                      name: authorInfo.displayName,
+                      avatar: authorInfo.avatarUrl,
+                      email: issue.creatorEmail,
+                    })}
+                    className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-brand-500 block truncate text-left cursor-pointer font-mono"
+                  >
+                    {authorInfo.subline}
+                  </button>
+                )
               )}
             </div>
           </div>

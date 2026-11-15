@@ -283,17 +283,27 @@ export function getUserDisplayName(user: UserProfile | null | undefined, fallbac
 
 /**
  * Derives creator avatar, username, and preferred display name for an issue
+ * Strictly respects the author's public display preference ('username' vs 'name')
  */
 export function getAuthorDisplay(issue: Issue, currentUser?: UserProfile | null) {
   if (issue.isAnonymousAuthor) {
     return {
       displayName: 'Anonymous',
       firstName: 'Anonymous',
-      fullName: 'Anonymous Neighbor',
+      fullName: 'Anonymous',
       username: 'anonymous',
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(issue.id)}`,
+      showSubline: false,
+      subline: '',
     };
   }
+
+  // Derive avatar URL helper
+  const deriveAvatar = (seedEmailOrName: string, explicitAvatar?: string) => {
+    if (explicitAvatar) return explicitAvatar;
+    const seed = encodeURIComponent(seedEmailOrName || issue.id);
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5,0d9488,d97706,e11d48`;
+  };
 
   // Current user is author
   if (
@@ -305,49 +315,79 @@ export function getAuthorDisplay(issue: Issue, currentUser?: UserProfile | null)
     const rawUsername = currentUser.username ? currentUser.username.replace(/^@/, '') : '';
     const formattedUsername = rawUsername ? `@${rawUsername}` : '';
     const firstName = currentUser.name ? currentUser.name.trim().split(' ')[0] : 'You';
-    const fullName = currentUser.name;
-    const pref = currentUser.displayPreference || 'username';
-    const displayName = pref === 'name' ? fullName : pref === 'firstname' ? firstName : (formattedUsername || firstName);
+    const fullName = currentUser.name || '';
+    const pref = currentUser.displayPreference || issue.creatorDisplayPreference || 'username';
 
+    const avatarUrl = currentUser.avatar || deriveAvatar(currentUser.email, issue.creatorAvatar);
+
+    if (pref === 'username') {
+      const displayName = formattedUsername || firstName;
+      return {
+        displayName,
+        firstName,
+        fullName: displayName, // Strictly masked so fullname never leaks underneath
+        username: rawUsername || firstName.toLowerCase(),
+        avatarUrl,
+        showSubline: false,
+        subline: '',
+      };
+    } else if (pref === 'firstname') {
+      return {
+        displayName: firstName,
+        firstName,
+        fullName,
+        username: rawUsername || firstName.toLowerCase(),
+        avatarUrl,
+        showSubline: Boolean(formattedUsername),
+        subline: formattedUsername,
+      };
+    } else {
+      // pref === 'name' (Full Name)
+      return {
+        displayName: fullName,
+        firstName,
+        fullName,
+        username: rawUsername || firstName.toLowerCase(),
+        avatarUrl,
+        showSubline: Boolean(formattedUsername),
+        subline: formattedUsername,
+      };
+    }
+  }
+
+  // Author is another registered citizen or seed persona
+  const rawCreatorUsername = issue.creatorUsername ? issue.creatorUsername.replace(/^@/, '') : '';
+  const formattedUsername = rawCreatorUsername ? `@${rawCreatorUsername}` : '';
+  const isAuthorHandle = issue.author ? issue.author.trim().startsWith('@') : false;
+  const firstName = issue.author ? issue.author.trim().replace(/^@/, '').split(' ')[0] : 'Member';
+  const fullName = issue.author || 'Civic Member';
+  
+  // Check display preference
+  const pref = issue.creatorDisplayPreference || (isAuthorHandle ? 'username' : (rawCreatorUsername ? 'username' : 'name'));
+  const avatarUrl = deriveAvatar(issue.creatorEmail || issue.author || issue.id, issue.creatorAvatar);
+
+  if (pref === 'username') {
+    const displayName = formattedUsername || (isAuthorHandle ? issue.author.trim() : (issue.creatorEmail === 'william.odiomonafe@gmail.com' ? '@william' : `@${firstName.toLowerCase()}`));
     return {
       displayName,
       firstName,
-      fullName,
-      username: rawUsername || firstName.toLowerCase(),
-      avatarUrl: currentUser.avatar || `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(currentUser.email)}`,
+      fullName: displayName, // Strictly masked so fullname never leaks underneath
+      username: rawCreatorUsername || displayName.replace(/^@/, ''),
+      avatarUrl,
+      showSubline: false,
+      subline: '',
     };
   }
 
-  // Author with explicit username
-  const rawCreatorUsername = issue.creatorUsername ? issue.creatorUsername.replace(/^@/, '') : '';
-  const firstName = issue.author ? issue.author.trim().split(' ')[0] : 'Member';
-  const fullName = issue.author || 'Civic Member';
-  
-  // Respect creatorDisplayPreference if explicitly set ('name' vs 'username')
-  let displayName = fullName;
-  if (issue.creatorDisplayPreference === 'name') {
-    displayName = fullName;
-  } else if (issue.creatorDisplayPreference === 'username' && rawCreatorUsername) {
-    displayName = `@${rawCreatorUsername}`;
-  } else if (rawCreatorUsername) {
-    displayName = `@${rawCreatorUsername}`;
-  } else if (issue.creatorEmail === 'william.odiomonafe@gmail.com') {
-    displayName = '@william';
-  } else {
-    displayName = fullName;
-  }
-
-  let avatarUrl = issue.creatorAvatar;
-  if (!avatarUrl) {
-    const seed = encodeURIComponent(issue.creatorEmail || issue.author || issue.id);
-    avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5,0d9488,d97706,e11d48`;
-  }
-
+  // pref === 'name'
+  const displayName = isAuthorHandle && formattedUsername ? formattedUsername : fullName;
   return {
     displayName,
     firstName,
     fullName,
     username: rawCreatorUsername || firstName.toLowerCase(),
     avatarUrl,
+    showSubline: Boolean(formattedUsername && formattedUsername !== displayName),
+    subline: formattedUsername,
   };
 }

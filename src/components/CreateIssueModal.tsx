@@ -348,6 +348,10 @@ export const CreateIssueModal: React.FC<Props> = ({
       : undefined;
 
     const cleanUsername = currentUser?.username ? currentUser.username.replace(/^@/, '') : undefined;
+    const userPref = currentUser?.displayPreference || 'username';
+    const authorDisplayName = isAnonymous
+      ? alias
+      : (userPref === 'username' && cleanUsername ? `@${cleanUsername}` : (currentUser?.name || authorName.trim()));
 
     const newIssue: Issue = {
       id: `issue-${Date.now()}`,
@@ -356,11 +360,12 @@ export const CreateIssueModal: React.FC<Props> = ({
       category: visibility === 'private' ? 'Private & Internal' : category,
       region: userRegion,
       tags: tags.length > 0 ? tags : [category.split(' ')[0]],
-      author: isAnonymous ? alias : (currentUser?.name || authorName.trim()),
+      author: authorDisplayName,
       creatorId: currentUser?.id,
       creatorEmail: currentUser?.email,
       creatorAvatar: isAnonymous ? undefined : currentUser?.avatar,
       creatorUsername: isAnonymous ? undefined : cleanUsername,
+      creatorDisplayPreference: userPref,
       isAnonymousAuthor: isAnonymous,
       createdAt: new Date().toISOString(),
       closingDate: closingTime,

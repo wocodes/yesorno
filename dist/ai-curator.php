@@ -1710,10 +1710,26 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
 
     $normalizedNew = preg_replace('/[^a-z0-9]/', '', strtolower($debateData['title']));
 
-    // Strict deduplication check against existing active issues in database
+    // Strict deduplication check against existing active issues in database (including semantic topic clusters)
     try {
-        $checkStmt = $pdo->query("SELECT id, title FROM issues WHERE is_deleted = 0");
+        $checkStmt = $pdo->query("SELECT id, title, description FROM issues WHERE is_deleted = 0");
         $existing = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $forbiddenClusters = [
+            'genotype' => ['genotype', 'sickle cell', 'as couple', 'as and as', 'as-as', 'carrier'],
+            'bride_price' => ['bride price', 'dowry', 'refund bride price'],
+            '50_50_rent' => ['50/50 rent', 'split rent', '50-50 rent'],
+            'black_tax' => ['black tax', 'family billing', 'cut off parents'],
+            'phone_snoop' => ['check phone', 'snoop phone', 'read whatsapp'],
+            'first_date' => ['first date bill', 'uninvited friends', 'who pays first date'],
+            'japa' => ['japa', 'relocate to uk', 'relocate to canada'],
+            'pos' => ['pos charge', 'pos operator', 'pos withdrawal'],
+            'dna' => ['dna test', 'paternity fraud', 'mandatory dna'],
+            'nysc' => ['scrap nysc', 'end nysc', 'nysc allowance']
+        ];
+
+        $combinedNew = strtolower($debateData['title'] . ' ' . ($debateData['description'] ?? ''));
+
         foreach ($existing as $row) {
             $normExisting = preg_replace('/[^a-z0-9]/', '', strtolower($row['title']));
             if ($normExisting === $normalizedNew) {
@@ -1723,6 +1739,26 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
                     'issueId' => $row['id'],
                     'title' => $row['title']
                 ];
+            }
+
+            // Semantic topic cluster check
+            $combinedExisting = strtolower($row['title'] . ' ' . ($row['description'] ?? ''));
+            foreach ($forbiddenClusters as $cName => $kws) {
+                $newHas = false;
+                foreach ($kws as $kw) { if (strpos($combinedNew, $kw) !== false) { $newHas = true; break; } }
+                if ($newHas) {
+                    $existHas = false;
+                    foreach ($kws as $kw) { if (strpos($combinedExisting, $kw) !== false) { $existHas = true; break; } }
+                    if ($existHas) {
+                        error_log("Curation cluster deduplication triggered for '{$cName}': already covered in '{$row['title']}'");
+                        return [
+                            'duplicate' => true,
+                            'issueId' => $row['id'],
+                            'title' => $row['title'],
+                            'reason' => "Topic cluster {$cName} already covered recently"
+                        ];
+                    }
+                }
             }
         }
     } catch (Exception $e) {}

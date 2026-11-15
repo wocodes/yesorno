@@ -170,6 +170,33 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
             }
         }
 
+        // Auto-repair legacy duplicate daily topics in database
+        try {
+            $fixStmt = $pdo->prepare("
+                UPDATE issues 
+                SET title = :title, description = :description, category = :category, tags = :tags, updated_at = :now
+                WHERE id = :id AND (title LIKE '%genotype%' OR title LIKE '%AS%' OR title LIKE '%sickle%')
+            ");
+
+            $fixStmt->execute([
+                ':id' => 'issue-daily-2026-11-15-afternoon',
+                ':title' => 'Commercial dispatch and delivery bikes on express flyovers: enforce a total ban?',
+                ':description' => 'Commuters and highway safety officials argue erratic dispatch riders weaving through high-speed expressway traffic cause daily fatal crashes. Delivery companies and logistics unions argue bans cripple the fast-growing e-commerce gig economy and destroy youth livelihoods.',
+                ':category' => 'Community & Neighborhood',
+                ':tags' => json_encode(['TransportSafety', 'DispatchRiders', 'LagosTraffic', 'GigEconomy']),
+                ':now' => gmdate('Y-m-d\TH:i:s\Z')
+            ]);
+
+            $fixStmt->execute([
+                ':id' => 'issue-daily-2026-11-15-evening',
+                ':title' => 'Tax church and mosque-owned commercial businesses and luxury universities: Yes or No?',
+                ':description' => 'Fiscal reformers argue faith-owned universities charging ₦3M+ tuition and luxury commercial ventures generate billions in untaxed profit while public schools collapse. Religious bodies argue educational and charitable missions are non-profit social investments funded by voluntary tithes.',
+                ':category' => 'Economy & Finance',
+                ':tags' => json_encode(['TaxReform', 'FaithInstitutions', 'EducationCost', 'Economy']),
+                ':now' => gmdate('Y-m-d\TH:i:s\Z')
+            ]);
+        } catch (Exception $e) {}
+
         return $pdo;
     } catch (Exception $e) {
         error_log('SQLite Init Error: ' . $e->getMessage());

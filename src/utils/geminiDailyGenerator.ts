@@ -94,9 +94,9 @@ export function markSlotCompleted(slotKey: string): void {
 const CURATED_POLARIZING_QUESTIONS: Record<string, { title: string; description: string; tags: string[] }[]> = {
   'Counselling': [
     {
-      title: 'Genotype AS marrying another AS: pure wickedness or personal faith?',
-      description: 'Medical realists insist that subjecting an innocent child to the lifelong agony of sickle cell disease is an avoidable tragedy. Faith-driven romantics argue that modern prenatal medicine and divine miracles supersede biology.',
-      tags: ['Counselling', 'Genotype', 'MarriageDilemma', 'Nigeria']
+      title: 'Secret 5-year-old child discovered 2 weeks before wedding: call off the marriage?',
+      description: 'Devastated partners insist that concealing a child for years proves foundational deceit that will poison marital intimacy forever. Family elders and forgiving romantics argue that past mistakes before the relationship should not destroy a genuine union.',
+      tags: ['Counselling', 'SecretChild', 'PreMaritalTrust', 'Relationships']
     },
     {
       title: 'Cut off toxic parents who drain your finances with endless black tax: Yes or No?',
@@ -308,25 +308,182 @@ const CURATED_POLARIZING_QUESTIONS: Record<string, { title: string; description:
   ]
 };
 
+interface TopicCluster {
+  id: string;
+  name: string;
+  keywords: string[];
+}
+
+const FORBIDDEN_TOPIC_CLUSTERS: TopicCluster[] = [
+  {
+    id: 'genotype',
+    name: 'Genotype / Sickle Cell Marriage',
+    keywords: ['genotype', 'sickle cell', 'as couple', 'as and as', 'as-as', 'carrier', 'haemoglobin', 'hbss', 'hbas']
+  },
+  {
+    id: 'bride_price',
+    name: 'Bride Price & Dowry',
+    keywords: ['bride price', 'dowry', 'refund bride price', 'traditional wedding list']
+  },
+  {
+    id: '50_50_rent',
+    name: '50/50 Rent & House Upkeep',
+    keywords: ['50/50 rent', 'split rent', '50-50 rent', 'husband pays all rent', 'share household bills']
+  },
+  {
+    id: 'black_tax',
+    name: 'Black Tax & Family Dependency',
+    keywords: ['black tax', 'family billing', 'draining relatives', 'cut off parents']
+  },
+  {
+    id: 'phone_snoop',
+    name: 'Checking Partner Phone / WhatsApp',
+    keywords: ['check phone', 'snoop phone', 'read whatsapp', 'partner password']
+  },
+  {
+    id: 'first_date_bill',
+    name: 'First Date Bills & Entourage',
+    keywords: ['first date bill', 'uninvited friends', 'who pays first date', 'settle date bill']
+  },
+  {
+    id: 'japa_migration',
+    name: 'Japa & Emigration vs Staying',
+    keywords: ['japa', 'relocate to uk', 'relocate to canada', 'stay in nigeria']
+  },
+  {
+    id: 'pos_charges',
+    name: 'POS Cash Charges & Surcharges',
+    keywords: ['pos charge', 'pos operator', 'pos withdrawal', 'cash scarcity fee']
+  },
+  {
+    id: 'dna_paternity',
+    name: 'Mandatory Paternity DNA Tests',
+    keywords: ['dna test', 'paternity fraud', 'mandatory dna', 'birth dna']
+  },
+  {
+    id: 'nysc_scheme',
+    name: 'Scrapping or Reforming NYSC',
+    keywords: ['scrap nysc', 'end nysc', 'nysc allowance', 'service year mandatory']
+  },
+  {
+    id: 'dollar_rent',
+    name: 'Dollarized Rent & Pricing',
+    keywords: ['dollar rent', 'landlord demanding dollars', 'pay rent in dollars']
+  }
+];
+
+/**
+ * Checks if a proposed topic/question is contextually too similar or duplicate to existing issues in the feed
+ */
+export function isContextTooSimilar(
+  newTitle: string,
+  newDescription: string,
+  existingIssues: Issue[]
+): { isDuplicate: boolean; matchedTitle?: string; reason?: string } {
+  const normNewTitle = newTitle.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const normNewDesc = newDescription.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const combinedNew = `${normNewTitle} ${normNewDesc}`;
+
+  // 1. Topic Cluster check against recent issues
+  for (const cluster of FORBIDDEN_TOPIC_CLUSTERS) {
+    const newMatchesCluster = cluster.keywords.some(kw => combinedNew.includes(kw));
+    if (newMatchesCluster) {
+      for (const issue of existingIssues) {
+        if (issue.isDeletedByAuthor) continue;
+        const combinedExisting = `${issue.title.toLowerCase()} ${(issue.description || '').toLowerCase()}`;
+        const existingMatchesCluster = cluster.keywords.some(kw => combinedExisting.includes(kw));
+        if (existingMatchesCluster) {
+          return {
+            isDuplicate: true,
+            matchedTitle: issue.title,
+            reason: `Topic belongs to already covered theme: ${cluster.name}`
+          };
+        }
+      }
+    }
+  }
+
+  // 2. Significant word overlap & Jaccard index
+  const stopWords = new Set([
+    'should', 'would', 'could', 'about', 'after', 'before', 'their', 'there',
+    'where', 'which', 'who', 'whom', 'whose', 'with', 'without', 'agree', 'disagree',
+    'yes', 'no', 'what', 'when', 'your', 'from', 'have', 'more', 'this', 'that',
+    'these', 'those', 'than', 'them', 'they', 'were', 'will', 'been', 'being', 'having'
+  ]);
+
+  const getSignificantWords = (text: string) => {
+    return new Set(
+      text.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !stopWords.has(w))
+    );
+  };
+
+  const newWords = getSignificantWords(newTitle);
+  if (newWords.size === 0) return { isDuplicate: false };
+
+  for (const issue of existingIssues) {
+    if (issue.isDeletedByAuthor) continue;
+    const existingWords = getSignificantWords(issue.title);
+    if (existingWords.size === 0) continue;
+
+    let intersection = 0;
+    for (const w of newWords) {
+      if (existingWords.has(w)) intersection++;
+    }
+
+    const union = new Set([...newWords, ...existingWords]).size;
+    const jaccard = union > 0 ? intersection / union : 0;
+
+    if (jaccard >= 0.35 || intersection >= 3) {
+      return {
+        isDuplicate: true,
+        matchedTitle: issue.title,
+        reason: `High semantic similarity (${Math.round(jaccard * 100)}% word overlap)`
+      };
+    }
+  }
+
+  return { isDuplicate: false };
+}
+
 /**
  * Calls Gemini to generate a fresh, unique, and rage-baiting YES/NO question as a Nigerian for Nigerians
+ * Strictly guarantees zero duplicate contexts against existing feed issues
  */
-async function fetchGeminiQuestion(category: IssueCategory, _region?: IssueRegion): Promise<{ title: string; description: string; tags: string[] }> {
+async function fetchGeminiQuestion(
+  category: IssueCategory,
+  _region?: IssueRegion,
+  existingIssues: Issue[] = []
+): Promise<{ title: string; description: string; tags: string[] }> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('VITE_GEMINI_API_KEY not configured');
   }
 
+  const recentTitles = existingIssues.slice(0, 20).map(i => i.title);
+  const excludeBlock = recentTitles.length > 0
+    ? `\nSTRICT TOPIC EXCLUSION LIST (DO NOT REPEAT OR GENERATE ANYTHING IN THE SAME CONTEXT):
+${recentTitles.map(t => `- "${t}"`).join('\n')}
+
+MANDATORY ANTI-DUPLICATION RULE:
+You MUST NOT generate any dilemma, debate, or question that is identical, similar, or shares the same context as ANY of the recent issues above!
+CRITICAL FORBIDDEN THEMES (STRICTLY FORBIDDEN FROM REPEATING):
+- Absolutely NO questions about AS/AS genotype, sickle cell, or genetic marriage compatibility! (This topic has already been debated repeatedly).
+- Pick an untouched, original, high-voltage dilemma in "${category}".\n`
+    : '';
+
   const prompt = `You are an expert Nigerian social commentator, viral poll creator, and digital debate provocateur for the YesOrNo app.
 Your task is to generate 1 unique, authentic, and rage-baiting YES/NO debate question specifically crafted as a Nigerian for Nigerians in the category "${category}".
-
+${excludeBlock}
 Cultural & Thematic Domains to Pull From:
 - Politics & Policy: Mandatory civil service retirement at 50 for youth jobs, stripping politicians seeking foreign healthcare of office, state police weaponization, scrapping the minimum wage, direct local government funding.
-- Economy & Finance: Floating the Naira (worst policy or necessary medicine?), fuel subsidy reinstatement, emergency food price caps on market traders, landlords demanding 2 years rent upfront, crypto banking integration.
-- Dating & Relationships: 50/50 rent splitting in marriage, first date food bills with an uninvited entourage, checking partner's phone without permission, dating broke men/women in Lagos, ₦5M wedding budgets vs court weddings.
-- Culture & Society: Abolishing bride price completely, spraying crisp Naira at Owambe parties, calling older relatives by first names, genotype AS marrying AS (wickedness or faith?), cutting off toxic family black tax.
+- Economy & Finance: Floating the Naira (worst policy or necessary medicine?), fuel subsidy reinstatement, emergency food price caps on market traders, landlords demanding 2 years rent upfront, taxing church/mosque commercial luxury universities.
+- Dating & Relationships: Secret child revealed 2 weeks before wedding, 50/50 rent splitting in marriage, first date food bills with an uninvited entourage, checking partner's phone without permission, dating broke men/women in Lagos, ₦5M wedding budgets vs court weddings.
+- Culture & Society: Abolishing statutory bride price, legal ban on spraying crisp currency at parties, joint family compounds vs nuclear flats, cutting off toxic dependency black tax, mandatory trade apprenticeships for university graduates.
 - Work, Career & Hustle: Japa vs ₦2.5M local salary, toxic weekend WhatsApp messages from bosses, remote USD tech jobs on local company time, unpaid weekend overtime, corporate entitlement.
-- Business & Commerce: POS ₦500 withdrawal extortion, dollarized rent, market traders hiking prices arbitrarily.
+- Business & Commerce: Commercial dispatch bikes banned on flyovers, POS ₦500 withdrawal extortion, dollarized rent, market traders hiking prices arbitrarily.
 
 QUESTION FORMAT VARIETY (VARY YOUR STYLE NATURALLY!):
 Do NOT always start with "Should...". Randomly pick from these punchy styles:
@@ -346,7 +503,7 @@ RULES:
    - Sentence 1: The bold, provocative YES perspective (why supporters boldly justify it).
    - Sentence 2: The fiery, street-smart NO counter-argument (why critics call it absurd, unfair, or wicked).
    - Sentence 3: The high-stakes everyday dilemma for regular Nigerians.
-4. Language: Natural Nigerian English with universally understood cultural terms (e.g. "Japa", "black tax", "urgent 2k", "bride price", "genotype AS", "POS charges", "Owambe", "in-laws"). Clean grammar, no vulgarity or slurs.
+4. Language: Natural Nigerian English with universally understood cultural terms (e.g. "Japa", "black tax", "urgent 2k", "bride price", "POS charges", "Owambe", "in-laws"). Clean grammar, no vulgarity or slurs.
 
 Return strict JSON matching:
 {
@@ -386,24 +543,45 @@ Return strict JSON matching:
 }
 
 /**
- * Generates an issue for a specific slot, category, and user region
+ * Generates an issue for a specific slot, category, and user region with strict context deduplication
  */
 export async function generateQuestionForSlot(
   slotKey: string, 
   preferredCategory?: IssueCategory,
-  userRegion?: IssueRegion
+  userRegion?: IssueRegion,
+  existingIssues: Issue[] = []
 ): Promise<Issue> {
-  const category = preferredCategory || POLARIZING_CATEGORIES[Math.floor(Math.random() * POLARIZING_CATEGORIES.length)];
+  // Rotate category to avoid repeating categories of the last 2 issues
+  const recentCategories = new Set(existingIssues.slice(0, 2).map(i => i.category));
+  const availableCategories = POLARIZING_CATEGORIES.filter(c => !recentCategories.has(c));
+  const categoryPool = availableCategories.length > 0 ? availableCategories : POLARIZING_CATEGORIES;
+  const category = preferredCategory || categoryPool[Math.floor(Math.random() * categoryPool.length)];
   const region: IssueRegion = userRegion || 'Africa & Middle East';
 
-  let questionData: { title: string; description: string; tags: string[] };
+  let questionData: { title: string; description: string; tags: string[] } | null = null;
 
-  try {
-    questionData = await fetchGeminiQuestion(category, region);
-  } catch {
-    // Graceful fallback to curated bank
+  // Try Gemini with context deduplication verification (up to 3 attempts with alternate categories)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const curCat = attempt === 0 ? category : categoryPool[Math.floor(Math.random() * categoryPool.length)];
+    try {
+      const candidate = await fetchGeminiQuestion(curCat, region, existingIssues);
+      const dupCheck = isContextTooSimilar(candidate.title, candidate.description, existingIssues);
+      if (!dupCheck.isDuplicate) {
+        questionData = candidate;
+        break;
+      }
+      console.warn(`[Gemini Generator] Rejected duplicate context: "${candidate.title}". Reason: ${dupCheck.reason}`);
+    } catch {
+      break;
+    }
+  }
+
+  // Graceful fallback to curated bank ensuring non-duplication
+  if (!questionData) {
     const categoryBank = CURATED_POLARIZING_QUESTIONS[category] || CURATED_POLARIZING_QUESTIONS['Business'];
-    questionData = categoryBank[Math.floor(Math.random() * categoryBank.length)];
+    const nonDupBank = categoryBank.filter(q => !isContextTooSimilar(q.title, q.description, existingIssues).isDuplicate);
+    const chosenBank = nonDupBank.length > 0 ? nonDupBank : categoryBank;
+    questionData = chosenBank[Math.floor(Math.random() * chosenBank.length)];
   }
 
   const now = new Date();
@@ -418,6 +596,8 @@ export async function generateQuestionForSlot(
     author: GEMINI_AUTHOR_NAME,
     creatorEmail: GEMINI_AUTHOR_EMAIL,
     creatorAvatar: GEMINI_AUTHOR_AVATAR,
+    creatorUsername: 'william',
+    creatorDisplayPreference: 'username',
     createdAt: now.toISOString(),
     durationLabel: 'Indefinite (No Expiry)',
     visibility: 'public',
@@ -441,6 +621,7 @@ export async function generateQuestionForSlot(
  * - Zero catch-up dump of past slots
  * - Multi-tab and multi-device in-memory & database mutex
  * - Minimum 3 hours spacing between consecutive automated posts
+ * - Zero duplicate context against previous active feed debates
  */
 export async function checkAndTriggerDailyGeminiPosts(
   existingIssues: Issue[],
@@ -494,8 +675,7 @@ export async function checkAndTriggerDailyGeminiPosts(
   inProgressSlots.add(slotKey);
 
   try {
-    const cat = POLARIZING_CATEGORIES[Math.floor(Math.random() * POLARIZING_CATEGORIES.length)];
-    const issue = await generateQuestionForSlot(slotKey, cat, userRegion);
+    const issue = await generateQuestionForSlot(slotKey, undefined, userRegion, existingIssues);
 
     markSlotCompleted(slotKey);
     try {
@@ -522,10 +702,11 @@ export async function checkAndTriggerDailyGeminiPosts(
  */
 export async function generatePolarizingQuestionNow(
   category?: IssueCategory,
-  userRegion?: IssueRegion
+  userRegion?: IssueRegion,
+  existingIssues: Issue[] = []
 ): Promise<Issue> {
   const customSlotKey = `manual-${Date.now()}`;
-  return generateQuestionForSlot(customSlotKey, category, userRegion);
+  return generateQuestionForSlot(customSlotKey, category, userRegion, existingIssues);
 }
 
 export interface QuestionSuggestion {
