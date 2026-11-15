@@ -583,8 +583,14 @@ Rules:
    - Statement preamble + question (e.g. "Dangote refinery cuts petrol price: will filling stations drop pump prices?")
    - Direct binary polarity hot-take (e.g. "50/50 rent in marriage: Yes or No?")
    Every title must strictly end with a single "?" and require a YES or NO.
-2. Description & Realism: 2-3 punchy, emotional sentences grounded in authentic Nigerian realities:
-   - Must be realistic and deeply relatable: in-law dominance, joint savings betrayal, black tax entitlement, pre-marital secrets, genotype dilemmas, or bride price inflation.
+2. Description & Realism (STRICTLY NIGERIAN & AFRICAN REALITIES — ZERO WESTERN CLICHES):
+   - ABSOLUTELY FORBIDDEN: Do NOT mention "court child support", "child support checks/receipts", "alimony", "pre-nuptial agreements", or "credit scores" — these do NOT exist in daily Nigerian life!
+   - GROUND IN AUTHENTIC NIGERIAN REALITIES:
+     * Hidden babies: Discovered via mobile bank debit alerts ("Junior school fees & feeding"), WhatsApp DMs, or a child hidden in the village introduced as a "nephew" who slipped up and called him "Daddy".
+     * In-law domination: Mother-in-law coming for "Omugwo" or a "short visit" and refusing to leave for 10+ months, locking kitchen cupboards, cooking separate food for her son, demanding master bedroom keys.
+     * Joint savings betrayal: Couple scrimping in a rented flat saving ₦14M for land, only for spouse to secretly register the C of O and deed solely in his mother's or brother's name.
+     * Japa / Visa betrayal: Liquidating family land or cars to raise ₦12M Proof of Funds (POF) for spouse's UK/Canada visa, only for them to ghost once they arrive abroad.
+     * Black Tax entitlement: Earning ₦2.5M+ in Lagos/Abuja while facing toxic family meetings and accusations of "wickedness" for refusing to fund an unemployed 30-year-old brother's lounge lifestyle.
    - CRITICAL SOCIAL MEDIA RULE: The very first 8-15 words MUST be an irresistible, jaw-dropping hook that stops users from scrolling on Twitter/X, WhatsApp, or Facebook link previews.
    - Then outline the emotional dilemma: why the YES camp passionately insists one choice is necessary, and why the NO camp strongly objects.
 3. Category: Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].
@@ -709,10 +715,10 @@ export async function fetchTrendingQuestionSuggestions(params: {
   const currentPool: QuestionSuggestion[] = [
     {
       title: 'I found out my fiancé has a secret 4-year-old child 2 weeks before our wedding: should I cancel?',
-      description: 'I was cleaning my fiancé\'s car when I discovered court child support documents and a birth certificate with his name. He wept on his knees saying he was terrified of losing me, while his parents are begging me to swallow it and proceed to the altar. Advocates say building a marriage on deliberate deception is emotional suicide, while elders argue past baggage shouldn\'t destroy genuine love.',
+      description: 'I was using my fiancé\'s phone to turn on hotspot when repeated bank debit alerts popped up for ₦120,000 with narration "Junior creche & feeding" sent to a woman in Benin. When confronted, his mother confessed they have been hiding the child in the village so it wouldn\'t scatter our wedding plans. Advocates say entering a marriage built on a calculated family cover-up is suicide, while elders argue past mistakes shouldn\'t cancel a ₦6 Million wedding.',
       category: 'Family & Home',
       tags: ['RelationshipConfessions', 'PreMaritalLies', 'WeddingDilemma', 'TrustAndBetrayal', 'FamilySecrets'],
-      trendContext: 'Sparked by viral anonymous confession threads on social media regarding relationship deal-breakers and pre-wedding disclosures.',
+      trendContext: 'Sparked by viral anonymous confession threads on social media regarding relationship deal-breakers and pre-wedding disclosures in Nigeria.',
       trendScore: 98,
       xRank: 1,
       platforms: ['x', 'google_news']
