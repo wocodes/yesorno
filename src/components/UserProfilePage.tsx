@@ -3,11 +3,18 @@ import {
   ArrowLeft, CheckCircle2, UserPlus, UserCheck, Share2, 
   ThumbsUp, ThumbsDown, MessageSquare, Layers, MapPin, 
   ShieldCheck, Sparkles, Award, ArrowUpRight,
-  Settings, Heart, Check
+  Settings, Heart, Check, Vote, Reply, CornerDownRight,
+  Clock
 } from 'lucide-react';
 import { Issue, PublicUserProfile, UserProfile, VoteChoice, VoteSubmission } from '../types';
 import { IssueCard } from './IssueCard';
-import { getUserCreatedIssues, getUserPerspectives, isFollowingUser } from '../utils/userProfile';
+import { 
+  getUserCreatedIssues, 
+  getUserPerspectives, 
+  getUserVotes, 
+  getUserReplies,
+  isFollowingUser 
+} from '../utils/userProfile';
 import { formatRelativeTime } from '../utils/summary';
 import { VoicePlayer } from './VoicePlayer';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
@@ -53,12 +60,14 @@ export const UserProfilePage: React.FC<Props> = ({
   onDeleteIssue,
   onEditIssue,
 }) => {
-  const [activeTab, setActiveTab] = useState<'issues' | 'perspectives' | 'about'>('issues');
+  const [activeTab, setActiveTab] = useState<'issues' | 'votes' | 'perspectives' | 'replies' | 'about'>('issues');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Derived user content
+  // Derived user content (all sorted by latest timestamp)
   const createdIssues = useMemo(() => getUserCreatedIssues(profile, issues), [profile, issues]);
+  const userVotesList = useMemo(() => getUserVotes(profile, issues, currentUser, userVotes), [profile, issues, currentUser, userVotes]);
   const userPerspectives = useMemo(() => getUserPerspectives(profile, issues), [profile, issues]);
+  const userReplies = useMemo(() => getUserReplies(profile, issues), [profile, issues]);
 
   const totalVotesReceived = useMemo(() => {
     return createdIssues.reduce((sum, issue) => sum + (issue.yesCount || 0) + (issue.noCount || 0), 0);
@@ -244,40 +253,88 @@ export const UserProfilePage: React.FC<Props> = ({
                 </strong>
                 <span>Followers</span>
               </span>
+              <span className="flex items-center gap-1.5">
+                <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                  {totalVotesReceived}
+                </strong>
+                <span>Votes Garnered</span>
+              </span>
             </div>
           </div>
 
           {/* Statistics Strip */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-6 pt-5 border-t border-slate-100 dark:border-white/5">
-            <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 text-center sm:text-left">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center sm:justify-start gap-1.5 mb-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-6 pt-5 border-t border-slate-100 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('issues')}
+              className={`p-3 sm:p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                activeTab === 'issues'
+                  ? 'bg-brand-500/10 border-brand-500/30'
+                  : 'bg-slate-50/70 dark:bg-white/[0.02] border-slate-200/60 dark:border-white/5 hover:border-brand-500/20'
+              }`}
+            >
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1">
                 <Layers className="w-3.5 h-3.5 text-brand-500" />
-                <span>Issues Created</span>
+                <span>Questions Created</span>
               </div>
               <div className="text-lg sm:text-2xl font-black text-ink-950 dark:text-white font-mono">
                 {createdIssues.length}
               </div>
-            </div>
+            </button>
 
-            <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 text-center sm:text-left">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center sm:justify-start gap-1.5 mb-1">
-                <ThumbsUp className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Votes Received</span>
+            <button
+              type="button"
+              onClick={() => setActiveTab('votes')}
+              className={`p-3 sm:p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                activeTab === 'votes'
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-slate-50/70 dark:bg-white/[0.02] border-slate-200/60 dark:border-white/5 hover:border-emerald-500/20'
+              }`}
+            >
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1">
+                <Vote className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Votes Cast</span>
               </div>
               <div className="text-lg sm:text-2xl font-black text-ink-950 dark:text-white font-mono">
-                {totalVotesReceived}
+                {userVotesList.length}
               </div>
-            </div>
+            </button>
 
-            <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 text-center sm:text-left">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center sm:justify-start gap-1.5 mb-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('perspectives')}
+              className={`p-3 sm:p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                activeTab === 'perspectives'
+                  ? 'bg-purple-500/10 border-purple-500/30'
+                  : 'bg-slate-50/70 dark:bg-white/[0.02] border-slate-200/60 dark:border-white/5 hover:border-purple-500/20'
+              }`}
+            >
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1">
                 <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
                 <span>Perspectives</span>
               </div>
               <div className="text-lg sm:text-2xl font-black text-ink-950 dark:text-white font-mono">
                 {userPerspectives.length}
               </div>
-            </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('replies')}
+              className={`p-3 sm:p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                activeTab === 'replies'
+                  ? 'bg-indigo-500/10 border-indigo-500/30'
+                  : 'bg-slate-50/70 dark:bg-white/[0.02] border-slate-200/60 dark:border-white/5 hover:border-indigo-500/20'
+              }`}
+            >
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1">
+                <Reply className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Replies Made</span>
+              </div>
+              <div className="text-lg sm:text-2xl font-black text-ink-950 dark:text-white font-mono">
+                {userReplies.length}
+              </div>
+            </button>
           </div>
         </div>
 
@@ -292,7 +349,19 @@ export const UserProfilePage: React.FC<Props> = ({
                 : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white'
             }`}
           >
-            Issues Created ({createdIssues.length})
+            Questions Created ({createdIssues.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('votes')}
+            className={`py-3 px-3 sm:px-4 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'votes'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white'
+            }`}
+          >
+            Votes Cast ({userVotesList.length})
           </button>
 
           <button
@@ -305,6 +374,18 @@ export const UserProfilePage: React.FC<Props> = ({
             }`}
           >
             Perspectives & Stances ({userPerspectives.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('replies')}
+            className={`py-3 px-3 sm:px-4 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'replies'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white'
+            }`}
+          >
+            Replies Made ({userReplies.length})
           </button>
 
           <button
@@ -355,6 +436,88 @@ export const UserProfilePage: React.FC<Props> = ({
                 onOpenProfile={onOpenProfile}
               />
             ))
+          )}
+        </div>
+      )}
+
+      {activeTab === 'votes' && (
+        <div className="space-y-3">
+          {userVotesList.length === 0 ? (
+            <div className="card text-center py-12 px-6 border-dashed border-slate-200 dark:border-white/10 space-y-2">
+              <Vote className="w-8 h-8 text-slate-300 dark:text-zinc-600 mx-auto" />
+              <p className="text-sm font-bold text-slate-700 dark:text-zinc-300">
+                No votes recorded yet for {profile.name}.
+              </p>
+              <p className="text-xs text-slate-400">
+                Issues and public dilemmas voted on by {profile.name} will appear here.
+              </p>
+            </div>
+          ) : (
+            userVotesList.map((voteRecord) => {
+              const totalVotes = (voteRecord.issue.yesCount || 0) + (voteRecord.issue.noCount || 0);
+              const yesPercent = totalVotes > 0 ? Math.round(((voteRecord.issue.yesCount || 0) / totalVotes) * 100) : 50;
+
+              return (
+                <div
+                  key={`${voteRecord.issue.id}-${voteRecord.choice}-${voteRecord.createdAt}`}
+                  className="card p-4 sm:p-5 space-y-3 border border-slate-200/70 dark:border-white/10 shadow-2xs hover:border-emerald-500/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => onOpenIssue(voteRecord.issue)}
+                      className="text-left font-bold text-sm sm:text-base text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors flex items-center gap-1.5 cursor-pointer group"
+                    >
+                      <span>{voteRecord.issue.title}</span>
+                      <ArrowUpRight className="w-4 h-4 opacity-50 group-hover:opacity-100 shrink-0" />
+                    </button>
+
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold shrink-0 ${
+                        voteRecord.choice === 'YES'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-400/30'
+                          : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200/70 dark:border-rose-400/30'
+                      }`}
+                    >
+                      {voteRecord.choice === 'YES' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
+                      <span>VOTED {voteRecord.choice}</span>
+                    </span>
+                  </div>
+
+                  {/* Written Note if attached */}
+                  {voteRecord.note && (
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-200 leading-relaxed bg-slate-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-slate-100 dark:border-white/5">
+                      &ldquo;{voteRecord.note}&rdquo;
+                    </p>
+                  )}
+
+                  {/* Voice Note if attached */}
+                  {voteRecord.voiceNote && (
+                    <div className="pt-1">
+                      <VoicePlayer attachment={voteRecord.voiceNote} compact />
+                    </div>
+                  )}
+
+                  {/* Vote Consensus Progress Bar & Metadata */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span>Voted {formatRelativeTime(voteRecord.createdAt)}</span>
+                      </span>
+                      <span className="font-semibold text-brand-600 dark:text-brand-400">
+                        {voteRecord.issue.category} • {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden flex">
+                      <div className="bg-emerald-500 h-full transition-all" style={{ width: `${yesPercent}%` }} />
+                      <div className="bg-rose-500 h-full transition-all" style={{ width: `${100 - yesPercent}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
@@ -424,6 +587,100 @@ export const UserProfilePage: React.FC<Props> = ({
                     </span>
                     <span>•</span>
                     <span className="font-semibold text-brand-600 dark:text-brand-400">{issue.category}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === 'replies' && (
+        <div className="space-y-3">
+          {userReplies.length === 0 ? (
+            <div className="card text-center py-12 px-6 border-dashed border-slate-200 dark:border-white/10 space-y-2">
+              <Reply className="w-8 h-8 text-slate-300 dark:text-zinc-600 mx-auto" />
+              <p className="text-sm font-bold text-slate-700 dark:text-zinc-300">
+                No replies posted yet by {profile.name}.
+              </p>
+              <p className="text-xs text-slate-400">
+                Direct replies and rebuttals made by {profile.name} in debate threads will appear here.
+              </p>
+            </div>
+          ) : (
+            userReplies.map(({ issue, parentResponse, reply }) => (
+              <div
+                key={reply.id}
+                className="card p-4 sm:p-5 space-y-3 border border-slate-200/70 dark:border-white/10 shadow-2xs hover:border-indigo-500/40 transition-colors"
+              >
+                {/* Linked Question Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onOpenIssue(issue)}
+                    className="text-left font-bold text-sm sm:text-base text-ink-950 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors flex items-center gap-1.5 cursor-pointer group"
+                  >
+                    <span>{issue.title}</span>
+                    <ArrowUpRight className="w-4 h-4 opacity-50 group-hover:opacity-100 shrink-0" />
+                  </button>
+
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-400/30 shrink-0">
+                    <Reply className="w-3 h-3" />
+                    <span>Thread Reply</span>
+                  </span>
+                </div>
+
+                {/* Parent Stance Context */}
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 text-xs text-slate-500 dark:text-zinc-400">
+                  <CornerDownRight className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <span>In response to</span>
+                      <strong className="text-slate-800 dark:text-zinc-200">
+                        {parentResponse.authorName || 'Debate Participant'}
+                      </strong>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                        parentResponse.choice === 'YES' 
+                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
+                          : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                      }`}>
+                        Voted {parentResponse.choice}
+                      </span>
+                    </div>
+                    {parentResponse.note && (
+                      <p className="line-clamp-2 italic text-slate-600 dark:text-zinc-400 text-[11px]">
+                        &ldquo;{parentResponse.note}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* The User's Reply */}
+                <div className="p-3 rounded-xl bg-white dark:bg-ink-900/60 border border-slate-200/80 dark:border-white/10 text-xs sm:text-sm text-slate-800 dark:text-zinc-100 leading-relaxed font-sans">
+                  {reply.content}
+                </div>
+
+                {/* Footer Metadata */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-zinc-500 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span>Replied {formatRelativeTime(reply.createdAt)}</span>
+                  </span>
+
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <Heart className="w-3 h-3 text-rose-500" />
+                      <span>{reply.likesCount || 0}</span>
+                    </span>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => onOpenIssue(issue)}
+                      className="font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <span>View in thread</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               </div>

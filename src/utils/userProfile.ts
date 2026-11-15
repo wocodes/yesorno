@@ -1,4 +1,4 @@
-import { Issue, PublicUserProfile, UserProfile, VoteSubmission } from '../types';
+import { CommentReply, Issue, PublicUserProfile, UserProfile, VoiceAttachment, VoteChoice, VoteSubmission } from '../types';
 import { TOP_CREATORS_AND_VOTERS, DEMO_USERS, GOOGLE_SAMPLE_ACCOUNTS, getSavedProfileByEmail } from './auth';
 import { SEED_PERSONAS } from '../data/seedPersonas';
 
@@ -62,6 +62,7 @@ export function resolveUserProfile(
         groups: currentUser.groups || ['District 4 Council', 'Community Member'],
         interests: currentUser.interests || [],
         isVerified: true,
+        votedIssues: currentUser.votedIssues,
       };
     }
   }
@@ -82,6 +83,7 @@ export function resolveUserProfile(
         groups: saved.groups,
         interests: saved.interests,
         isVerified: true,
+        votedIssues: saved.votedIssues,
       };
     }
   }
@@ -256,18 +258,153 @@ export function getUserCreatedIssues(user: PublicUserProfile, issues: Issue[]): 
   const userEmail = (user.email || '').toLowerCase();
   const userName = user.name.toLowerCase();
 
-  return issues.filter(issue => {
-    if (issue.isDeletedByAuthor) return false;
-    const iCreatorEmail = (issue.creatorEmail || '').toLowerCase();
-    const iCreatorUsername = cleanHandle(issue.creatorUsername);
-    const iAuthor = (issue.author || '').toLowerCase();
+  return issues
+    .filter(issue => {
+      if (issue.isDeletedByAuthor) return false;
+      const iCreatorEmail = (issue.creatorEmail || '').toLowerCase();
+      const iCreatorUsername = cleanHandle(issue.creatorUsername);
+      const iAuthor = (issue.author || '').toLowerCase();
 
-    return Boolean(
-      (userEmail && iCreatorEmail === userEmail) ||
-      (userHandle && iCreatorUsername === userHandle) ||
-      (userName && iAuthor === userName)
-    );
-  });
+      return Boolean(
+        (userEmail && iCreatorEmail === userEmail) ||
+        (userHandle && iCreatorUsername === userHandle) ||
+        (userName && iAuthor === userName)
+      );
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export interface UserVoteRecord {
+  issue: Issue;
+  choice: VoteChoice;
+  createdAt: string;
+  note?: string;
+  voiceNote?: VoiceAttachment;
+  likesCount?: number;
+  responseId?: string;
+}
+
+/**
+ * Retrieves all votes cast by a specific user across issues, sorted by latest
+ */
+export function getUserVotes(
+  user: PublicUserProfile,
+  issues: Issue[],
+  currentUser?: UserProfile | null,
+  userVotesMap?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>
+): UserVoteRecord[] {
+  const userHandle = cleanHandle(user.username);
+  const userEmail = (user.email || '').toLowerCase();
+  const userName = user.name.toLowerCase();
+
+  const voteMap = new Map<string, UserVoteRecord>();
+
+  // 1. Scan all issue responses for this user's submissions
+  for (const issue of issues) {
+    if (issue.isDeletedByAuthor) continue;
+    for (const resp of issue.responses) {
+      const rUsername = cleanHandle(resp.authorUsername);
+      const rEmail = (resp.authorEmail || '').toLowerCase();
+      const rName = (resp.authorName || '').toLowerCase();
+
+      const isMatch = Boolean(
+        (userHandle && rUsername === userHandle) ||
+        (userEmail && rEmail === userEmail) ||
+        (userName && rName === userName)
+      );
+
+      if (isMatch) {
+        voteMap.set(issue.id, {
+          issue,
+          choice: resp.choice,
+          createdAt: resp.createdAt || issue.createdAt,
+          note: resp.note,
+          voiceNote: resp.voiceNote,
+          likesCount: resp.likesCount,
+          responseId: resp.id
+        });
+      }
+    }
+  }
+
+  // 2. Check user's stored vote records (e.g. for current user or saved profile)
+  const isTargetCurrentUser = Boolean(
+    currentUser && (
+      (userEmail && currentUser.email && userEmail === currentUser.email.toLowerCase()) ||
+      (userHandle && currentUser.username && userHandle === cleanHandle(currentUser.username)) ||
+      (userName && currentUser.name && userName === currentUser.name.toLowerCase())
+    )
+  );
+
+  const directVotes = user.votedIssues || (isTargetCurrentUser ? (userVotesMap || currentUser?.votedIssues) : undefined);
+
+  if (directVotes) {
+    for (const [issueId, raw] of Object.entries(directVotes)) {
+      if (voteMap.has(issueId)) continue;
+      const targetIssue = issues.find(i => i.id === issueId && !i.isDeletedByAuthor);
+      if (targetIssue) {
+        const choice: VoteChoice = typeof raw === 'string' ? (raw as VoteChoice) : raw.choice;
+        const responseId = typeof raw === 'object' ? raw.responseId : undefined;
+        voteMap.set(issueId, {
+          issue: targetIssue,
+          choice,
+          createdAt: targetIssue.createdAt,
+          responseId
+        });
+      }
+    }
+  }
+
+  return Array.from(voteMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export interface UserReplyRecord {
+  issue: Issue;
+  parentResponse: VoteSubmission;
+  reply: CommentReply;
+}
+
+/**
+ * Retrieves all direct comment replies made by a specific user, sorted by latest
+ */
+export function getUserReplies(user: PublicUserProfile, issues: Issue[]): UserReplyRecord[] {
+  const userHandle = cleanHandle(user.username);
+  const userEmail = (user.email || '').toLowerCase();
+  const userName = user.name.toLowerCase();
+
+  const repliesList: UserReplyRecord[] = [];
+
+  for (const issue of issues) {
+    if (issue.isDeletedByAuthor) continue;
+    for (const resp of issue.responses) {
+      if (!resp.replies || resp.replies.length === 0) continue;
+      for (const rep of resp.replies) {
+        const repUsername = cleanHandle(rep.authorUsername);
+        const repEmail = (rep.authorEmail || '').toLowerCase();
+        const repName = (rep.authorName || '').toLowerCase();
+
+        const isMatch = Boolean(
+          (userHandle && repUsername === userHandle) ||
+          (userEmail && repEmail === userEmail) ||
+          (userName && repName === userName)
+        );
+
+        if (isMatch) {
+          repliesList.push({
+            issue,
+            parentResponse: resp,
+            reply: rep
+          });
+        }
+      }
+    }
+  }
+
+  return repliesList.sort(
+    (a, b) => new Date(b.reply.createdAt).getTime() - new Date(a.reply.createdAt).getTime()
+  );
 }
 
 /**
