@@ -342,17 +342,32 @@ if ($notificationsDisabled) {
 }
 
 // Email Headers
+$fromDomain = 'chillon.top';
+$fromEmail = 'notifications@' . $fromDomain;
+
 $headers = [];
 $headers[] = 'MIME-Version: 1.0';
 $headers[] = 'Content-type: text/html; charset=UTF-8';
-$headers[] = 'From: YesOrNo System <notifications@yesorno.chillon.top>';
-$headers[] = 'Reply-To: ' . (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL) ? $userEmail : 'notifications@yesorno.chillon.top');
+$headers[] = "From: YesOrNo System <{$fromEmail}>";
+$headers[] = 'Reply-To: ' . (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL) ? $userEmail : $fromEmail);
+$headers[] = "Return-Path: <{$fromEmail}>";
 $headers[] = 'X-Mailer: PHP/' . phpversion();
 
 $headersStr = implode("\r\n", $headers);
 
-// Dispatch Email
-$mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr);
+// Dispatch Email with envelope sender fallbacks
+$mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-f{$fromEmail}");
+if (!$mailSent) {
+    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-fadmin@{$fromDomain}");
+}
+if (!$mailSent) {
+    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr, "-fnoreply@{$fromDomain}");
+}
+if (!$mailSent) {
+    $mailSent = @mail($targetRecipient, $subject, $messageBody, $headersStr);
+}
+
+$lastError = error_get_last();
 
 // Log to notifications.log on server for audit trail & permanent backup
 $logEntry = json_encode([
@@ -361,6 +376,7 @@ $logEntry = json_encode([
     'user' => ['name' => $userName, 'email' => $userEmail, 'role' => $userRole],
     'data' => $data,
     'mailSent' => $mailSent,
+    'lastError' => $lastError,
     'ip' => $ip
 ], JSON_UNESCAPED_SLASHES) . "\n";
 
@@ -373,5 +389,13 @@ echo json_encode([
     'event' => $eventType,
     'mailSent' => $mailSent,
     'timestamp' => $timestamp,
-    'message' => 'Notification processed'
+    'diagnostics' => $isTest ? [
+        'targetRecipient' => $targetRecipient,
+        'fromEmail' => $fromEmail,
+        'mail_function_exists' => function_exists('mail'),
+        'disabled_functions' => ini_get('disable_functions'),
+        'sendmail_path' => ini_get('sendmail_path'),
+        'lastError' => $lastError
+    ] : null,
+    'message' => $mailSent ? 'Notification email dispatched successfully' : 'Notification processed (mail transport pending server delivery)'
 ]);
