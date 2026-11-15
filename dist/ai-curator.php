@@ -928,15 +928,15 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
             . "Identify the core point of controversy, tension, or policy dilemma where thoughtful citizens, experts, and community members are divided roughly 50/50.\n\n"
             . "Generate 2 to 3 distinct polarizing YES/NO debate question suggestions based on these current trends and facts as a Nigerian for Nigerians.\n\n"
             . "For each suggestion, provide:\n"
-            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (strictly ending with a single '?'). VARY THE FORMAT naturally:\n"
+            . "1. \"title\": A sharp, provocative, culturally authentic YES/NO question (strictly ending with a single '?'). VARY THE FORMAT across these styles:\n"
+            . "   - Captivating True-Life Story / Confession Hook (e.g. 'CONFESSION: I caught my fiancé\\'s family hiding a 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?', 'TRUE LIFE: I earn ₦2.5M in Lagos and refuse to pay my 30-year-old brother ₦400k monthly — am I selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong?')\n"
             . "   - Short & sharp direct question (e.g. 'End NYSC now?', 'Ban plastic bags?', 'Checking partner\\'s phone: justified?')\n"
             . "   - Statement preamble + question (e.g. 'Fuel subsidy removed: should it be brought back?', 'Dangote refinery cuts petrol price: will filling stations drop pump prices?')\n"
             . "   - Direct binary polarity hot-take (e.g. '50/50 rent in marriage: Yes or No?', 'A man earning ₦150k has no business dating in Lagos: agree?')\n"
             . "   - Provocative civic question (e.g. 'Should politicians seeking foreign healthcare be stripped of office?')\n"
-            . "2. \"description\": 2 to 3 punchy sentences giving a sharp take/perspective on the dilemma:\n"
-            . "   - Sentence 1: Why the YES camp passionately defends their position with real-world arguments.\n"
-            . "   - Sentence 2: Why the NO camp firmly objects or calls it absurd.\n"
-            . "   - Sentence 3: The broader stakes for citizens, families, or the economy.\n"
+            . "2. \"description\": 2 to 4 punchy sentences. CRITICAL SOCIAL MEDIA RULE:\n"
+            . "   - Because social media link previews (X, WhatsApp, Facebook, LinkedIn) only highlight the first 8-15 words, FRONT-LOAD AN IRRESISTIBLE HOOK in the very first sentence (e.g. 'I was cleaning my husband\\'s car when a birth certificate with his name fell out...', 'My mother-in-law moved in for \"two weeks\" and it has now been 14 months without an exit date...').\n"
+            . "   - Then outline the emotional dilemma: why the YES camp insists one action is necessary, and why the NO camp passionately calls it betrayal or heartless.\n"
             . "3. \"category\": Best fitting category from: ['Politics & Policy', 'Economy & Finance', 'Workplace & Career', 'Business', 'Environment & Climate', 'Education & Campus', 'Community & Neighborhood', 'Family & Home', 'Entertainment', 'Counselling', 'Gender', 'Religious & Faith'].\n"
             . "4. \"tags\": 3 to 5 relevant hashtags or keywords (e.g. ['DangoteRefinery', 'PetrolPrices', 'CommuterRights']).\n"
             . "5. \"trendContext\": A 1-2 sentence summary of the recent news, event, or trend that sparked this debate.\n"
@@ -1530,6 +1530,9 @@ TOPIC ROTATION & NIGERIAN REALITIES:
 
 QUESTION FORMAT VARIETY (VARY YOUR STYLE!):
 Do NOT always start with 'Should...'. Alternate across these punchy styles:
+* Captivating True-Life Story / Confession Hook (Emotional & Viral):
+  e.g. 'CONFESSION: I found out my fiancé has a secret 4-year-old child 2 weeks to our wedding — cancel the wedding: Yes or No?', 'TRUE LIFE: I earn ₦2.5M in Lagos and refuse to fund my 30-year-old brother\\'s lavish lifestyle — am I being selfish?', 'I secretly took a DNA test on our 2-year-old son behind my wife\\'s back: was I wrong to doubt her?'
+  CRITICAL FOR SOCIAL SHARING: The first 8 to 12 words of the title and description MUST be a high-voltage, jaw-dropping hook that stops people from scrolling on Twitter/X, WhatsApp, or Facebook!
 * Short & Sharp Direct Question (3 to 8 words):
   e.g. 'End NYSC now?', 'Abolish bride price completely?', 'Checking partner\\'s phone: justified?', 'Ban commercial bikes on expressways?'
 * Contextual Statement Preamble + Question:
