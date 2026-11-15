@@ -26,7 +26,7 @@ export const DEMO_USERS: UserProfile[] = import.meta.env.DEV
         name: 'Elena Rostova',
         email: 'elena@yesorno.chillon.top',
         role: 'District 4 Council Rep',
-        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1611432579402-7037e3e2c1e4?w=150&auto=format&fit=crop&q=80',
         groups: ['District 4 Council', 'Downtown Taskforce', 'Planning Commission']
       },
       {
@@ -34,7 +34,7 @@ export const DEMO_USERS: UserProfile[] = import.meta.env.DEV
         name: 'Marcus Chen',
         email: 'marcus@chenbakery.com',
         role: 'Market St Café Owner',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?w=150&auto=format&fit=crop&q=80',
         groups: ['Downtown Merchants', 'Market St Association']
       },
       {
@@ -42,7 +42,7 @@ export const DEMO_USERS: UserProfile[] = import.meta.env.DEV
         name: 'Dr. Sarah Al-Mansoor',
         email: 'sarah.almansoor@health.org',
         role: 'Health Advocate & Resident',
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=150&auto=format&fit=crop&q=80',
         groups: ['Park Safety Alliance', 'District 4 Council']
       }
     ]
@@ -55,7 +55,7 @@ export const GOOGLE_SAMPLE_ACCOUNTS: UserProfile[] = import.meta.env.DEV
         name: 'Alex Rivera',
         email: 'alex.rivera@gmail.com',
         role: 'Verified Google Account',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1763757321139-e7e4de128cd9?w=150&auto=format&fit=crop&q=80',
         groups: ['District 4 Council', 'Community Member']
       },
       {
@@ -63,7 +63,7 @@ export const GOOGLE_SAMPLE_ACCOUNTS: UserProfile[] = import.meta.env.DEV
         name: 'David Okonkwo',
         email: 'david.okonkwo@workspace.org',
         role: 'Product Lead • Google Workspace',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1783012039560-5690190a9b9b?w=150&auto=format&fit=crop&q=80',
         groups: ['Workplace & Teams', 'Downtown Taskforce']
       }
     ]
@@ -90,7 +90,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'District 4 Council Rep',
         region: 'Local District',
         specialty: 'Community & Family',
-        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1611432579402-7037e3e2c1e4?w=150&auto=format&fit=crop&q=80',
         issuesCount: 14,
         votesCast: 182
       },
@@ -101,7 +101,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Future of Work Lab',
         region: 'Global / Remote',
         specialty: 'Workplace & Career',
-        avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1764674112417-4f1a2a67e197?w=150&auto=format&fit=crop&q=80',
         issuesCount: 9,
         votesCast: 310
       },
@@ -112,7 +112,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Engineering & Local Merchant',
         region: 'North America',
         specialty: 'Economy & Workplace',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?w=150&auto=format&fit=crop&q=80',
         issuesCount: 11,
         votesCast: 245
       },
@@ -123,7 +123,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Public Health & Climate Lead',
         region: 'Europe & UK',
         specialty: 'Environment & Policy',
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=150&auto=format&fit=crop&q=80',
         issuesCount: 19,
         votesCast: 412
       },
@@ -134,7 +134,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Faith & Community Circle',
         region: 'Africa & Middle East',
         specialty: 'Religious & Faith',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=150&auto=format&fit=crop&q=80',
         issuesCount: 8,
         votesCast: 164
       },
@@ -145,7 +145,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Civic Lead & Founder',
         region: 'Global / Remote',
         specialty: 'Business & Policy',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1495603889488-42d1d66e5523?w=150&auto=format&fit=crop&q=80',
         issuesCount: 32,
         votesCast: 420
       },
@@ -156,7 +156,7 @@ export const TOP_CREATORS_AND_VOTERS: TopCreatorProfile[] = import.meta.env.DEV
         role: 'Higher Ed Innovation Board',
         region: 'Europe & UK',
         specialty: 'Education & Campus',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: 'https://images.unsplash.com/photo-1714118657863-2843a622718b?w=150&auto=format&fit=crop&q=80',
         issuesCount: 12,
         votesCast: 290
       }

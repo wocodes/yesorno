@@ -3,7 +3,7 @@ import { saveIssues } from './storage';
 
 export const GEMINI_AUTHOR_EMAIL = 'william.odiomonafe@gmail.com';
 export const GEMINI_AUTHOR_NAME = 'William Odiomonafe';
-export const GEMINI_AUTHOR_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+export const GEMINI_AUTHOR_AVATAR = 'https://images.unsplash.com/photo-1495603889488-42d1d66e5523?w=150&auto=format&fit=crop&q=80';
 
 const STORAGE_KEY_SLOTS = 'yesorno_gemini_daily_slots_v1';
 const STORAGE_KEY_LAST_POST_TIME = 'yesorno_gemini_daily_last_post_time_v1';
