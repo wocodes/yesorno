@@ -207,9 +207,12 @@ export interface IssueActivityMetrics {
 }
 
 export function computeIssueMetrics(issue: Issue): IssueActivityMetrics {
-  const totalVotes = issue.yesCount + issue.noCount;
-  const yesPercent = totalVotes > 0 ? Math.round((issue.yesCount / totalVotes) * 100) : 0;
-  const noPercent = totalVotes > 0 ? 100 - yesPercent : 0;
+  const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+  const totalVotes = isMulti
+    ? issue.options!.reduce((sum, opt) => sum + (opt.votes || 0), 0)
+    : issue.yesCount + issue.noCount;
+  const yesPercent = !isMulti && totalVotes > 0 ? Math.round((issue.yesCount / totalVotes) * 100) : 0;
+  const noPercent = !isMulti && totalVotes > 0 ? 100 - yesPercent : 0;
 
   const anonymousVotes = issue.responses.filter(r => r.isAnonymous).length;
   const identifiedVotes = issue.responses.length - anonymousVotes;

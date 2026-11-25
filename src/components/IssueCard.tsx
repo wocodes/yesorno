@@ -27,6 +27,7 @@ interface Props {
   onShareIssue: (issue: Issue) => void;
   hasUserVoted?: boolean;
   userVoteChoice?: 'YES' | 'NO';
+  userVoteOptionId?: string;
   isLiked?: boolean;
   isFavorited?: boolean;
   onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
@@ -47,6 +48,15 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Economy & Finance': '📈',
   'Education & Campus': '🎓',
   'Private & Internal': '🔒',
+  'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Champions League': '🏆',
+  'La Liga': '🇪🇸',
+  'Serie A & Bundesliga': '⚡',
+  'International & World Cup': '🌍',
+  'Transfers & Rumors': '✍️',
+  'VAR & Officiating': '📺',
+  'GOAT & Legacy': '🐐',
+  'Matchday Banter': '🔥',
 };
 
 const SHORT_CATEGORIES: Record<string, string> = {
@@ -64,6 +74,15 @@ const SHORT_CATEGORIES: Record<string, string> = {
   'Economy & Finance': 'Economy',
   'Education & Campus': 'Education',
   'Private & Internal': 'Private Circle',
+  'Premier League': 'Premier League',
+  'Champions League': 'UCL',
+  'La Liga': 'La Liga',
+  'Serie A & Bundesliga': 'Serie A & BuLi',
+  'International & World Cup': 'International',
+  'Transfers & Rumors': 'Transfers',
+  'VAR & Officiating': 'VAR Calls',
+  'GOAT & Legacy': 'GOAT Debates',
+  'Matchday Banter': 'Banter',
 };
 
 export const IssueCard: React.FC<Props> = ({
@@ -79,12 +98,28 @@ export const IssueCard: React.FC<Props> = ({
   onShareIssue,
   hasUserVoted,
   userVoteChoice,
+  userVoteOptionId,
   isLiked = false,
   isFavorited = false,
   onOpenProfile,
 }) => {
+  const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+  const yesLabel = issue.yesLabel || 'YES';
+  const noLabel = issue.noLabel || 'NO';
+
   // Self-heal display counts if user has voted so they never see 0% (0) for their own vote
   const effectiveIssue = React.useMemo(() => {
+    if (isMulti && issue.options) {
+      let changed = false;
+      const healedOpts = issue.options.map(opt => {
+        if (hasUserVoted && userVoteOptionId === opt.id && opt.votes === 0) {
+          changed = true;
+          return { ...opt, votes: 1 };
+        }
+        return opt;
+      });
+      return changed ? { ...issue, options: healedOpts } : issue;
+    }
     let yes = issue.yesCount;
     let no = issue.noCount;
     if (hasUserVoted && userVoteChoice === 'YES' && yes === 0) yes = 1;
@@ -93,7 +128,7 @@ export const IssueCard: React.FC<Props> = ({
       return { ...issue, yesCount: yes, noCount: no };
     }
     return issue;
-  }, [issue, hasUserVoted, userVoteChoice]);
+  }, [issue, hasUserVoted, userVoteChoice, userVoteOptionId, isMulti]);
   const metrics = computeIssueMetrics(effectiveIssue);
   const access = canUserAccessIssue(issue, currentUser);
   const isCreator = isIssueCreator(issue, currentUser);
@@ -159,12 +194,46 @@ export const IssueCard: React.FC<Props> = ({
       authorEmail: !inlineAnon ? currentUser.email : undefined,
       authorAlias: inlineAnon ? alias : undefined,
       authorRole: !inlineAnon ? currentUser.role : undefined,
+      authorClub: !inlineAnon ? (currentUser?.favoriteClub || null) : null,
       createdAt: new Date().toISOString(),
       likesCount: 0,
     };
     onInlineSubmitVote(submission);
 
     setInlineChoice(choice);
+    setShowInlineComposer(true);
+  };
+
+  const handleInstantOptionVote = (optionId: string, optionLabel: string) => {
+    if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) {
+      onQuickVote(issue, 'YES');
+      return;
+    }
+    if (hasUserVoted) {
+      if (userVoteOptionId === optionId) {
+        setShowInlineComposer(prev => !prev);
+      }
+      return;
+    }
+    playHapticChime('yes');
+    triggerVoteConfetti(true);
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice: 'YES',
+      optionId,
+      optionLabel,
+      isAnonymous: inlineAnon,
+      authorName: inlineAnon ? 'Anonymous Neighbor' : (currentUser?.name || getUserDisplayName(currentUser)),
+      authorUsername: !inlineAnon ? currentUser.username : undefined,
+      authorEmail: !inlineAnon ? currentUser.email : undefined,
+      authorAlias: inlineAnon ? alias : undefined,
+      authorRole: !inlineAnon ? currentUser.role : undefined,
+      authorClub: !inlineAnon ? (currentUser?.favoriteClub || null) : null,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
     setShowInlineComposer(true);
   };
 
@@ -233,16 +302,20 @@ export const IssueCard: React.FC<Props> = ({
     const mod = moderateText(inlineNote);
     if (!mod.isAppropriate && mod.severity === 'rejected') return;
 
+    const matchedOpt = isMulti && userVoteOptionId ? issue.options?.find(o => o.id === userVoteOptionId) : undefined;
     const submission: VoteSubmission = {
       id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       issueId: issue.id,
       choice: inlineChoice,
+      optionId: matchedOpt?.id || userVoteOptionId,
+      optionLabel: matchedOpt?.label,
       isAnonymous: inlineAnon,
       authorName: inlineAnon ? 'Anonymous Neighbor' : (currentUser?.name || getUserDisplayName(currentUser)),
       authorUsername: !inlineAnon ? currentUser.username : undefined,
       authorEmail: !inlineAnon ? currentUser.email : undefined,
       authorAlias: inlineAnon ? alias : undefined,
       authorRole: !inlineAnon ? currentUser.role : undefined,
+      authorClub: !inlineAnon ? (currentUser?.favoriteClub || null) : null,
       note: inlineNote.trim() || undefined,
       voiceNote: inlineVoiceDataUrl
         ? {
@@ -473,19 +546,65 @@ export const IssueCard: React.FC<Props> = ({
           </p>
         </div>
 
-        {/* Consensus Split Meter: ONLY visible to users who have voted */}
-        {hasUserVoted ? (
+        {/* Poll Area: Multi-Option (2-4) Interactive Bars OR Binary Consensus Meter */}
+        {isMulti && effectiveIssue.options ? (
+          <div className="space-y-1.5 pt-1">
+            {effectiveIssue.options.map((opt, idx) => {
+              const pct = metrics.totalVotes > 0 ? Math.round((opt.votes / metrics.totalVotes) * 100) : 0;
+              const isSelected = userVoteOptionId === opt.id;
+              const barColor = opt.color || ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'][idx % 4];
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={!access.canAccess || metrics.isClosed || isDeleted || Boolean(hasUserVoted && !isSelected)}
+                  onClick={() => handleInstantOptionVote(opt.id, opt.label)}
+                  className={`relative w-full text-left rounded-xl overflow-hidden border transition-all px-3 py-2 flex items-center justify-between gap-2 ${
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-500/15 ring-1 ring-emerald-500 cursor-pointer'
+                      : hasUserVoted
+                      ? 'border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-ink-950/60 cursor-default'
+                      : 'border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-ink-950/70 hover:border-emerald-500/50 cursor-pointer active:scale-[0.99]'
+                  }`}
+                >
+                  {hasUserVoted && (
+                    <div
+                      className="absolute inset-y-0 left-0 opacity-20 transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: barColor }}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-2 text-xs font-bold text-ink-950 dark:text-white truncate">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: barColor }} />
+                    <span className="truncate">{opt.label}</span>
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                  </span>
+                  {hasUserVoted ? (
+                    <span className="relative text-[11px] font-mono font-bold text-slate-600 dark:text-zinc-300 shrink-0">
+                      {pct}% ({opt.votes})
+                    </span>
+                  ) : (
+                    <span className="relative text-[10px] font-semibold text-slate-400 shrink-0">Vote</span>
+                  )}
+                </button>
+              );
+            })}
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5">
+              <span>{hasUserVoted ? 'Results unlocked' : 'Tap an option to vote & reveal results'}</span>
+              <span className="font-mono">{metrics.totalVotes} {metrics.totalVotes === 1 ? 'vote' : 'votes'}</span>
+            </div>
+          </div>
+        ) : hasUserVoted ? (
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                 <ThumbsUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>YES {metrics.yesPercent}%</span>
+                <span>{yesLabel} {metrics.yesPercent}%</span>
                 <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({effectiveIssue.yesCount})</span>
               </span>
 
               <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1">
                 <span className="text-[11px] font-mono font-normal text-slate-400 dark:text-zinc-500">({effectiveIssue.noCount})</span>
-                <span>NO {metrics.noPercent}%</span>
+                <span>{noLabel} {metrics.noPercent}%</span>
                 <ThumbsDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
               </span>
             </div>
@@ -644,6 +763,33 @@ export const IssueCard: React.FC<Props> = ({
               <span>Digest</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
+          ) : isMulti ? (
+            <div className="flex items-center gap-1.5">
+              {hasUserVoted ? (
+                <button
+                  type="button"
+                  onClick={() => setShowInlineComposer(!showInlineComposer)}
+                  title="Add comment or voice perspective"
+                  className={`flex items-center gap-1 py-1.5 px-2.5 rounded-xl font-bold text-[11px] sm:text-xs transition-colors cursor-pointer ${
+                    showInlineComposer
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-600 dark:text-zinc-300'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Add Note</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenDetails(issue)}
+                  className="flex items-center gap-1 py-1.5 px-2.5 rounded-xl font-bold text-[11px] sm:text-xs bg-slate-100 dark:bg-ink-800 hover:bg-slate-200 dark:hover:bg-ink-700 text-slate-700 dark:text-zinc-200 transition-colors cursor-pointer"
+                >
+                  <span>Debate</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-1 sm:gap-1.5">
               <button
@@ -653,9 +799,9 @@ export const IssueCard: React.FC<Props> = ({
                 title={
                   hasUserVoted
                     ? userVoteChoice === 'YES'
-                      ? 'You voted YES (tap to add note/audio)'
-                      : 'You already voted NO (votes cannot be changed)'
-                    : 'Vote YES'
+                      ? `You voted ${yesLabel} (tap to add note/audio)`
+                      : `You already voted ${noLabel} (votes cannot be changed)`
+                    : `Vote ${yesLabel}`
                 }
                 className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
                   hasUserVoted && userVoteChoice === 'YES'
@@ -670,7 +816,7 @@ export const IssueCard: React.FC<Props> = ({
                 ) : (
                   <ThumbsUp className="w-3 h-3 shrink-0" />
                 )}
-                <span>{hasUserVoted && userVoteChoice === 'YES' ? 'YES ✓' : 'YES'}</span>
+                <span>{hasUserVoted && userVoteChoice === 'YES' ? `${yesLabel} ✓` : yesLabel}</span>
               </button>
 
               <button
@@ -680,9 +826,9 @@ export const IssueCard: React.FC<Props> = ({
                 title={
                   hasUserVoted
                     ? userVoteChoice === 'NO'
-                      ? 'You voted NO (tap to add note/audio)'
-                      : 'You already voted YES (votes cannot be changed)'
-                    : 'Vote NO'
+                      ? `You voted ${noLabel} (tap to add note/audio)`
+                      : `You already voted ${yesLabel} (votes cannot be changed)`
+                    : `Vote ${noLabel}`
                 }
                 className={`flex items-center gap-1 py-1.5 px-2 sm:px-2.5 rounded-xl font-extrabold text-[11px] sm:text-xs whitespace-nowrap transition-all ${
                   hasUserVoted && userVoteChoice === 'NO'
@@ -697,7 +843,7 @@ export const IssueCard: React.FC<Props> = ({
                 ) : (
                   <ThumbsDown className="w-3 h-3 shrink-0" />
                 )}
-                <span>{hasUserVoted && userVoteChoice === 'NO' ? 'NO ✓' : 'NO'}</span>
+                <span>{hasUserVoted && userVoteChoice === 'NO' ? `${noLabel} ✓` : noLabel}</span>
               </button>
 
               {/* Reply toggle button when voted */}
@@ -733,9 +879,11 @@ export const IssueCard: React.FC<Props> = ({
                   <Lock className="w-3 h-3 text-brand-500 shrink-0" />
                   <span>Your Vote:</span>
                   <span className={`px-2 py-0.5 rounded-md font-extrabold ${
-                    userVoteChoice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                    isMulti || userVoteChoice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
                   }`}>
-                    {userVoteChoice === 'YES' ? '👍 YES ✓' : '👎 NO ✓'}
+                    {isMulti
+                      ? `${effectiveIssue.options?.find(o => o.id === userVoteOptionId)?.label || 'Voted'} ✓`
+                      : userVoteChoice === 'YES' ? `👍 ${yesLabel} ✓` : `👎 ${noLabel} ✓`}
                   </span>
                   <span className="text-[10px] text-slate-400 font-normal">(Final)</span>
                 </span>
@@ -751,7 +899,7 @@ export const IssueCard: React.FC<Props> = ({
                         : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-emerald-50 hover:text-emerald-700'
                     }`}
                   >
-                    👍 YES
+                    👍 {yesLabel}
                   </button>
                   <button
                     type="button"
@@ -762,7 +910,7 @@ export const IssueCard: React.FC<Props> = ({
                         : 'bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-400 hover:bg-rose-50 hover:text-rose-700'
                     }`}
                   >
-                    👎 NO
+                    👎 {noLabel}
                   </button>
                 </>
               )}

@@ -6,7 +6,7 @@ import {
   Settings, Heart, Check, Vote, Reply, CornerDownRight,
   Clock
 } from 'lucide-react';
-import { Issue, PublicUserProfile, UserProfile, VoteChoice, VoteSubmission } from '../types';
+import { AppZone, Issue, PublicUserProfile, UserProfile, VoteChoice, VoteSubmission } from '../types';
 import { IssueCard } from './IssueCard';
 import { 
   getUserCreatedIssues, 
@@ -20,11 +20,13 @@ import {
 import { formatRelativeTime } from '../utils/summary';
 import { VoicePlayer } from './VoicePlayer';
 import { triggerVoteConfetti, playHapticChime } from '../utils/sound';
+import { ClubBadge } from '../fanzone/ClubBadge';
 
 interface Props {
   profile: PublicUserProfile;
   currentUser: UserProfile | null;
   issues: Issue[];
+  activeZone?: AppZone;
   onBack: () => void;
   onOpenIssue: (issue: Issue) => void;
   onQuickVote: (issue: Issue, choice?: VoteChoice) => void;
@@ -33,7 +35,7 @@ interface Props {
   onOpenSettings?: () => void;
   onOpenProfile?: (user: { username?: string; name: string; avatar?: string; email?: string; role?: string }) => void;
   onProfileResolved?: (updatedProfile: PublicUserProfile) => void;
-  userVotes?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
+  userVotes?: Record<string, { choice: 'YES' | 'NO'; responseId?: string; optionId?: string; optionLabel?: string }>;
   userLikes?: Record<string, boolean>;
   userFavorites?: Record<string, boolean>;
   onToggleLikeIssue?: (issueId: string) => void;
@@ -47,6 +49,7 @@ export const UserProfilePage: React.FC<Props> = ({
   profile: initialProfile,
   currentUser,
   issues,
+  activeZone = 'civic',
   onBack,
   onOpenIssue,
   onQuickVote,
@@ -65,6 +68,7 @@ export const UserProfilePage: React.FC<Props> = ({
   onEditIssue,
 }) => {
   const [activeTab, setActiveTab] = useState<'issues' | 'votes' | 'perspectives' | 'replies' | 'about'>('issues');
+  const [profileZoneFilter, setProfileZoneFilter] = useState<AppZone | 'all'>(activeZone);
   const [copiedLink, setCopiedLink] = useState(false);
   const [remoteProfile, setRemoteProfile] = useState<PublicUserProfile | null>(null);
 
@@ -103,17 +107,25 @@ export const UserProfilePage: React.FC<Props> = ({
       avatar: remoteProfile.avatar || initialProfile.avatar,
       bio: remoteProfile.bio || initialProfile.bio,
       role: remoteProfile.role || initialProfile.role,
+      favoriteClub: remoteProfile.favoriteClub || initialProfile.favoriteClub,
+      nationalTeam: remoteProfile.nationalTeam || initialProfile.nationalTeam,
       votedIssues: remoteProfile.votedIssues || initialProfile.votedIssues,
       followingCreators: remoteProfile.followingCreators || initialProfile.followingCreators,
       followersCount: typeof remoteProfile.followersCount === 'number' ? remoteProfile.followersCount : initialProfile.followersCount,
     };
   }, [initialProfile, remoteProfile]);
 
+  // Filter issues by selected profile zone ('civic' | 'fanzone' | 'all')
+  const zoneFilteredIssues = useMemo(() => {
+    if (profileZoneFilter === 'all') return issues;
+    return issues.filter(iss => (iss.zone || 'civic') === profileZoneFilter);
+  }, [issues, profileZoneFilter]);
+
   // Derived user content (all sorted by latest timestamp)
-  const createdIssues = useMemo(() => getUserCreatedIssues(profile, issues), [profile, issues]);
-  const userVotesList = useMemo(() => getUserVotes(profile, issues, currentUser, userVotes), [profile, issues, currentUser, userVotes]);
-  const userPerspectives = useMemo(() => getUserPerspectives(profile, issues), [profile, issues]);
-  const userReplies = useMemo(() => getUserReplies(profile, issues), [profile, issues]);
+  const createdIssues = useMemo(() => getUserCreatedIssues(profile, zoneFilteredIssues), [profile, zoneFilteredIssues]);
+  const userVotesList = useMemo(() => getUserVotes(profile, zoneFilteredIssues, currentUser, userVotes), [profile, zoneFilteredIssues, currentUser, userVotes]);
+  const userPerspectives = useMemo(() => getUserPerspectives(profile, zoneFilteredIssues), [profile, zoneFilteredIssues]);
+  const userReplies = useMemo(() => getUserReplies(profile, zoneFilteredIssues), [profile, zoneFilteredIssues]);
 
   // Auto-surface user activity immediately if they have cast votes but haven't authored issues
   useEffect(() => {
@@ -295,6 +307,12 @@ export const UserProfilePage: React.FC<Props> = ({
                 </span>
               )}
 
+              {profile.favoriteClub && profile.favoriteClub.id !== 'neutral' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-500/30">
+                  <ClubBadge club={profile.favoriteClub} size="xs" showName />
+                </span>
+              )}
+
               {profile.region && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-ink-800 text-slate-600 dark:text-zinc-300">
                   <MapPin className="w-3 h-3 text-slate-400" />
@@ -308,26 +326,57 @@ export const UserProfilePage: React.FC<Props> = ({
               {profile.bio || 'Active civic contributor shaping public policy and neighborhood consensus.'}
             </p>
 
-            {/* Social Follow Network */}
-            <div className="flex items-center gap-4 pt-1 text-xs text-slate-600 dark:text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <strong className="text-ink-950 dark:text-white font-bold font-mono">
-                  {isOwnProfile ? (currentUser?.followingCreators?.length || 0) : (profile.followingCreators?.length || 0)}
-                </strong>
-                <span>Following</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <strong className="text-ink-950 dark:text-white font-bold font-mono">
-                  {profile.followersCount || 0}
-                </strong>
-                <span>Followers</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <strong className="text-ink-950 dark:text-white font-bold font-mono">
-                  {totalVotesReceived}
-                </strong>
-                <span>Votes Garnered</span>
-              </span>
+            {/* Social Follow Network + Zone Activity Filter */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-zinc-400">
+                <span className="flex items-center gap-1.5">
+                  <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                    {isOwnProfile ? (currentUser?.followingCreators?.length || 0) : (profile.followingCreators?.length || 0)}
+                  </strong>
+                  <span>Following</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                    {profile.followersCount || 0}
+                  </strong>
+                  <span>Followers</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <strong className="text-ink-950 dark:text-white font-bold font-mono">
+                    {totalVotesReceived}
+                  </strong>
+                  <span>Votes Garnered</span>
+                </span>
+              </div>
+
+              {/* Zone Filter Toggle: Current Zone | Other Zone | All */}
+              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-ink-950 border border-slate-200/70 dark:border-white/10 text-[11px] font-bold">
+                {(activeZone === 'fanzone'
+                  ? [
+                      { id: 'fanzone' as const, label: '⚽ FanZone' },
+                      { id: 'civic' as const, label: 'YesOrNo' },
+                      { id: 'all' as const, label: 'All' },
+                    ]
+                  : [
+                      { id: 'civic' as const, label: 'YesOrNo' },
+                      { id: 'fanzone' as const, label: '⚽ FanZone' },
+                      { id: 'all' as const, label: 'All' },
+                    ]
+                ).map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setProfileZoneFilter(opt.id)}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      profileZoneFilter === opt.id
+                        ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-2xs'
+                        : 'text-slate-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { Issue } from '../types';
+import { detectActiveZone } from '../fanzone/config';
 
 export interface SharePayload {
   title: string;
@@ -36,8 +37,9 @@ export function findIssueFromUrl(issues: Issue[]): Issue | null {
     if (byQuery) return byQuery;
   }
 
-  // 2. Check clean path format: /{slug-of-the-issue-question}-{id-of-the-issue}
-  const rawPath = decodeURIComponent(window.location.pathname).replace(/^\/+|\/+$/g, '');
+  // 2. Check clean path format: /{slug-of-the-issue-question}-{id-of-the-issue} (or /fanzone/...)
+  const rawFull = decodeURIComponent(window.location.pathname).replace(/^\/+|\/+$/g, '');
+  const rawPath = rawFull === 'fanzone' ? '' : (rawFull.startsWith('fanzone/') ? rawFull.slice('fanzone/'.length) : rawFull);
   if (!rawPath || rawPath === 'index.html') return null;
 
   // Match exact slug-id or trailing issue.id
@@ -55,29 +57,42 @@ export function findIssueFromUrl(issues: Issue[]): Issue | null {
  * Builds a rich social share payload containing the issue title, description, consensus stats, and deep-link URL
  */
 export function buildIssueSharePayload(issue: Issue): SharePayload {
-  const total = issue.yesCount + issue.noCount;
-  const yesPct = total > 0 ? Math.round((issue.yesCount / total) * 100) : 50;
+  const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+  const total = isMulti
+    ? issue.options!.reduce((s, o) => s + (o.votes || 0), 0)
+    : issue.yesCount + issue.noCount;
+  const yesLabel = issue.yesLabel || 'YES';
+  const noLabel = issue.noLabel || 'NO';
+  const yesPct = !isMulti && total > 0 ? Math.round((issue.yesCount / total) * 100) : 50;
   const noPct = 100 - yesPct;
+  const brand = issue.zone === 'fanzone' ? 'FanZone' : 'YesOrNo';
 
   const origin =
     typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
       : 'https://yesorno.chillon.top';
 
+  const zonePrefix = issue.zone === 'fanzone' ? '/fanzone/' : '/';
   const slugWithId = buildIssueSlug(issue);
-  const url = `${origin}/${slugWithId}`;
+  const url = `${origin}${zonePrefix}${slugWithId}`;
 
   const rawDesc =
     issue.description && issue.description.trim().length > 0
       ? issue.description.trim()
-      : `Vote YES (${yesPct}%) or NO (${noPct}%) on this issue on YesOrNo.`;
+      : isMulti
+      ? `Vote on "${issue.title}" (${total} votes) on ${brand}.`
+      : `Vote ${yesLabel} (${yesPct}%) or ${noLabel} (${noPct}%) on this issue on ${brand}.`;
 
   const cleanDesc =
     rawDesc.length > 160 ? `${rawDesc.slice(0, 157)}...` : rawDesc;
 
+  const standingsText = isMulti
+    ? `Live Poll (${total} votes) — Cast your vote:`
+    : `Current Standings: ${yesLabel} ${yesPct}% vs ${noLabel} ${noPct}% (${total} votes) — Cast your vote:`;
+
   const fullText = issue.description && issue.description.trim().length > 0
-    ? `*${issue.title}*\n${cleanDesc}\n\nCurrent Standings: YES ${yesPct}% vs NO ${noPct}% (${total} votes) — Cast your vote:`
-    : `*${issue.title}*\nCurrent Standings: YES ${yesPct}% vs NO ${noPct}% (${total} votes) — Cast your vote:`;
+    ? `*${issue.title}*\n${cleanDesc}\n\n${standingsText}`
+    : `*${issue.title}*\n${standingsText}`;
 
   return {
     title: issue.title,
@@ -93,9 +108,14 @@ export function buildIssueSharePayload(issue: Issue): SharePayload {
 export function updateDocumentMetaForIssue(issue: Issue | null): void {
   if (typeof document === 'undefined') return;
 
-  const defaultTitle = 'YesOrNo | Vote YES or NO on Issues That Matter to You';
-  const defaultDesc =
-    'It takes less than 1 min to make your voice heard and make an impact. Vote YES or NO on family, workplace, communal, religious, group, and policy decisions.';
+  const isFanZone = issue ? issue.zone === 'fanzone' : detectActiveZone() === 'fanzone';
+  const brand = isFanZone ? 'FanZone' : 'YesOrNo';
+  const defaultTitle = isFanZone
+    ? 'FanZone | Global Football Banter, Hot Takes & Live Polls'
+    : 'YesOrNo | Vote YES or NO on Issues That Matter to You';
+  const defaultDesc = isFanZone
+    ? 'Drop your football hot takes, vote on matchday polls, rep your club, and trade 60s voice banter with fans worldwide on FanZone.'
+    : 'It takes less than 1 min to make your voice heard and make an impact. Vote YES or NO on family, workplace, communal, religious, group, and policy decisions.';
   const origin =
     typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
@@ -105,11 +125,12 @@ export function updateDocumentMetaForIssue(issue: Issue | null): void {
   const desc = issue
     ? issue.description && issue.description.trim().length > 0
       ? issue.description.trim()
-      : `Vote YES or NO on "${issue.title}" on YesOrNo.`
+      : `Vote on "${issue.title}" on ${brand}.`
     : defaultDesc;
-  const canonicalUrl = issue ? `${origin}/${buildIssueSlug(issue)}` : `${origin}/`;
+  const zonePrefix = isFanZone ? '/fanzone/' : '/';
+  const canonicalUrl = issue ? `${origin}${zonePrefix}${buildIssueSlug(issue)}` : `${origin}${isFanZone ? '/fanzone' : '/'}`;
 
-  document.title = issue ? `${issue.title} | YesOrNo` : defaultTitle;
+  document.title = issue ? `${issue.title} | ${brand}` : defaultTitle;
 
   const setMeta = (selector: string, content: string) => {
     const el = document.querySelector(selector);

@@ -141,6 +141,38 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
             $pdo->exec("ALTER TABLE issues ADD COLUMN impressions_count INTEGER DEFAULT 0");
         } catch (Exception $e) {}
 
+        // Auto-migration: FanZone isolation, binary presets & multi-option poll columns
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN zone TEXT DEFAULT 'civic'");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN poll_type TEXT DEFAULT 'binary'");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN yes_label TEXT DEFAULT 'YES'");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN no_label TEXT DEFAULT 'NO'");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE issues ADD COLUMN options_json TEXT");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE responses ADD COLUMN option_id TEXT");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE responses ADD COLUMN option_label TEXT");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE responses ADD COLUMN author_club TEXT");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE replies ADD COLUMN author_club TEXT");
+        } catch (Exception $e) {}
+        try {
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_issues_zone ON issues(zone)");
+        } catch (Exception $e) {}
+
         // Self-healing deduplication: soft-delete any duplicate issues with identical titles (keeping oldest)
         try {
             $pdo->exec("
@@ -208,6 +240,166 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
             ");
         } catch (Exception $e) {}
 
+        // Auto-seed starter FanZone football debates if none exist yet
+        try {
+            $fzCountStmt = $pdo->query("SELECT COUNT(*) FROM issues WHERE zone = 'fanzone' AND is_deleted = 0");
+            if ($fzCountStmt && (int)$fzCountStmt->fetchColumn() === 0) {
+                $fzNow = gmdate('Y-m-d\TH:i:s\Z');
+                $fzClose = gmdate('Y-m-d\TH:i:s\Z', time() + 7 * 86400);
+                $fzStarterIssues = [
+                    [
+                        'id' => 'issue-fz-starter-ucl-multi',
+                        'poll_type' => 'multi',
+                        'yes_label' => 'YES',
+                        'no_label' => 'NO',
+                        'options' => [
+                            ['id' => 'opt-1', 'label' => 'Real Madrid', 'votes' => 42, 'color' => '#10b981'],
+                            ['id' => 'opt-2', 'label' => 'Liverpool', 'votes' => 31, 'color' => '#3b82f6'],
+                            ['id' => 'opt-3', 'label' => 'FC Barcelona', 'votes' => 26, 'color' => '#f59e0b'],
+                            ['id' => 'opt-4', 'label' => 'Arsenal', 'votes' => 22, 'color' => '#f43f5e'],
+                        ],
+                        'title' => 'Which club is the biggest favorite to lift this season\'s UEFA Champions League trophy?',
+                        'description' => 'With knockout intensity heating up across Europe, rival fanbases are split on who has the squad depth and big-game mentality to go all the way.',
+                        'category' => 'Champions League',
+                        'tags' => ['Real Madrid', 'Arsenal', 'Liverpool', 'FC Barcelona', 'UCL'],
+                        'author' => 'Marco Rossi',
+                        'creator_id' => 'fz-pers-marco-rossi',
+                        'creator_email' => 'marco.rossi@fanzone.football',
+                        'yes_count' => 0,
+                        'no_count' => 0,
+                        'responses' => [
+                            ['id' => 'sub-fz-st-1', 'choice' => 'YES', 'option_id' => 'opt-1', 'option_label' => 'Real Madrid', 'name' => 'Carlos Mendoza', 'email' => 'carlos.rma@fanzone.football', 'role' => 'Madridista', 'club' => ['id' => 'real-madrid', 'name' => 'Real Madrid', 'shortName' => 'RMA', 'league' => 'La Liga', 'color' => '#FEBE10', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/86.png'], 'note' => 'Until someone knocks them out in the spring, betting against Real Madrid in the UCL is just charity.'],
+                            ['id' => 'sub-fz-st-2', 'choice' => 'YES', 'option_id' => 'opt-2', 'option_label' => 'Liverpool', 'name' => 'Claire Hughes', 'email' => 'claire.lfc@fanzone.football', 'role' => 'Kop End Regular', 'club' => ['id' => 'liverpool', 'name' => 'Liverpool', 'shortName' => 'LIV', 'league' => 'Premier League', 'color' => '#C8102E', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/364.png'], 'note' => 'Anfield under the floodlights plus the cleanest transition attack in Europe right now.'],
+                            ['id' => 'sub-fz-st-3', 'choice' => 'YES', 'option_id' => 'opt-4', 'option_label' => 'Arsenal', 'name' => 'Tobi Adeyemi', 'email' => 'tobi.gunner@fanzone.football', 'role' => 'Matchday Fan', 'club' => ['id' => 'arsenal', 'name' => 'Arsenal', 'shortName' => 'ARS', 'league' => 'Premier League', 'color' => '#EF0107', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/359.png'], 'note' => 'Best defensive structure and set-piece threat left in the draw. Do not sleep on N5.'],
+                        ],
+                    ],
+                    [
+                        'id' => 'issue-fz-starter-arteta',
+                        'poll_type' => 'binary',
+                        'yes_label' => 'BACK',
+                        'no_label' => 'SACK',
+                        'options' => null,
+                        'title' => 'If Arsenal finish another season without major silverware, should Mikel Arteta be backed or sacked?',
+                        'description' => 'Arsenal supporters point to back-to-back title pushes and tactical stability, while rivals claim five years of heavy backing demands trophies now.',
+                        'category' => 'Premier League',
+                        'tags' => ['Arsenal', 'Arteta', 'PremierLeague'],
+                        'author' => '@n5_tobi',
+                        'creator_id' => 'fz-pers-tobi-gunner',
+                        'creator_email' => 'tobi.gunner@fanzone.football',
+                        'yes_count' => 64,
+                        'no_count' => 38,
+                        'responses' => [
+                            ['id' => 'sub-fz-st-4', 'choice' => 'YES', 'option_id' => null, 'option_label' => null, 'name' => 'Tobi Adeyemi', 'email' => 'tobi.gunner@fanzone.football', 'role' => 'Matchday Fan', 'club' => ['id' => 'arsenal', 'name' => 'Arsenal', 'shortName' => 'ARS', 'league' => 'Premier League', 'color' => '#EF0107', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/359.png'], 'note' => 'BACK 100%. Arteta turned Arsenal back into a genuine European powerhouse.'],
+                            ['id' => 'sub-fz-st-5', 'choice' => 'NO', 'option_id' => null, 'option_label' => null, 'name' => 'Kwame Mensah', 'email' => 'kwame.che@fanzone.football', 'role' => 'Chelsea Supporter', 'club' => ['id' => 'chelsea', 'name' => 'Chelsea', 'shortName' => 'CHE', 'league' => 'Premier League', 'color' => '#034694', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/363.png'], 'note' => 'Five years and £700m+ without a trophy lift? At big clubs that means pressure.'],
+                            ['id' => 'sub-fz-st-6', 'choice' => 'NO', 'option_id' => null, 'option_label' => null, 'name' => 'Devon Brooks', 'email' => 'devon.utd@fanzone.football', 'role' => 'Red Devils Fan', 'club' => ['id' => 'man-utd', 'name' => 'Manchester United', 'shortName' => 'MUN', 'league' => 'Premier League', 'color' => '#DA291C', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/360.png'], 'note' => 'Next Season FC cannot last forever. At some point you have to deliver silverware.'],
+                        ],
+                    ],
+                    [
+                        'id' => 'issue-fz-starter-chelsea',
+                        'poll_type' => 'binary',
+                        'yes_label' => 'FACT',
+                        'no_label' => 'CAP',
+                        'options' => null,
+                        'title' => 'Real talk: Has Chelsea\'s aggressive youth transfer strategy finally been vindicated?',
+                        'description' => 'Critics mocked the long contracts and massive squad turnover, yet Chelsea\'s young core is suddenly flying.',
+                        'category' => 'Premier League',
+                        'tags' => ['Chelsea', 'PremierLeague', 'Transfers'],
+                        'author' => '@cfc_kwame',
+                        'creator_id' => 'fz-pers-kwame-blues',
+                        'creator_email' => 'kwame.che@fanzone.football',
+                        'yes_count' => 58,
+                        'no_count' => 44,
+                        'responses' => [
+                            ['id' => 'sub-fz-st-7', 'choice' => 'YES', 'option_id' => null, 'option_label' => null, 'name' => 'Kwame Mensah', 'email' => 'kwame.che@fanzone.football', 'role' => 'Chelsea Supporter', 'club' => ['id' => 'chelsea', 'name' => 'Chelsea', 'shortName' => 'CHE', 'league' => 'Premier League', 'color' => '#034694', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/363.png'], 'note' => 'FACT. Cole Palmer alone justifies half the rebuild and the squad is locked in for years.'],
+                            ['id' => 'sub-fz-st-8', 'choice' => 'NO', 'option_id' => null, 'option_label' => null, 'name' => 'Elena Puig', 'email' => 'elena.barca@fanzone.football', 'role' => 'La Masia Supporter', 'club' => ['id' => 'barcelona', 'name' => 'FC Barcelona', 'shortName' => 'BAR', 'league' => 'La Liga', 'color' => '#A50044', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/83.png'], 'note' => 'CAP. One good stretch does not vindicate £1bn spent without silverware.'],
+                        ],
+                    ],
+                    [
+                        'id' => 'issue-fz-starter-saudi-bids',
+                        'poll_type' => 'binary',
+                        'yes_label' => 'SIGN',
+                        'no_label' => 'PASS',
+                        'options' => null,
+                        'title' => 'Should European giants cash in on club legends when £60m+ Saudi Pro League bids arrive?',
+                        'description' => 'Loyalty vs PSR financial discipline: accept massive fees for players over 30 or keep dressing-room icons?',
+                        'category' => 'Transfers & Rumors',
+                        'tags' => ['Liverpool', 'ManUtd', 'AlNassr', 'Transfers'],
+                        'author' => 'Marco Rossi',
+                        'creator_id' => 'fz-pers-marco-rossi',
+                        'creator_email' => 'marco.rossi@fanzone.football',
+                        'yes_count' => 53,
+                        'no_count' => 47,
+                        'responses' => [
+                            ['id' => 'sub-fz-st-9', 'choice' => 'YES', 'option_id' => null, 'option_label' => null, 'name' => 'Tariq Al-Mansoor', 'email' => 'tariq.nsr@fanzone.football', 'role' => 'Saudi Pro League Fan', 'club' => ['id' => 'al-nassr', 'name' => 'Al-Nassr', 'shortName' => 'NSR', 'league' => 'Saudi Pro League', 'color' => '#FFCD00', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/817.png'], 'note' => 'Win-win deal for everyone—European clubs dodge PSR issues and global fans watch legends live.'],
+                            ['id' => 'sub-fz-st-10', 'choice' => 'NO', 'option_id' => null, 'option_label' => null, 'name' => 'Claire Hughes', 'email' => 'claire.lfc@fanzone.football', 'role' => 'Kop End Regular', 'club' => ['id' => 'liverpool', 'name' => 'Liverpool', 'shortName' => 'LIV', 'league' => 'Premier League', 'color' => '#C8102E', 'logoUrl' => 'https://a.espncdn.com/i/teamlogos/soccer/500/364.png'], 'note' => 'You cannot replace 25 guaranteed goals and big-match leadership with a spreadsheet.'],
+                        ],
+                    ],
+                ];
+
+                $fzIssStmt = $pdo->prepare("
+                    INSERT OR IGNORE INTO issues (
+                        id, zone, poll_type, yes_label, no_label, options_json,
+                        title, description, category, region, tags, author, creator_id, creator_email,
+                        is_anonymous_author, closing_date, duration_label, visibility, invited_emails, invited_groups,
+                        yes_count, no_count, likes_count, favorites_count, views_count, impressions_count,
+                        featured, is_deleted, created_at, updated_at
+                    ) VALUES (
+                        :id, 'fanzone', :poll_type, :yes_label, :no_label, :options_json,
+                        :title, :description, :category, 'Global / Remote', :tags, :author, :creator_id, :creator_email,
+                        0, :closing_date, '7 Days', 'public', '[]', '[]',
+                        :yes_count, :no_count, 18, 6, 320, 740,
+                        1, 0, :created_at, :updated_at
+                    )
+                ");
+                $fzRespStmt = $pdo->prepare("
+                    INSERT OR IGNORE INTO responses (
+                        id, issue_id, choice, option_id, option_label, author_name, author_email,
+                        author_role, author_club, is_anonymous, note, likes_count, is_reported, created_at
+                    ) VALUES (
+                        :id, :issue_id, :choice, :option_id, :option_label, :author_name, :author_email,
+                        :author_role, :author_club, 0, :note, 9, 0, :created_at
+                    )
+                ");
+
+                foreach ($fzStarterIssues as $si) {
+                    $fzIssStmt->execute([
+                        ':id' => $si['id'],
+                        ':poll_type' => $si['poll_type'],
+                        ':yes_label' => $si['yes_label'],
+                        ':no_label' => $si['no_label'],
+                        ':options_json' => $si['options'] ? json_encode($si['options']) : null,
+                        ':title' => $si['title'],
+                        ':description' => $si['description'],
+                        ':category' => $si['category'],
+                        ':tags' => json_encode($si['tags']),
+                        ':author' => $si['author'],
+                        ':creator_id' => $si['creator_id'],
+                        ':creator_email' => $si['creator_email'],
+                        ':closing_date' => $fzClose,
+                        ':yes_count' => $si['yes_count'],
+                        ':no_count' => $si['no_count'],
+                        ':created_at' => $fzNow,
+                        ':updated_at' => $fzNow,
+                    ]);
+                    foreach ($si['responses'] as $sr) {
+                        $fzRespStmt->execute([
+                            ':id' => $sr['id'],
+                            ':issue_id' => $si['id'],
+                            ':choice' => $sr['choice'],
+                            ':option_id' => $sr['option_id'],
+                            ':option_label' => $sr['option_label'],
+                            ':author_name' => $sr['name'],
+                            ':author_email' => $sr['email'],
+                            ':author_role' => $sr['role'],
+                            ':author_club' => json_encode($sr['club']),
+                            ':note' => $sr['note'],
+                            ':created_at' => $fzNow,
+                        ]);
+                    }
+                }
+            }
+        } catch (Exception $e) {}
+
         return $pdo;
     } catch (Exception $e) {
         error_log('SQLite Init Error: ' . $e->getMessage());
@@ -216,12 +408,17 @@ function get_database_connection($dbPath, $jsonFallbackPath) {
 }
 
 // Hydrates issues with responses, replies, and reactions into the expected frontend format
-function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
+function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null, $zone = null) {
     $sql = "SELECT * FROM issues WHERE is_deleted = 0";
     $params = [];
     if ($since) {
         $sql .= " AND updated_at >= :since";
         $params[':since'] = $since;
+    }
+    if ($zone === 'fanzone') {
+        $sql .= " AND zone = 'fanzone'";
+    } else if ($zone === 'civic') {
+        $sql .= " AND (zone IS NULL OR zone = '' OR zone = 'civic')";
     }
     $sql .= " ORDER BY created_at DESC";
 
@@ -345,6 +542,7 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $repAvatar = $repProf['avatar'] ?? null;
         $repUsername = $repProf['username'] ?? null;
         $repPref = $repProf['displayPreference'] ?? null;
+        $repClub = !empty($rep['author_club']) ? json_decode($rep['author_club'], true) : ($repProf['favoriteClub'] ?? null);
 
         $repliesBySubmission[$subId][] = [
             'id' => $rep['id'],
@@ -355,6 +553,7 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
             'authorEmail' => $rep['author_email'],
             'authorAlias' => $rep['author_alias'],
             'authorRole' => $rep['author_role'],
+            'authorClub' => is_array($repClub) ? $repClub : null,
             'displayPreference' => $repPref,
             'isAnonymous' => (bool)$rep['is_anonymous'],
             'content' => $rep['content'],
@@ -384,17 +583,21 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $respAvatar = $respProf['avatar'] ?? null;
         $respUsername = $respProf['username'] ?? null;
         $respPref = $respProf['displayPreference'] ?? null;
+        $respClub = !empty($resp['author_club']) ? json_decode($resp['author_club'], true) : ($respProf['favoriteClub'] ?? null);
 
         $responsesByIssue[$issId][] = [
             'id' => $resp['id'],
             'issueId' => $resp['issue_id'],
             'choice' => $resp['choice'],
+            'optionId' => $resp['option_id'] ?? null,
+            'optionLabel' => $resp['option_label'] ?? null,
             'authorName' => $resp['author_name'],
             'authorUsername' => $respUsername,
             'authorAvatar' => $respAvatar,
             'authorEmail' => $resp['author_email'],
             'authorAlias' => $resp['author_alias'],
             'authorRole' => $resp['author_role'],
+            'authorClub' => is_array($respClub) ? $respClub : null,
             'displayPreference' => $respPref,
             'isAnonymous' => (bool)$resp['is_anonymous'],
             'note' => $resp['note'],
@@ -418,17 +621,33 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
         $images = !empty($row['images']) ? json_decode($row['images'], true) : [];
         $creatorVoice = !empty($row['creator_voice_note']) ? json_decode($row['creator_voice_note'], true) : null;
         $summary = !empty($row['summary']) ? json_decode($row['summary'], true) : null;
+        $options = !empty($row['options_json']) ? json_decode($row['options_json'], true) : null;
         $issueResponses = isset($responsesByIssue[$id]) ? $responsesByIssue[$id] : [];
 
         $respYes = 0;
         $respNo = 0;
+        $respOptionCounts = [];
         foreach ($issueResponses as $r) {
             $ch = strtoupper($r['choice'] ?? '');
             if ($ch === 'YES') $respYes++;
             else if ($ch === 'NO') $respNo++;
+            if (!empty($r['optionId'])) {
+                $oid = $r['optionId'];
+                $respOptionCounts[$oid] = ($respOptionCounts[$oid] ?? 0) + 1;
+            }
         }
         $calcYes = max((int)$row['yes_count'], $respYes);
         $calcNo = max((int)$row['no_count'], $respNo);
+
+        if (is_array($options)) {
+            foreach ($options as &$opt) {
+                if (is_array($opt) && !empty($opt['id'])) {
+                    $oid = $opt['id'];
+                    $opt['votes'] = max((int)($opt['votes'] ?? 0), $respOptionCounts[$oid] ?? 0);
+                }
+            }
+            unset($opt);
+        }
 
         $issueProf = $lookupProfile($row['creator_email'], $row['author'], null);
         $creatorAvatar = $issueProf['avatar'] ?? null;
@@ -442,6 +661,11 @@ function fetch_hydrated_issues_sqlite(PDO $pdo, $since = null) {
 
         $output[] = [
             'id' => $row['id'],
+            'zone' => !empty($row['zone']) ? $row['zone'] : 'civic',
+            'pollType' => !empty($row['poll_type']) ? $row['poll_type'] : 'binary',
+            'yesLabel' => !empty($row['yes_label']) ? $row['yes_label'] : 'YES',
+            'noLabel' => !empty($row['no_label']) ? $row['no_label'] : 'NO',
+            'options' => is_array($options) ? $options : null,
             'title' => $row['title'],
             'description' => $row['description'] ?: '',
             'category' => $row['category'],
@@ -515,17 +739,24 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
     try {
         $issueStmt = $pdo->prepare("
             INSERT INTO issues (
-                id, title, description, category, region, tags, author, creator_id, creator_email,
+                id, zone, poll_type, yes_label, no_label, options_json,
+                title, description, category, region, tags, author, creator_id, creator_email,
                 is_anonymous_author, closing_date, duration_label, visibility, invited_emails,
                 invited_groups, yes_count, no_count, likes_count, favorites_count, images,
                 creator_voice_note, featured, summary, is_deleted, deleted_at, created_at, updated_at
             ) VALUES (
-                :id, :title, :description, :category, :region, :tags, :author, :creator_id, :creator_email,
+                :id, :zone, :poll_type, :yes_label, :no_label, :options_json,
+                :title, :description, :category, :region, :tags, :author, :creator_id, :creator_email,
                 :is_anonymous_author, :closing_date, :duration_label, :visibility, :invited_emails,
                 :invited_groups, :yes_count, :no_count, :likes_count, :favorites_count, :images,
                 :creator_voice_note, :featured, :summary, :is_deleted, :deleted_at, :created_at, :updated_at
             )
             ON CONFLICT(id) DO UPDATE SET
+                zone = COALESCE(excluded.zone, issues.zone),
+                poll_type = COALESCE(excluded.poll_type, issues.poll_type),
+                yes_label = COALESCE(excluded.yes_label, issues.yes_label),
+                no_label = COALESCE(excluded.no_label, issues.no_label),
+                options_json = COALESCE(excluded.options_json, issues.options_json),
                 title = excluded.title,
                 description = excluded.description,
                 category = excluded.category,
@@ -555,18 +786,21 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
 
         $respStmt = $pdo->prepare("
             INSERT INTO responses (
-                id, issue_id, choice, author_name, author_email, author_alias, author_role,
+                id, issue_id, choice, option_id, option_label, author_name, author_email, author_alias, author_role, author_club,
                 is_anonymous, note, voice_note, likes_count, is_reported, created_at
             ) VALUES (
-                :id, :issue_id, :choice, :author_name, :author_email, :author_alias, :author_role,
+                :id, :issue_id, :choice, :option_id, :option_label, :author_name, :author_email, :author_alias, :author_role, :author_club,
                 :is_anonymous, :note, :voice_note, :likes_count, :is_reported, :created_at
             )
             ON CONFLICT(id) DO UPDATE SET
                 choice = excluded.choice,
+                option_id = COALESCE(excluded.option_id, responses.option_id),
+                option_label = COALESCE(excluded.option_label, responses.option_label),
                 author_name = excluded.author_name,
                 author_email = excluded.author_email,
                 author_alias = excluded.author_alias,
                 author_role = excluded.author_role,
+                author_club = COALESCE(excluded.author_club, responses.author_club),
                 is_anonymous = excluded.is_anonymous,
                 note = excluded.note,
                 voice_note = excluded.voice_note,
@@ -576,15 +810,16 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
 
         $replyStmt = $pdo->prepare("
             INSERT INTO replies (
-                id, submission_id, issue_id, author_name, author_email, author_alias, author_role,
+                id, submission_id, issue_id, author_name, author_email, author_alias, author_role, author_club,
                 is_anonymous, content, reply_to_name, likes_count, created_at
             ) VALUES (
-                :id, :submission_id, :issue_id, :author_name, :author_email, :author_alias, :author_role,
+                :id, :submission_id, :issue_id, :author_name, :author_email, :author_alias, :author_role, :author_club,
                 :is_anonymous, :content, :reply_to_name, :likes_count, :created_at
             )
             ON CONFLICT(id) DO UPDATE SET
                 content = excluded.content,
-                likes_count = excluded.likes_count
+                likes_count = excluded.likes_count,
+                author_club = COALESCE(excluded.author_club, replies.author_club)
         ");
 
         $reactStmt = $pdo->prepare("
@@ -597,6 +832,11 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
 
             $issueStmt->execute([
                 ':id' => $iss['id'],
+                ':zone' => !empty($iss['zone']) ? $iss['zone'] : 'civic',
+                ':poll_type' => !empty($iss['pollType']) ? $iss['pollType'] : 'binary',
+                ':yes_label' => !empty($iss['yesLabel']) ? $iss['yesLabel'] : 'YES',
+                ':no_label' => !empty($iss['noLabel']) ? $iss['noLabel'] : 'NO',
+                ':options_json' => isset($iss['options']) && is_array($iss['options']) ? json_encode($iss['options']) : null,
                 ':title' => $iss['title'] ?? 'Untitled Issue',
                 ':description' => $iss['description'] ?? '',
                 ':category' => $iss['category'] ?? 'Community & Neighborhood',
@@ -633,10 +873,13 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
                         ':id' => $resp['id'],
                         ':issue_id' => $iss['id'],
                         ':choice' => $resp['choice'] ?? 'YES',
+                        ':option_id' => $resp['optionId'] ?? null,
+                        ':option_label' => $resp['optionLabel'] ?? null,
                         ':author_name' => $resp['authorName'] ?? 'Anonymous Neighbor',
                         ':author_email' => $resp['authorEmail'] ?? null,
                         ':author_alias' => $resp['authorAlias'] ?? null,
                         ':author_role' => $resp['authorRole'] ?? null,
+                        ':author_club' => isset($resp['authorClub']) && is_array($resp['authorClub']) ? json_encode($resp['authorClub']) : null,
                         ':is_anonymous' => !empty($resp['isAnonymous']) ? 1 : 0,
                         ':note' => $resp['note'] ?? null,
                         ':voice_note' => isset($resp['voiceNote']) ? json_encode($resp['voiceNote']) : null,
@@ -676,6 +919,7 @@ function save_batch_issues_sqlite(PDO $pdo, array $issues) {
                                 ':author_email' => $reply['authorEmail'] ?? null,
                                 ':author_alias' => $reply['authorAlias'] ?? null,
                                 ':author_role' => $reply['authorRole'] ?? null,
+                                ':author_club' => isset($reply['authorClub']) && is_array($reply['authorClub']) ? json_encode($reply['authorClub']) : null,
                                 ':is_anonymous' => !empty($reply['isAnonymous']) ? 1 : 0,
                                 ':content' => $reply['content'] ?? '',
                                 ':reply_to_name' => $reply['replyToName'] ?? null,
@@ -752,16 +996,23 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
         }
 
         // 1. Insert or update the response
+        $optionId = !empty($payload['optionId']) ? trim((string)$payload['optionId']) : null;
+        $optionLabel = !empty($payload['optionLabel']) ? trim((string)$payload['optionLabel']) : null;
+        $authorClubJson = (isset($payload['authorClub']) && is_array($payload['authorClub'])) ? json_encode($payload['authorClub']) : null;
+
         $stmt = $pdo->prepare("
             INSERT INTO responses (
-                id, issue_id, choice, author_name, author_email, author_alias, author_role,
+                id, issue_id, choice, option_id, option_label, author_name, author_email, author_alias, author_role, author_club,
                 is_anonymous, note, voice_note, likes_count, is_reported, created_at
             ) VALUES (
-                :id, :issue_id, :choice, :author_name, :author_email, :author_alias, :author_role,
+                :id, :issue_id, :choice, :option_id, :option_label, :author_name, :author_email, :author_alias, :author_role, :author_club,
                 :is_anonymous, :note, :voice_note, :likes_count, :is_reported, :created_at
             )
             ON CONFLICT(id) DO UPDATE SET
                 choice = excluded.choice,
+                option_id = COALESCE(excluded.option_id, responses.option_id),
+                option_label = COALESCE(excluded.option_label, responses.option_label),
+                author_club = COALESCE(excluded.author_club, responses.author_club),
                 note = excluded.note,
                 voice_note = excluded.voice_note
         ");
@@ -770,10 +1021,13 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
             ':id' => $submissionId,
             ':issue_id' => $issueId,
             ':choice' => $choice,
+            ':option_id' => $optionId,
+            ':option_label' => $optionLabel,
             ':author_name' => $payload['authorName'] ?? 'Anonymous Neighbor',
             ':author_email' => $payload['authorEmail'] ?? null,
             ':author_alias' => $payload['authorAlias'] ?? null,
             ':author_role' => $payload['authorRole'] ?? null,
+            ':author_club' => $authorClubJson,
             ':is_anonymous' => !empty($payload['isAnonymous']) ? 1 : 0,
             ':note' => $payload['note'] ?? null,
             ':voice_note' => isset($payload['voiceNote']) ? json_encode($payload['voiceNote']) : null,
@@ -782,14 +1036,33 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
             ':created_at' => $payload['createdAt'] ?? $now,
         ]);
 
-        // 2. Atomically update yes/no counters on issue (guarded against NULLs)
-        $isYes = strtoupper($choice) === 'YES';
-        $updateSql = $isYes 
-            ? "UPDATE issues SET yes_count = COALESCE(yes_count, 0) + 1, updated_at = :now WHERE id = :id"
-            : "UPDATE issues SET no_count = COALESCE(no_count, 0) + 1, updated_at = :now WHERE id = :id";
-        
-        $upStmt = $pdo->prepare($updateSql);
-        $upStmt->execute([':now' => $now, ':id' => $issueId]);
+        // 2. Atomically update multi-option counts or yes/no counters on issue
+        $updatedOptions = null;
+        if ($optionId !== null && $optionId !== '') {
+            $optFetchStmt = $pdo->prepare("SELECT options_json FROM issues WHERE id = :id");
+            $optFetchStmt->execute([':id' => $issueId]);
+            $optRow = $optFetchStmt->fetch();
+            $opts = (!empty($optRow['options_json'])) ? json_decode($optRow['options_json'], true) : null;
+            if (is_array($opts)) {
+                foreach ($opts as &$opt) {
+                    if (is_array($opt) && ($opt['id'] ?? '') === $optionId) {
+                        $opt['votes'] = (int)($opt['votes'] ?? 0) + 1;
+                    }
+                }
+                unset($opt);
+                $updatedOptions = $opts;
+                $optUpStmt = $pdo->prepare("UPDATE issues SET options_json = :opts, updated_at = :now WHERE id = :id");
+                $optUpStmt->execute([':opts' => json_encode($opts), ':now' => $now, ':id' => $issueId]);
+            }
+        } else {
+            $isYes = strtoupper($choice) === 'YES';
+            $updateSql = $isYes 
+                ? "UPDATE issues SET yes_count = COALESCE(yes_count, 0) + 1, updated_at = :now WHERE id = :id"
+                : "UPDATE issues SET no_count = COALESCE(no_count, 0) + 1, updated_at = :now WHERE id = :id";
+            
+            $upStmt = $pdo->prepare($updateSql);
+            $upStmt->execute([':now' => $now, ':id' => $issueId]);
+        }
 
         // Query authoritative counts from the database
         $cntStmt = $pdo->prepare("SELECT yes_count, no_count FROM issues WHERE id = :id");
@@ -797,13 +1070,17 @@ function handle_atomic_vote(PDO $pdo, array $payload) {
         $countsRow = $cntStmt->fetch();
 
         $pdo->commit();
-        return [
+        $result = [
             'success' => true, 
             'submissionId' => $submissionId, 
             'yesCount' => (int)($countsRow['yes_count'] ?? 1),
             'noCount' => (int)($countsRow['no_count'] ?? 0),
             'updatedAt' => $now
         ];
+        if (is_array($updatedOptions)) {
+            $result['options'] = $updatedOptions;
+        }
+        return $result;
     } catch (Exception $e) {
         $pdo->rollBack();
         return ['success' => false, 'error' => $e->getMessage()];
@@ -823,12 +1100,13 @@ function handle_atomic_reply(PDO $pdo, array $payload) {
 
     $pdo->beginTransaction();
     try {
+        $replyClubJson = (isset($reply['authorClub']) && is_array($reply['authorClub'])) ? json_encode($reply['authorClub']) : null;
         $stmt = $pdo->prepare("
             INSERT INTO replies (
-                id, submission_id, issue_id, author_name, author_email, author_alias, author_role,
+                id, submission_id, issue_id, author_name, author_email, author_alias, author_role, author_club,
                 is_anonymous, content, reply_to_name, likes_count, created_at
             ) VALUES (
-                :id, :submission_id, :issue_id, :author_name, :author_email, :author_alias, :author_role,
+                :id, :submission_id, :issue_id, :author_name, :author_email, :author_alias, :author_role, :author_club,
                 :is_anonymous, :content, :reply_to_name, :likes_count, :created_at
             )
         ");
@@ -843,6 +1121,7 @@ function handle_atomic_reply(PDO $pdo, array $payload) {
             ':author_email' => $reply['authorEmail'] ?? null,
             ':author_alias' => $reply['authorAlias'] ?? null,
             ':author_role' => $reply['authorRole'] ?? null,
+            ':author_club' => $replyClubJson,
             ':is_anonymous' => !empty($reply['isAnonymous']) ? 1 : 0,
             ':content' => $reply['content'],
             ':reply_to_name' => $reply['replyToName'] ?? null,
@@ -1497,7 +1776,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $since = isset($_GET['since']) ? $_GET['since'] : null;
-    $data = fetch_hydrated_issues_sqlite($pdo, $since);
+    $zone = isset($_GET['zone']) ? trim($_GET['zone']) : null;
+    $data = fetch_hydrated_issues_sqlite($pdo, $since, $zone);
     echo json_encode($data);
     exit;
 }

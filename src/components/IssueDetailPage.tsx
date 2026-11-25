@@ -17,6 +17,7 @@ import { transformAudioVoice, blobToDataUrl } from '../utils/audio';
 import { ReportIssueModal } from './ReportIssueModal';
 import { ShareCommentModal } from './ShareCommentModal';
 import { notifyAuthorCommentAdded, notifyAuthorReplyAdded, notifyAuthorReactionAdded } from '../utils/emailNotifier';
+import { ClubBadge } from '../fanzone/ClubBadge';
 
 export const AVAILABLE_REACTIONS = [
   { emoji: '👍', label: 'Agree' },
@@ -40,6 +41,7 @@ interface Props {
   onShareIssue: (issue: Issue) => void;
   hasUserVoted?: boolean;
   userVoteChoice?: 'YES' | 'NO';
+  userVoteOptionId?: string;
   isLiked?: boolean;
   isFavorited?: boolean;
   onLikeResponse?: (responseId: string) => void;
@@ -68,12 +70,16 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
     onShareIssue,
     hasUserVoted,
     userVoteChoice,
+    userVoteOptionId,
     isLiked = false,
     isFavorited = false,
     onAddCommentReply,
     onToggleCommentReaction,
     onOpenProfile,
   } = props;
+  const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+  const yesLabel = issue.yesLabel || 'YES';
+  const noLabel = issue.noLabel || 'NO';
   const [activeTab, setActiveTab] = useState<'perspectives' | 'digest' | 'brief'>('perspectives');
   const [filter, setFilter] = useState<'ALL' | 'YES' | 'NO' | 'VOICE'>('ALL');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -119,6 +125,17 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
 
   // Self-heal display counts if user has voted so they never see 0% (0) for their own vote
   const effectiveIssue = React.useMemo(() => {
+    if (isMulti && issue.options) {
+      let changed = false;
+      const healedOpts = issue.options.map(opt => {
+        if (hasUserVoted && userVoteOptionId === opt.id && opt.votes === 0) {
+          changed = true;
+          return { ...opt, votes: 1 };
+        }
+        return opt;
+      });
+      return changed ? { ...issue, options: healedOpts } : issue;
+    }
     let yes = issue.yesCount;
     let no = issue.noCount;
     if (hasUserVoted && userVoteChoice === 'YES' && yes === 0) yes = 1;
@@ -127,7 +144,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       return { ...issue, yesCount: yes, noCount: no };
     }
     return issue;
-  }, [issue, hasUserVoted, userVoteChoice]);
+  }, [issue, hasUserVoted, userVoteChoice, userVoteOptionId, isMulti]);
   const metrics = computeIssueMetrics(effectiveIssue);
   const access = canUserAccessIssue(issue, currentUser);
   const isCreator = isIssueCreator(issue, currentUser);
@@ -184,11 +201,40 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       authorEmail: !replyAnon ? currentUser.email : undefined,
       authorAlias: replyAnon ? alias : undefined,
       authorRole: !replyAnon ? currentUser.role : undefined,
+      authorClub: !replyAnon ? (currentUser?.favoriteClub || null) : null,
       createdAt: new Date().toISOString(),
       likesCount: 0,
     };
     onInlineSubmitVote(submission);
     setReplyChoice(choice);
+  };
+
+  const handleInstantOptionVote = (optionId: string, optionLabel: string) => {
+    if (hasUserVoted) return;
+    if (!currentUser || !access.canAccess || metrics.isClosed || isDeleted) {
+      onOpenVoteModal('YES');
+      return;
+    }
+    playHapticChime('yes');
+    triggerVoteConfetti(true);
+    const submission: VoteSubmission = {
+      id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      issueId: issue.id,
+      choice: 'YES',
+      optionId,
+      optionLabel,
+      isAnonymous: replyAnon,
+      authorName: replyAnon ? 'Anonymous Neighbor' : (currentUser?.name || getUserDisplayName(currentUser)),
+      authorUsername: !replyAnon ? currentUser.username : undefined,
+      authorEmail: !replyAnon ? currentUser.email : undefined,
+      authorAlias: replyAnon ? alias : undefined,
+      authorRole: !replyAnon ? currentUser.role : undefined,
+      authorClub: !replyAnon ? (currentUser?.favoriteClub || null) : null,
+      createdAt: new Date().toISOString(),
+      likesCount: 0,
+    };
+    onInlineSubmitVote(submission);
+    setReplyChoice('YES');
   };
 
   const startMic = async () => {
@@ -268,16 +314,20 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       }
     }
 
+    const matchedOpt = isMulti && userVoteOptionId ? issue.options?.find(o => o.id === userVoteOptionId) : undefined;
     const submission: VoteSubmission = {
       id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       issueId: issue.id,
       choice: replyChoice,
+      optionId: matchedOpt?.id || userVoteOptionId,
+      optionLabel: matchedOpt?.label,
       isAnonymous: replyAnon,
       authorName: replyAnon ? 'Anonymous Neighbor' : (currentUser?.name || getUserDisplayName(currentUser)),
       authorUsername: !replyAnon ? currentUser.username : undefined,
       authorEmail: !replyAnon ? currentUser.email : undefined,
       authorAlias: replyAnon ? alias : undefined,
       authorRole: !replyAnon ? currentUser.role : undefined,
+      authorClub: !replyAnon ? (currentUser?.favoriteClub || null) : null,
       note: replyNote.trim() || undefined,
       voiceNote: voiceUrl
         ? {
@@ -319,6 +369,7 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
       authorEmail: !replyIsAnon ? currentUser.email : undefined,
       authorAlias: replyIsAnon ? alias : undefined,
       authorRole: !replyIsAnon ? currentUser.role : undefined,
+      authorClub: !replyIsAnon ? (currentUser?.favoriteClub || null) : null,
       isAnonymous: replyIsAnon,
       content: replyText.trim(),
       createdAt: new Date().toISOString(),
@@ -611,38 +662,121 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
             )}
           </div>
 
-          {/* CONSENSUS SPLIT RESULTS: ONLY VISIBLE IF USER HAS VOTED */}
+          {/* CONSENSUS SPLIT / MULTI-OPTION RESULTS: ONLY VISIBLE IF USER HAS VOTED */}
           {hasUserVoted ? (
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/5 space-y-2 mt-4">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>YES {metrics.yesPercent}% ({effectiveIssue.yesCount})</span>
-                </span>
-                <span className="text-slate-400 dark:text-zinc-500 font-mono text-[11px]">
-                  {metrics.totalVotes} total votes
-                </span>
-                <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-                  <span>({effectiveIssue.noCount}) NO {metrics.noPercent}%</span>
-                  <ThumbsDown className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="h-3 w-full bg-slate-200 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }}
-                />
-                <div
-                  className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 ml-0.5"
-                  style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }}
-                />
-              </div>
+            <div className="space-y-3 mt-4">
+              {isMulti && effectiveIssue.options ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/5 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-zinc-300">
+                    <span>Poll Results</span>
+                    <span className="font-mono text-[11px] text-slate-400">{metrics.totalVotes} total votes</span>
+                  </div>
+                  <div className="space-y-2">
+                    {effectiveIssue.options.map((opt, idx) => {
+                      const pct = metrics.totalVotes > 0 ? Math.round((opt.votes / metrics.totalVotes) * 100) : 0;
+                      const isSelected = userVoteOptionId === opt.id;
+                      const barColor = opt.color || ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'][idx % 4];
+                      return (
+                        <div key={opt.id} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="flex items-center gap-1.5 text-ink-950 dark:text-white">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: barColor }} />
+                              <span>{opt.label}</span>
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+                            </span>
+                            <span className="font-mono text-[11px] text-slate-600 dark:text-zinc-300">
+                              {pct}% ({opt.votes})
+                            </span>
+                          </div>
+                          <div className="h-2.5 w-full bg-slate-200 dark:bg-ink-950 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%`, backgroundColor: barColor }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{yesLabel} {metrics.yesPercent}% ({effectiveIssue.yesCount})</span>
+                    </span>
+                    <span className="text-slate-400 dark:text-zinc-500 font-mono text-[11px]">
+                      {metrics.totalVotes} total votes
+                    </span>
+                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                      <span>({effectiveIssue.noCount}) {noLabel} {metrics.noPercent}%</span>
+                      <ThumbsDown className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-200 dark:bg-ink-950 rounded-full overflow-hidden flex p-0.5">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                      style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.yesPercent}%` }}
+                    />
+                    <div
+                      className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 ml-0.5"
+                      style={{ width: `${metrics.totalVotes === 0 ? 50 : metrics.noPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Fanbase Vote Breakdown for FanZone issues when >= 2 club-affiliated responses exist */}
+              {(() => {
+                if (issue.zone !== 'fanzone' || isMulti) return null;
+                const clubStats = new Map<string, { club: NonNullable<VoteSubmission['authorClub']>; yes: number; no: number }>();
+                issue.responses.forEach(r => {
+                  if (!r.isAnonymous && r.authorClub && r.authorClub.id !== 'neutral') {
+                    const entry = clubStats.get(r.authorClub.id) || { club: r.authorClub, yes: 0, no: 0 };
+                    if (r.choice === 'YES') entry.yes += 1;
+                    else entry.no += 1;
+                    clubStats.set(r.authorClub.id, entry);
+                  }
+                });
+                const rankedClubs = Array.from(clubStats.values())
+                  .sort((a, b) => (b.yes + b.no) - (a.yes + a.no))
+                  .slice(0, 6);
+                if (rankedClubs.length < 2) return null;
+                return (
+                  <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-500/20 space-y-2">
+                    <div className="text-xs font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                      <span>⚽</span>
+                      <span>How Fanbases Voted</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {rankedClubs.map(({ club, yes, no }) => {
+                        const tot = yes + no;
+                        const yPct = tot > 0 ? Math.round((yes / tot) * 100) : 0;
+                        const dominantYes = yes >= no;
+                        return (
+                          <div key={club.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/90 dark:bg-ink-900/80 border border-slate-200/60 dark:border-white/10 text-xs">
+                            <ClubBadge club={club} size="xs" showName />
+                            <span className={`font-extrabold text-[11px] shrink-0 ${dominantYes ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                              {dominantYes ? `${yPct}% ${yesLabel}` : `${100 - yPct}% ${noLabel}`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <div className="p-4 rounded-2xl bg-brand-50/50 dark:bg-white/[0.02] border border-brand-100 dark:border-white/5 flex items-center justify-between text-xs mt-4">
               <div className="flex items-center gap-2 text-slate-700 dark:text-zinc-300">
                 <Lock className="w-4 h-4 text-brand-500 shrink-0" />
-                <span>Cast your vote (YES or NO) below to reveal the community results.</span>
+                <span>
+                  {isMulti
+                    ? 'Select an option below to reveal the live poll standings.'
+                    : `Cast your vote (${yesLabel} or ${noLabel}) below to reveal the community results.`}
+                </span>
               </div>
               <span className="font-mono text-[11px] text-slate-400 shrink-0">
                 {metrics.totalVotes} votes cast
@@ -679,75 +813,111 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                 <span className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300">
                   <Lock className="w-3.5 h-3.5 text-brand-500 shrink-0" />
                   <span>
-                    You voted <strong className={userVoteChoice === 'YES' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{userVoteChoice}</strong>. Votes are permanent and cannot be changed.
+                    You voted{' '}
+                    <strong className={isMulti || userVoteChoice === 'YES' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {isMulti
+                        ? (effectiveIssue.options?.find(o => o.id === userVoteOptionId)?.label || 'Selected Option')
+                        : (userVoteChoice === 'YES' ? yesLabel : noLabel)}
+                    </strong>
+                    . Votes are permanent and cannot be changed.
                   </span>
                 </span>
               </div>
             )}
 
-            {/* 1-Tap YES / NO Choice Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleInstantVoteTap('YES')}
-                disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'YES'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
-                    : hasUserVoted && userVoteChoice !== 'YES'
-                      ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                      : replyChoice === 'YES'
-                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
-                        : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
-                  }`}
-              >
-                {hasUserVoted && userVoteChoice === 'YES' ? (
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                ) : (
-                  <ThumbsUp className="w-4 h-4" />
-                )}
-                <span>
-                  {hasUserVoted
-                    ? userVoteChoice === 'YES'
-                      ? 'VOTED YES ✓'
-                      : 'NO (LOCKED)'
-                    : 'VOTE YES'}
-                </span>
-              </button>
+            {/* 1-Tap Choice Buttons (Multi-Option OR Binary Preset) */}
+            {isMulti && effectiveIssue.options ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {effectiveIssue.options.map((opt, idx) => {
+                  const isSelected = userVoteOptionId === opt.id;
+                  const dotColor = opt.color || ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'][idx % 4];
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleInstantOptionVote(opt.id, opt.label)}
+                      disabled={Boolean(hasUserVoted && !isSelected)}
+                      className={`py-2.5 px-3.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-between gap-2 transition-all border ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white border-emerald-500 ring-2 ring-emerald-400'
+                          : hasUserVoted
+                          ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 border-slate-200 dark:border-white/10 text-slate-400'
+                          : 'bg-white dark:bg-ink-900 border-slate-200 dark:border-white/10 text-ink-950 dark:text-white hover:border-emerald-500 cursor-pointer'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: isSelected ? '#ffffff' : dotColor }} />
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-white shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleInstantVoteTap('YES')}
+                  disabled={Boolean(hasUserVoted && userVoteChoice !== 'YES')}
+                  className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'YES'
+                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                      : hasUserVoted && userVoteChoice !== 'YES'
+                        ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                        : replyChoice === 'YES'
+                          ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-[1.01] cursor-pointer'
+                          : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-[1.005] cursor-pointer'
+                    }`}
+                >
+                  {hasUserVoted && userVoteChoice === 'YES' ? (
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                  ) : (
+                    <ThumbsUp className="w-4 h-4" />
+                  )}
+                  <span>
+                    {hasUserVoted
+                      ? userVoteChoice === 'YES'
+                        ? `VOTED ${yesLabel} ✓`
+                        : `${yesLabel} (LOCKED)`
+                      : `VOTE ${yesLabel}`}
+                  </span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleInstantVoteTap('NO')}
-                disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
-                className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'NO'
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-400'
-                    : hasUserVoted && userVoteChoice !== 'NO'
-                      ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                      : replyChoice === 'NO'
-                        ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
-                        : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
-                  }`}
-              >
-                {hasUserVoted && userVoteChoice === 'NO' ? (
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                ) : (
-                  <ThumbsDown className="w-4 h-4" />
-                )}
-                <span>
-                  {hasUserVoted
-                    ? userVoteChoice === 'NO'
-                      ? 'VOTED NO ✓'
-                      : 'YES (LOCKED)'
-                    : 'VOTE NO'}
-                </span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => handleInstantVoteTap('NO')}
+                  disabled={Boolean(hasUserVoted && userVoteChoice !== 'NO')}
+                  className={`py-3 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-soft ${hasUserVoted && userVoteChoice === 'NO'
+                      ? 'bg-rose-600 text-white ring-2 ring-rose-400'
+                      : hasUserVoted && userVoteChoice !== 'NO'
+                        ? 'opacity-35 cursor-not-allowed bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                        : replyChoice === 'NO'
+                          ? 'bg-rose-600 text-white ring-2 ring-rose-400 scale-[1.01] cursor-pointer'
+                          : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:scale-[1.005] cursor-pointer'
+                    }`}
+                >
+                  {hasUserVoted && userVoteChoice === 'NO' ? (
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                  ) : (
+                    <ThumbsDown className="w-4 h-4" />
+                  )}
+                  <span>
+                    {hasUserVoted
+                      ? userVoteChoice === 'NO'
+                        ? `VOTED ${noLabel} ✓`
+                        : `${noLabel} (LOCKED)`
+                      : `VOTE ${noLabel}`}
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Optional Written Perspective */}
             <div className="relative">
               <textarea
                 value={replyNote}
                 onChange={(e) => setReplyNote(e.target.value)}
-                placeholder={`Why are you voting ${replyChoice}? Share your rationale (optional)...`}
+                placeholder={isMulti ? 'Share your take on your selection (optional)...' : `Why are you voting ${replyChoice === 'YES' ? yesLabel : noLabel}? Share your rationale (optional)...`}
                 rows={2}
                 maxLength={500}
                 className="w-full p-3 text-xs sm:text-sm rounded-2xl bg-white dark:bg-ink-900 border border-slate-200 dark:border-white/10 text-ink-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
@@ -983,18 +1153,27 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                     : (resp.authorUsername ? `@${resp.authorUsername.replace(/^@/, '')}` : (resp.authorName || 'Member'))}
                                 </button>
                               )}
+                              {!resp.isAnonymous && resp.authorClub && resp.authorClub.id !== 'neutral' && (
+                                <ClubBadge club={resp.authorClub} size="xs" showShortName className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-ink-800 text-slate-700 dark:text-zinc-200 border border-slate-200/70 dark:border-white/10" />
+                              )}
                             </div>
                           </div>
                         </div>
 
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${resp.choice === 'YES'
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${isMulti || resp.choice === 'YES'
                               ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-400/30'
                               : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200/70 dark:border-rose-400/30'
                             }`}
                         >
-                          {resp.choice === 'YES' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
-                          <span>{resp.choice}</span>
+                          {resp.optionLabel ? (
+                            <span>{resp.optionLabel}</span>
+                          ) : (
+                            <>
+                              {resp.choice === 'YES' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
+                              <span>{resp.choice === 'YES' ? yesLabel : noLabel}</span>
+                            </>
+                          )}
                         </span>
                       </div>
 
@@ -1180,6 +1359,9 @@ export const IssueDetailPage: React.FC<Props> = (props) => {
                                       >
                                         {reply.authorUsername ? `@${reply.authorUsername.replace(/^@/, '')}` : (reply.authorName || 'Member')}
                                       </button>
+                                    )}
+                                    {!reply.isAnonymous && reply.authorClub && reply.authorClub.id !== 'neutral' && (
+                                      <ClubBadge club={reply.authorClub} size="xs" showShortName className="px-1.5 py-0.5 rounded-full bg-white dark:bg-ink-900 text-slate-600 dark:text-zinc-300 border border-slate-200/70 dark:border-white/10" />
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">

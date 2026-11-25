@@ -1,5 +1,5 @@
 <?php
-register_shutdown_function(function() {
+register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
         if (!headers_sent()) {
@@ -45,7 +45,8 @@ $settingsPath = $dataDir . '/curator_settings.json';
 $personasPath = $dataDir . '/seed_personas.json';
 
 // Initialize Settings
-function get_curator_settings($settingsPath) {
+function get_curator_settings($settingsPath)
+{
     $defaults = [
         'isEnabled' => true,
         'geminiApiKey' => '',
@@ -71,12 +72,14 @@ function get_curator_settings($settingsPath) {
     return $defaults;
 }
 
-function save_curator_settings($settingsPath, $settings) {
+function save_curator_settings($settingsPath, $settings)
+{
     @file_put_contents($settingsPath, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 // Get SQLite Connection with Auto-Schema
-function get_curator_pdo($dbPath) {
+function get_curator_pdo($dbPath)
+{
     if (!class_exists('PDO') || !in_array('sqlite', PDO::getAvailableDrivers())) {
         return null;
     }
@@ -160,10 +163,12 @@ function get_curator_pdo($dbPath) {
         // Auto-migration: ensure views_count and impressions_count exist
         try {
             $pdo->exec("ALTER TABLE issues ADD COLUMN views_count INTEGER DEFAULT 0");
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
         try {
             $pdo->exec("ALTER TABLE issues ADD COLUMN impressions_count INTEGER DEFAULT 0");
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
 
         // Self-healing deduplication: soft-delete any duplicate issues with identical titles (keeping oldest)
         try {
@@ -180,7 +185,8 @@ function get_curator_pdo($dbPath) {
                     )
                 )
             ");
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
 
         return $pdo;
     } catch (Exception $e) {
@@ -189,7 +195,8 @@ function get_curator_pdo($dbPath) {
 }
 
 // Load Personas
-function load_seed_personas($personasPath) {
+function load_seed_personas($personasPath)
+{
     if (!file_exists($personasPath)) {
         return [];
     }
@@ -199,7 +206,8 @@ function load_seed_personas($personasPath) {
 }
 
 // Seed Personas into user_profiles table
-function seed_personas_into_db(PDO $pdo, $personas) {
+function seed_personas_into_db(PDO $pdo, $personas)
+{
     $count = 0;
     $now = gmdate('Y-m-d\TH:i:s\Z');
     $stmt = $pdo->prepare("
@@ -238,7 +246,8 @@ function seed_personas_into_db(PDO $pdo, $personas) {
 }
 
 // Call Google Gemini API
-function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash') {
+function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash')
+{
     if (empty($apiKey)) {
         return null;
     }
@@ -277,15 +286,18 @@ function call_gemini_api($prompt, $apiKey, $model = 'gemini-1.5-flash') {
 
     $resDecoded = json_decode($response, true);
     $text = $resDecoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
-    if (!$text) return null;
+    if (!$text)
+        return null;
 
     $json = json_decode($text, true);
     return is_array($json) ? $json : null;
 }
 
 // Extract JSON array or object from raw model output (handles markdown fences)
-function extract_json_from_text($text) {
-    if (empty($text)) return null;
+function extract_json_from_text($text)
+{
+    if (empty($text))
+        return null;
     $text = trim($text);
 
     // Strip markdown code block fences ```json ... ```
@@ -294,26 +306,31 @@ function extract_json_from_text($text) {
     }
 
     $decoded = json_decode($text, true);
-    if (is_array($decoded)) return $decoded;
+    if (is_array($decoded))
+        return $decoded;
 
     // Search for array [ { ... } ]
     if (preg_match('/\[\s*\{.*\}\s*\]/s', $text, $arrMatch)) {
         $arrDecoded = json_decode($arrMatch[0], true);
-        if (is_array($arrDecoded)) return $arrDecoded;
+        if (is_array($arrDecoded))
+            return $arrDecoded;
     }
 
     // Search for single object { ... }
     if (preg_match('/\{.*\}/s', $text, $objMatch)) {
         $objDecoded = json_decode($objMatch[0], true);
-        if (is_array($objDecoded)) return [$objDecoded];
+        if (is_array($objDecoded))
+            return [$objDecoded];
     }
 
     return null;
 }
 
 // Call Gemini API with Google Search Grounding or Real-Time Generation
-function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-2.5-flash') {
-    if (empty($apiKey)) return null;
+function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-2.5-flash')
+{
+    if (empty($apiKey))
+        return null;
 
     $candidateModels = array_unique(array_filter([$model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']));
 
@@ -326,7 +343,7 @@ function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-2.5-flash') 
                 ['parts' => [['text' => $prompt]]]
             ],
             'tools' => [
-                ['googleSearch' => (object)[]]
+                ['googleSearch' => (object) []]
             ],
             'generationConfig' => [
                 'temperature' => 0.7,
@@ -395,7 +412,8 @@ function call_gemini_with_search($prompt, $apiKey, $model = 'gemini-2.5-flash') 
 }
 
 // Fetch Real-Time X (Twitter) Trends for Nigeria
-function fetch_live_nigerian_x_trends() {
+function fetch_live_nigerian_x_trends()
+{
     $xTrends = [];
 
     // Source 1: getdaytrends.com/nigeria/
@@ -412,7 +430,7 @@ function fetch_live_nigerian_x_trends() {
     if ($httpCode === 200 && !empty($html)) {
         if (preg_match_all('/<th scope="row" class="pos">(\d+)<\/th>\s*<td class="main">\s*<a[^>]*>(.*?)<\/a>/is', $html, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $m) {
-                $pos = (int)$m[1];
+                $pos = (int) $m[1];
                 $name = trim(strip_tags($m[2]));
                 if (!empty($name) && strlen($name) > 1 && strlen($name) < 65) {
                     $weight = max(25, 100 - (($pos - 1) * 2));
@@ -453,7 +471,8 @@ function fetch_live_nigerian_x_trends() {
                             'platform' => 'x'
                         ];
                         $rank++;
-                        if ($rank > 25) break;
+                        if ($rank > 25)
+                            break;
                     }
                 }
             }
@@ -464,7 +483,8 @@ function fetch_live_nigerian_x_trends() {
 }
 
 // Fetch Real-Time News Headlines from Google News RSS for Nigeria
-function fetch_live_nigerian_news_headlines($context = '') {
+function fetch_live_nigerian_news_headlines($context = '')
+{
     $context = trim($context);
     if (!empty($context)) {
         $encoded = urlencode($context . ' Nigeria');
@@ -490,16 +510,17 @@ function fetch_live_nigerian_news_headlines($context = '') {
         $xml = @simplexml_load_string($xmlData);
         if ($xml && isset($xml->channel->item)) {
             foreach ($xml->channel->item as $item) {
-                $rawTitle = (string)$item->title;
+                $rawTitle = (string) $item->title;
                 $cleanTitle = trim(preg_replace('/\s*-\s*[^-]+$/', '', $rawTitle));
-                $source = (string)($item->source ?? 'Live Breaking News');
+                $source = (string) ($item->source ?? 'Live Breaking News');
                 if (!empty($cleanTitle) && strlen($cleanTitle) > 15) {
                     $headlines[] = [
                         'title' => $cleanTitle,
                         'source' => $source
                     ];
                 }
-                if (count($headlines) >= 12) break;
+                if (count($headlines) >= 12)
+                    break;
             }
         }
     } catch (Exception $e) {
@@ -510,7 +531,8 @@ function fetch_live_nigerian_news_headlines($context = '') {
 }
 
 // Curated Context-Aware Trend Fallbacks with Dynamic Angle Cycling, 𝕏 Viral Weight & Deduplication
-function get_trend_fallback_suggestions($context = '', $category = '', $excludeTitles = [], $cycle = 1, $liveHeadlines = [], $liveXTrends = []) {
+function get_trend_fallback_suggestions($context = '', $category = '', $excludeTitles = [], $cycle = 1, $liveHeadlines = [], $liveXTrends = [])
+{
     $contextLower = strtolower($context);
     $pool = [];
 
@@ -518,7 +540,8 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
     if (!empty($liveHeadlines) && is_array($liveHeadlines)) {
         foreach ($liveHeadlines as $h) {
             $ht = $h['title'];
-            if (empty($ht)) continue;
+            if (empty($ht))
+                continue;
 
             if (preg_match('/\b(petrol|fuel|dangote|nnpcl?|pump|refinery|subsidy|oil|gantry)\b/i', $ht)) {
                 $pool[] = [
@@ -593,9 +616,10 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
     if (!empty($liveXTrends) && is_array($liveXTrends)) {
         foreach (array_slice($liveXTrends, 0, 8) as $xt) {
             $xName = $xt['name'] ?? '';
-            $xRank = (int)($xt['rank'] ?? 1);
-            $xWeight = (int)($xt['weight'] ?? 80);
-            if (empty($xName)) continue;
+            $xRank = (int) ($xt['rank'] ?? 1);
+            $xWeight = (int) ($xt['weight'] ?? 80);
+            if (empty($xName))
+                continue;
 
             $pool[] = [
                 'title' => "Trend debate on {$xName}: should public policy intervene or let cultural and market forces decide?",
@@ -862,8 +886,9 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
 
     // Exclude previously displayed titles to guarantee fresh, distinct angles on every click
     if (!empty($excludeTitles) && is_array($excludeTitles)) {
-        $normalizedExclude = array_map(function($t) { return strtolower(trim($t)); }, $excludeTitles);
-        $filtered = array_filter($pool, function($item) use ($normalizedExclude) {
+        $normalizedExclude = array_map(function ($t) {
+            return strtolower(trim($t)); }, $excludeTitles);
+        $filtered = array_filter($pool, function ($item) use ($normalizedExclude) {
             return !in_array(strtolower(trim($item['title'])), $normalizedExclude);
         });
         if (count($filtered) >= 3) {
@@ -880,7 +905,8 @@ function get_trend_fallback_suggestions($context = '', $category = '', $excludeT
 }
 
 // Generate Trend Questions using Gemini + Live Google Search Grounding & Real-Time Headlines + 𝕏 (Twitter) Trends
-function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-2.5-flash', $excludeTitles = [], $cycle = 1) {
+function generate_trend_question_suggestions($context = '', $category = '', $region = 'Africa & Middle East', $apiKey = '', $model = 'gemini-2.5-flash', $excludeTitles = [], $cycle = 1)
+{
     $context = trim($context);
     $category = trim($category);
 
@@ -894,21 +920,23 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
         $excludePrompt = '';
         if (!empty($excludeTitles) && is_array($excludeTitles)) {
             $excludePrompt = "\nIMPORTANT DIVERSITY RULE: Provide COMPLETELY FRESH, alternative debate angles. DO NOT repeat, duplicate, or closely rephrase any of these previous questions:\n"
-                . implode("\n", array_map(function($t) { return "- \"{$t}\""; }, $excludeTitles))
+                . implode("\n", array_map(function ($t) {
+                    return "- \"{$t}\""; }, $excludeTitles))
                 . "\nExplore contrasting sub-topics, different affected stakeholders, or unexpected policy/ethical angles.\n";
         }
 
         $liveHeadlinesText = '';
         if (!empty($liveHeadlines)) {
             $liveHeadlinesText = "\nREAL-TIME BREAKING NEWS HEADLINES IN NIGERIA RIGHT NOW:\n"
-                . implode("\n", array_map(function($h) { return "- \"" . $h['title'] . "\" (Source: " . $h['source'] . ")"; }, $liveHeadlines))
+                . implode("\n", array_map(function ($h) {
+                    return "- \"" . $h['title'] . "\" (Source: " . $h['source'] . ")"; }, $liveHeadlines))
                 . "\n";
         }
 
         $liveXTrendsText = '';
         if (!empty($liveXTrends)) {
             $liveXTrendsText = "\nREAL-TIME 𝕏 (TWITTER) TRENDING IN NIGERIA RIGHT NOW (VIRAL WEIGHT & VOLUME):\n"
-                . implode("\n", array_map(function($x) {
+                . implode("\n", array_map(function ($x) {
                     return "- Rank #{$x['rank']}: \"{$x['name']}\" (Viral Traction Weight: {$x['weight']}/100)";
                 }, array_slice($liveXTrends, 0, 15)))
                 . "\n\nCRITICAL MULTI-PLATFORM RULE: Cross-reference viral conversations on 𝕏 with breaking Google News headlines. Assign higher weight scores (85-98) to issues that are burning on both platforms simultaneously!\n";
@@ -917,7 +945,7 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
         $prompt = "You are an elite investigative journalist, viral poll designer, and civic debate moderator for YesOrNo (a public deliberation platform).\n"
             . "Generation Cycle: #{$cycle}\n\n"
             . "Task:\n"
-            . (!empty($context) 
+            . (!empty($context)
                 ? "Research and ground your questions in the latest real-time trends, news stories, and public debates regarding: \"{$context}\".\n"
                 : "Research the top trending news stories, viral civic discussions, policy disputes, and cultural dilemmas in Nigeria, Africa, and global tech/politics today.\n")
             . $liveHeadlinesText
@@ -992,7 +1020,8 @@ function generate_trend_question_suggestions($context = '', $category = '', $reg
 }
 
 // Curated Fallback Debate Templates (Natural Nigerian Context, Semi-Formal/Informal Tone)
-function get_curated_fallback_debates() {
+function get_curated_fallback_debates()
+{
     return [
         [
             'title' => 'Should remote workers earning in foreign currency (USD/GBP) pay higher domestic income taxes?',
@@ -1489,7 +1518,8 @@ function get_curated_fallback_debates() {
 }
 
 // Generate an Issue using Gemini API or Curated Templates with Strict Deduplication
-function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash', PDO $pdo = null) {
+function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash', PDO $pdo = null)
+{
     $fallbackTemplates = get_curated_fallback_debates();
 
     // Query existing active titles from SQLite to prevent repeating recent topics
@@ -1498,7 +1528,8 @@ function generate_curated_debate($personas, $apiKey, $model = 'gemini-1.5-flash'
         try {
             $stmt = $pdo->query("SELECT title FROM issues WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 150");
             $existingTitles = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
     }
 
     // If Gemini key is available, attempt real AI generation
@@ -1618,11 +1649,11 @@ Output strict JSON with this exact schema:
     }
 
     // Fallback: Pick a curated high-friction debate template that has NOT been posted yet
-    $normalizedExisting = array_map(function($t) {
+    $normalizedExisting = array_map(function ($t) {
         return preg_replace('/[^a-z0-9]/', '', strtolower($t));
     }, $existingTitles);
 
-    $availableTemplates = array_filter($fallbackTemplates, function($tpl) use ($normalizedExisting) {
+    $availableTemplates = array_filter($fallbackTemplates, function ($tpl) use ($normalizedExisting) {
         $norm = preg_replace('/[^a-z0-9]/', '', strtolower($tpl['title']));
         return !in_array($norm, $normalizedExisting);
     });
@@ -1631,7 +1662,7 @@ Output strict JSON with this exact schema:
         $availableTemplates = $fallbackTemplates;
     }
     $template = $availableTemplates[array_rand($availableTemplates)];
-    
+
     // Assign real matching personas from our 51-persona library
     $assignedPerspectives = [];
     $assignedPersonas = [];
@@ -1703,7 +1734,8 @@ Output strict JSON with this exact schema:
 }
 
 // Persist Curated Debate into SQLite Database with Strict Title Deduplication
-function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
+function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings)
+{
     if (empty($debateData) || empty($debateData['title'])) {
         return null;
     }
@@ -1745,10 +1777,20 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
             $combinedExisting = strtolower($row['title'] . ' ' . ($row['description'] ?? ''));
             foreach ($forbiddenClusters as $cName => $kws) {
                 $newHas = false;
-                foreach ($kws as $kw) { if (strpos($combinedNew, $kw) !== false) { $newHas = true; break; } }
+                foreach ($kws as $kw) {
+                    if (strpos($combinedNew, $kw) !== false) {
+                        $newHas = true;
+                        break;
+                    }
+                }
                 if ($newHas) {
                     $existHas = false;
-                    foreach ($kws as $kw) { if (strpos($combinedExisting, $kw) !== false) { $existHas = true; break; } }
+                    foreach ($kws as $kw) {
+                        if (strpos($combinedExisting, $kw) !== false) {
+                            $existHas = true;
+                            break;
+                        }
+                    }
                     if ($existHas) {
                         error_log("Curation cluster deduplication triggered for '{$cName}': already covered in '{$row['title']}'");
                         return [
@@ -1761,24 +1803,25 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
                 }
             }
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
     $now = gmdate('Y-m-d\TH:i:s\Z');
     $issueId = 'issue-' . bin2hex(random_bytes(6));
 
     // Calculate natural vote counts (~85 to ~140 votes with ~54/46 to ~62/38 split)
-    $minVotes = max(50, (int)($settings['minTargetVotes'] ?? 85));
-    $maxVotes = max($minVotes + 10, (int)($settings['maxTargetVotes'] ?? 140));
+    $minVotes = max(50, (int) ($settings['minTargetVotes'] ?? 85));
+    $maxVotes = max($minVotes + 10, (int) ($settings['maxTargetVotes'] ?? 140));
     $totalVotes = rand($minVotes, $maxVotes);
-    
+
     // Realistic split (between 44% and 62% for YES)
     $yesPercent = rand(44, 62) / 100.0;
-    $yesCount = (int)round($totalVotes * $yesPercent);
+    $yesCount = (int) round($totalVotes * $yesPercent);
     $noCount = $totalVotes - $yesCount;
-    $likesCount = (int)round($totalVotes * (rand(15, 35) / 100.0));
-    $favCount = (int)round($totalVotes * (rand(5, 15) / 100.0));
-    $viewsCount = (int)round(($totalVotes * rand(38, 52) / 10.0) + ($likesCount * 3) + rand(25, 75));
-    $impressionsCount = (int)round($viewsCount * rand(18, 25) / 10.0);
+    $likesCount = (int) round($totalVotes * (rand(15, 35) / 100.0));
+    $favCount = (int) round($totalVotes * (rand(5, 15) / 100.0));
+    $viewsCount = (int) round(($totalVotes * rand(38, 52) / 10.0) + ($likesCount * 3) + rand(25, 75));
+    $impressionsCount = (int) round($viewsCount * rand(18, 25) / 10.0);
 
     // Choose Author Persona (Dedicate Madam Rose for Relationships, Family, Marriage, Counselling & True-Life Stories)
     $catLower = strtolower($debateData['category'] ?? '');
@@ -1982,7 +2025,8 @@ function persist_curated_debate(PDO $pdo, $personas, $debateData, $settings) {
 // Nurtures user-created debates with realistic personas & votes
 // -------------------------------------------------------------
 
-function build_curator_issue_slug($title, $id) {
+function build_curator_issue_slug($title, $id)
+{
     $slug = strtolower($title);
     $slug = preg_replace('/[^a-z0-9]+/i', '-', $slug);
     $slug = trim($slug, '-');
@@ -1991,12 +2035,14 @@ function build_curator_issue_slug($title, $id) {
     return $slug ? $slug . '-' . $id : $id;
 }
 
-function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSlug, $persona, $choice, $note) {
+function dispatch_incubation_notification($recipientEmail, $issueTitle, $issueSlug, $persona, $choice, $note)
+{
     // Automated simulation incubation must never dispatch external emails to avoid burning server mail quotas
     return false;
 }
 
-function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash') {
+function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '', $model = 'gemini-1.5-flash')
+{
     if (!empty($apiKey)) {
         $prompt = "You are {$persona['name']}, a {$persona['role']}. Bio: {$persona['bio']}.\n"
             . "Topic: \"{$issue['title']}\"\n"
@@ -2038,7 +2084,8 @@ function generate_incubated_perspective($issue, $persona, $choice, $apiKey = '',
     return $pool[array_rand($pool)];
 }
 
-function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
+function incubate_user_debates(PDO $pdo, array $personas, array $settings)
+{
     if (empty($settings['isEnabled'])) {
         return ['success' => false, 'reason' => 'Engine is paused'];
     }
@@ -2066,10 +2113,10 @@ function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
     $nowTime = time();
 
     foreach ($candidates as $cand) {
-        $respCount = (int)$cand['response_count'];
+        $respCount = (int) $cand['response_count'];
 
         // Determine reference time: issue creation or last response timestamp
-        $refTime = $respCount === 0 
+        $refTime = $respCount === 0
             ? strtotime($cand['created_at'])
             : strtotime($cand['latest_response_at'] ?: $cand['created_at']);
 
@@ -2101,7 +2148,7 @@ function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
             $existingEmails[] = strtolower($cand['creator_email']);
         }
 
-        $availablePersonas = array_filter($personas, function($p) use ($existingEmails) {
+        $availablePersonas = array_filter($personas, function ($p) use ($existingEmails) {
             return !in_array(strtolower($p['email']), $existingEmails);
         });
 
@@ -2111,7 +2158,7 @@ function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
 
         // Select persona (prefer category match if available)
         $categoryLower = strtolower($cand['category'] ?? '');
-        $categoryPersonas = array_filter($availablePersonas, function($p) use ($categoryLower) {
+        $categoryPersonas = array_filter($availablePersonas, function ($p) use ($categoryLower) {
             $pRole = strtolower($p['role'] ?? '');
             $pBio = strtolower($p['bio'] ?? '');
             if (strpos($categoryLower, 'econ') !== false || strpos($categoryLower, 'fin') !== false) {
@@ -2131,8 +2178,8 @@ function incubate_user_debates(PDO $pdo, array $personas, array $settings) {
             : $availablePersonas[array_rand($availablePersonas)];
 
         // Balance stance (YES vs NO)
-        $yesResp = (int)$cand['yes_responses'];
-        $noResp = (int)$cand['no_responses'];
+        $yesResp = (int) $cand['yes_responses'];
+        $noResp = (int) $cand['no_responses'];
         if ($yesResp > $noResp) {
             $stance = 'NO';
         } else if ($noResp > $yesResp) {
@@ -2243,22 +2290,24 @@ if ($action === 'status' || ((isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQ
     $totalMembersInDb = 0;
     if ($pdo) {
         $res = $pdo->query("SELECT COUNT(*) FROM issues");
-        if ($res) $totalCurated = (int)$res->fetchColumn();
+        if ($res)
+            $totalCurated = (int) $res->fetchColumn();
         $profRes = $pdo->query("SELECT COUNT(*) FROM user_profiles");
-        if ($profRes) $totalMembersInDb = (int)$profRes->fetchColumn();
+        if ($profRes)
+            $totalMembersInDb = (int) $profRes->fetchColumn();
     }
 
     echo json_encode([
         'success' => true,
         'status' => $settings['isEnabled'] ? 'ACTIVE' : 'PAUSED',
         'settings' => [
-            'isEnabled' => (bool)$settings['isEnabled'],
+            'isEnabled' => (bool) $settings['isEnabled'],
             'hasApiKey' => !empty($settings['geminiApiKey']),
             'model' => $settings['model'] ?? 'gemini-1.5-flash',
-            'intervalHours' => (int)($settings['intervalHours'] ?? 6),
+            'intervalHours' => (int) ($settings['intervalHours'] ?? 6),
             'lastRunAt' => $settings['lastRunAt'],
-            'minTargetVotes' => (int)($settings['minTargetVotes'] ?? 85),
-            'maxTargetVotes' => (int)($settings['maxTargetVotes'] ?? 140)
+            'minTargetVotes' => (int) ($settings['minTargetVotes'] ?? 85),
+            'maxTargetVotes' => (int) ($settings['maxTargetVotes'] ?? 140)
         ],
         'totalPersonasLoaded' => count($personas),
         'totalDatabaseMembers' => $totalMembersInDb,
@@ -2278,8 +2327,8 @@ if ($action === 'toggle') {
         'success' => true,
         'isEnabled' => $settings['isEnabled'],
         'status' => $settings['isEnabled'] ? 'ACTIVE' : 'PAUSED',
-        'message' => $settings['isEnabled'] 
-            ? 'AI Autonomous Curation Engine has been RESUMED' 
+        'message' => $settings['isEnabled']
+            ? 'AI Autonomous Curation Engine has been RESUMED'
             : 'AI Autonomous Curation Engine has been PAUSED by Admin'
     ]);
     exit;
@@ -2290,12 +2339,18 @@ if ($action === 'save_settings') {
     $raw = file_get_contents('php://input');
     $payload = json_decode($raw, true) ?: $_POST;
 
-    if (isset($payload['isEnabled'])) $settings['isEnabled'] = (bool)$payload['isEnabled'];
-    if (isset($payload['geminiApiKey'])) $settings['geminiApiKey'] = trim($payload['geminiApiKey']);
-    if (isset($payload['intervalHours'])) $settings['intervalHours'] = max(1, (int)$payload['intervalHours']);
-    if (isset($payload['minTargetVotes'])) $settings['minTargetVotes'] = max(20, (int)$payload['minTargetVotes']);
-    if (isset($payload['maxTargetVotes'])) $settings['maxTargetVotes'] = max(30, (int)$payload['maxTargetVotes']);
-    if (isset($payload['model'])) $settings['model'] = trim($payload['model']);
+    if (isset($payload['isEnabled']))
+        $settings['isEnabled'] = (bool) $payload['isEnabled'];
+    if (isset($payload['geminiApiKey']))
+        $settings['geminiApiKey'] = trim($payload['geminiApiKey']);
+    if (isset($payload['intervalHours']))
+        $settings['intervalHours'] = max(1, (int) $payload['intervalHours']);
+    if (isset($payload['minTargetVotes']))
+        $settings['minTargetVotes'] = max(20, (int) $payload['minTargetVotes']);
+    if (isset($payload['maxTargetVotes']))
+        $settings['maxTargetVotes'] = max(30, (int) $payload['maxTargetVotes']);
+    if (isset($payload['model']))
+        $settings['model'] = trim($payload['model']);
 
     save_curator_settings($settingsPath, $settings);
 
@@ -2338,9 +2393,9 @@ if ($action === 'suggest_trends') {
     $category = isset($_GET['category']) ? trim($_GET['category']) : (isset($payload['category']) ? trim($payload['category']) : '');
     $region = isset($_GET['region']) ? trim($_GET['region']) : (isset($payload['region']) ? trim($payload['region']) : 'Africa & Middle East');
     $customApiKey = isset($_GET['apiKey']) ? trim($_GET['apiKey']) : (isset($payload['apiKey']) ? trim($payload['apiKey']) : '');
-    $cycle = isset($_GET['cycle']) ? (int)$_GET['cycle'] : (isset($payload['cycle']) ? (int)$payload['cycle'] : 1);
-    $excludeTitles = isset($payload['excludeTitles']) && is_array($payload['excludeTitles']) 
-        ? $payload['excludeTitles'] 
+    $cycle = isset($_GET['cycle']) ? (int) $_GET['cycle'] : (isset($payload['cycle']) ? (int) $payload['cycle'] : 1);
+    $excludeTitles = isset($payload['excludeTitles']) && is_array($payload['excludeTitles'])
+        ? $payload['excludeTitles']
         : (isset($_GET['excludeTitles']) ? explode(',', $_GET['excludeTitles']) : []);
 
     $apiKey = !empty($customApiKey) ? $customApiKey : ($settings['geminiApiKey'] ?? '');
@@ -2397,7 +2452,7 @@ if ($action === 'generate_issue' || $isCron) {
     // Cooldown protection for automated cron runs (minimum interval between automated runs)
     if ($action !== 'force_generate' && !empty($settings['lastRunAt'])) {
         $elapsedSec = time() - strtotime($settings['lastRunAt']);
-        $minIntervalHours = max(1, (int)($settings['intervalHours'] ?? 2));
+        $minIntervalHours = max(1, (int) ($settings['intervalHours'] ?? 2));
         $minCooldownSec = ($minIntervalHours * 3600) - 300; // 5 min leeway
         if ($elapsedSec < $minCooldownSec) {
             echo json_encode([
@@ -2405,7 +2460,10 @@ if ($action === 'generate_issue' || $isCron) {
                 'status' => 'COOLDOWN',
                 'message' => "Curation cooldown active. Last run was " . round($elapsedSec / 60) . " mins ago. Next run allowed in " . round(($minCooldownSec - $elapsedSec) / 60) . " mins."
             ]);
-            if ($fp) { @flock($fp, LOCK_UN); @fclose($fp); }
+            if ($fp) {
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
+            }
             exit;
         }
     }
@@ -2429,7 +2487,10 @@ if ($action === 'generate_issue' || $isCron) {
             'status' => 'DUPLICATE_PREVENTED',
             'message' => 'Topic generation skipped: unique candidate topic could not be resolved or already exists.'
         ]);
-        if ($fp) { @flock($fp, LOCK_UN); @fclose($fp); }
+        if ($fp) {
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
+        }
         exit;
     }
 

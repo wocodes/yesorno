@@ -52,6 +52,12 @@ export const VoteModal: React.FC<Props> = ({
 
   if (!isOpen || !issue) return null;
 
+  // Determine poll format & labels
+  const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+  const yesLabel = issue.yesLabel || 'YES';
+  const noLabel = issue.noLabel || 'NO';
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+
   const isClosed = isIssueClosed(issue.closingDate);
   const access = canUserAccessIssue(issue, currentUser || null);
 
@@ -62,26 +68,32 @@ export const VoteModal: React.FC<Props> = ({
   const canSubmit = 
     !isClosed &&
     access.canAccess &&
-    choice !== null && 
+    (isMulti ? selectedOptionId !== null : choice !== null) && 
     !isBlockedByModeration &&
     (!isAnonymous ? (authorName.trim().length > 0) : true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !choice) return;
-    if (existingVoteChoice && choice !== existingVoteChoice) return;
+    if (!canSubmit) return;
+    if (!isMulti && (!choice || (existingVoteChoice && choice !== existingVoteChoice))) return;
 
     setIsSubmitting(true);
+    const matchedOpt = isMulti ? issue.options?.find(o => o.id === selectedOptionId) : undefined;
+    const effectiveChoice: VoteChoice = isMulti ? 'YES' : (choice || 'YES');
 
     const submission: VoteSubmission = {
       id: `vote-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       issueId: issue.id,
-      choice,
+      choice: effectiveChoice,
+      optionId: matchedOpt?.id,
+      optionLabel: matchedOpt?.label,
       isAnonymous,
       authorName: isAnonymous ? 'Anonymous Neighbor' : authorName.trim(),
+      authorUsername: !isAnonymous ? currentUser?.username : undefined,
       authorEmail: !isAnonymous && currentUser?.email ? currentUser.email : undefined,
       authorAlias: isAnonymous ? generatedAlias : undefined,
       authorRole: !isAnonymous && authorRole.trim() ? authorRole.trim() : undefined,
+      authorClub: !isAnonymous ? (currentUser?.favoriteClub || null) : null,
       note: note.trim() ? note.trim() : undefined,
       voiceNote: voiceAttachment || undefined,
       createdAt: new Date().toISOString(),
@@ -89,7 +101,7 @@ export const VoteModal: React.FC<Props> = ({
     };
 
     setTimeout(() => {
-      triggerVoteConfetti(choice === 'YES');
+      triggerVoteConfetti(effectiveChoice === 'YES');
       onSubmitVote(submission);
       setIsSubmitting(false);
       onClose();
@@ -158,54 +170,90 @@ export const VoteModal: React.FC<Props> = ({
             </div>
           )}
 
-          {/* YES or NO VOTE */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'YES')}
-              onClick={() => {
-                if (existingVoteChoice) return;
-                setChoice('YES');
-                playHapticChime('yes');
-              }}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
-                existingVoteChoice && existingVoteChoice !== 'YES'
-                  ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                  : choice === 'YES'
-                  ? 'border-emerald-600 bg-emerald-50/90 text-emerald-900 shadow-glow-emerald scale-[1.01] cursor-pointer'
-                  : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-700 bg-white cursor-pointer'
-              }`}
-            >
-              <div className={`p-1.5 rounded-xl transition-colors ${choice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
-                <ThumbsUp className="w-4 h-4" />
+          {/* VOTE CHOICE: Multi-Option (2-4) or Binary Preset */}
+          {isMulti && issue.options ? (
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-slate-700 dark:text-zinc-300">Select an option:</div>
+              <div className="grid grid-cols-1 gap-2">
+                {issue.options.map((opt, idx) => {
+                  const isSelected = selectedOptionId === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOptionId(opt.id);
+                        setChoice('YES');
+                        playHapticChime('yes');
+                      }}
+                      className={`flex items-center justify-between gap-2 p-3 rounded-2xl border-2 font-bold text-sm transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-emerald-600 bg-emerald-50/90 text-emerald-950 shadow-2xs'
+                          : 'border-slate-200 hover:border-emerald-300 bg-white text-slate-700'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: opt.color || ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'][idx % 4] }}
+                        />
+                        <span className="truncate">{opt.label}</span>
+                      </span>
+                      {isSelected && <Check className="w-4 h-4 text-emerald-700 shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
-              <span>YES</span>
-              {choice === 'YES' && <Check className="w-4 h-4 text-emerald-700 ml-auto" />}
-            </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'YES')}
+                onClick={() => {
+                  if (existingVoteChoice) return;
+                  setChoice('YES');
+                  playHapticChime('yes');
+                }}
+                className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
+                  existingVoteChoice && existingVoteChoice !== 'YES'
+                    ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : choice === 'YES'
+                    ? 'border-emerald-600 bg-emerald-50/90 text-emerald-900 shadow-glow-emerald scale-[1.01] cursor-pointer'
+                    : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-700 bg-white cursor-pointer'
+                }`}
+              >
+                <div className={`p-1.5 rounded-xl transition-colors ${choice === 'YES' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <ThumbsUp className="w-4 h-4" />
+                </div>
+                <span>{yesLabel}</span>
+                {choice === 'YES' && <Check className="w-4 h-4 text-emerald-700 ml-auto" />}
+              </button>
 
-            <button
-              type="button"
-              disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'NO')}
-              onClick={() => {
-                if (existingVoteChoice) return;
-                setChoice('NO');
-                playHapticChime('no');
-              }}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
-                existingVoteChoice && existingVoteChoice !== 'NO'
-                  ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
-                  : choice === 'NO'
-                  ? 'border-rose-600 bg-rose-50/90 text-rose-900 shadow-glow-rose scale-[1.01] cursor-pointer'
-                  : 'border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 text-slate-700 bg-white cursor-pointer'
-              }`}
-            >
-              <div className={`p-1.5 rounded-xl transition-colors ${choice === 'NO' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'}`}>
-                <ThumbsDown className="w-4 h-4" />
-              </div>
-              <span>NO</span>
-              {choice === 'NO' && <Check className="w-4 h-4 text-rose-700 ml-auto" />}
-            </button>
-          </div>
+              <button
+                type="button"
+                disabled={Boolean(existingVoteChoice && existingVoteChoice !== 'NO')}
+                onClick={() => {
+                  if (existingVoteChoice) return;
+                  setChoice('NO');
+                  playHapticChime('no');
+                }}
+                className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border-2 font-extrabold text-base transition-all ${
+                  existingVoteChoice && existingVoteChoice !== 'NO'
+                    ? 'opacity-35 cursor-not-allowed border-slate-200 bg-slate-100 dark:bg-ink-800 text-slate-400 dark:text-zinc-500'
+                    : choice === 'NO'
+                    ? 'border-rose-600 bg-rose-50/90 text-rose-900 shadow-glow-rose scale-[1.01] cursor-pointer'
+                    : 'border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 text-slate-700 bg-white cursor-pointer'
+                }`}
+              >
+                <div className={`p-1.5 rounded-xl transition-colors ${choice === 'NO' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                  <ThumbsDown className="w-4 h-4" />
+                </div>
+                <span>{noLabel}</span>
+                {choice === 'NO' && <Check className="w-4 h-4 text-rose-700 ml-auto" />}
+              </button>
+            </div>
+          )}
 
           {/* VOICE NOTE ATTACHMENT */}
           <VoiceRecorder
@@ -231,7 +279,11 @@ export const VoteModal: React.FC<Props> = ({
               value={note}
               maxLength={500}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Briefly share why you voted YES or NO..."
+              placeholder={
+                isMulti
+                  ? 'Briefly explain your pick...'
+                  : `Briefly share why you voted ${yesLabel} or ${noLabel}...`
+              }
               className="w-full text-xs sm:text-sm p-3 bg-slate-50/70 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-slate-400 resize-none"
             />
 
@@ -319,10 +371,12 @@ export const VoteModal: React.FC<Props> = ({
                 <>
                   <span>
                     {existingVoteChoice
-                      ? `Add Perspective to ${existingVoteChoice} Vote`
-                      : `Submit ${choice ? `${choice} Vote` : 'Vote'}`}
+                      ? `Add Perspective to ${existingVoteChoice === 'YES' ? yesLabel : noLabel} Vote`
+                      : isMulti
+                      ? `Submit ${selectedOptionId ? (issue.options?.find(o => o.id === selectedOptionId)?.label || 'Pick') : 'Vote'}`
+                      : `Submit ${choice ? `${choice === 'YES' ? yesLabel : noLabel} Vote` : 'Vote'}`}
                   </span>
-                  {choice && <span className="text-xs opacity-85 font-normal">• {isAnonymous ? generatedAlias : (authorName || 'Public')}</span>}
+                  {(isMulti ? selectedOptionId : choice) && <span className="text-xs opacity-85 font-normal">• {isAnonymous ? generatedAlias : (authorName || 'Public')}</span>}
                 </>
               )}
             </button>

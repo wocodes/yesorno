@@ -1,0 +1,422 @@
+[
+  {
+    "id": "fz-pers-marco-rossi",
+    "name": "Marco Rossi",
+    "username": "marco_transfers",
+    "email": "marco.rossi@fanzone.football",
+    "role": "Transfer Insider & Scout",
+    "bio": "Tracking global transfer windows, release clauses, and deadline-day drama across Europe, South America, and Saudi Pro League.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=MarcoRossi",
+    "displayPreference": "name",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "inter",
+      "name": "Inter Milan",
+      "shortName": "INT",
+      "league": "Serie A",
+      "color": "#010E80",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/110.png"
+    }
+  },
+  {
+    "id": "fz-pers-liam-var",
+    "name": "Liam Gallagher",
+    "username": "var_check_liam",
+    "email": "liam.var@fanzone.football",
+    "role": "VAR & Tactical Analyst",
+    "bio": "Breaking down high lines, expected goals, refereeing consistency, and Stockley Park controversies every matchday.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=LiamTactics",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "man-city",
+      "name": "Manchester City",
+      "shortName": "MCI",
+      "league": "Premier League",
+      "color": "#6CABDD",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png"
+    }
+  },
+  {
+    "id": "fz-pers-tobi-gunner",
+    "name": "Tobi Adeyemi",
+    "username": "n5_tobi",
+    "email": "tobi.gunner@fanzone.football",
+    "role": "Matchday Fan",
+    "bio": "Lagos-born Arsenal faithful. Set-piece FC enjoyer. Trusting the process until the trophy lift.",
+    "region": "Africa & Middle East",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=TobiGunner",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "shortName": "ARS",
+      "league": "Premier League",
+      "color": "#EF0107",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
+    }
+  },
+  {
+    "id": "fz-pers-carlos-madrid",
+    "name": "Carlos Mendoza",
+    "username": "bernabeu_carlos",
+    "email": "carlos.rma@fanzone.football",
+    "role": "Madridista",
+    "bio": "15 UCLs and counting. Champions League nights hit different in Madrid.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=CarlosRMA",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "real-madrid",
+      "name": "Real Madrid",
+      "shortName": "RMA",
+      "league": "La Liga",
+      "color": "#FEBE10",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/86.png"
+    }
+  },
+  {
+    "id": "fz-pers-elena-culer",
+    "name": "Elena Puig",
+    "username": "elena_masia",
+    "email": "elena.barca@fanzone.football",
+    "role": "La Masia Supporter",
+    "bio": "Tiki-taka purist watching the next golden generation from Barcelona.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ElenaBarca",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "barcelona",
+      "name": "FC Barcelona",
+      "shortName": "BAR",
+      "league": "La Liga",
+      "color": "#A50044",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/83.png"
+    }
+  },
+  {
+    "id": "fz-pers-devon-utd",
+    "name": "Devon Brooks",
+    "username": "stretford_dev",
+    "email": "devon.utd@fanzone.football",
+    "role": "Red Devils Fan",
+    "bio": "Manchester United through the highs, the rebuilds, and the 90+4' stress.",
+    "region": "North America",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=DevonUtd",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "man-utd",
+      "name": "Manchester United",
+      "shortName": "MUN",
+      "league": "Premier League",
+      "color": "#DA291C",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png"
+    }
+  },
+  {
+    "id": "fz-pers-claire-kop",
+    "name": "Claire Hughes",
+    "username": "anfield_claire",
+    "email": "claire.lfc@fanzone.football",
+    "role": "Kop End Regular",
+    "bio": "Liverpool FC, heavy-metal pressing, and unforgettable European nights at Anfield.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ClaireLFC",
+    "displayPreference": "name",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "shortName": "LIV",
+      "league": "Premier League",
+      "color": "#C8102E",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png"
+    }
+  },
+  {
+    "id": "fz-pers-kwame-blues",
+    "name": "Kwame Mensah",
+    "username": "cfc_kwame",
+    "email": "kwame.che@fanzone.football",
+    "role": "Chelsea Supporter",
+    "bio": "Accra to Stamford Bridge. Cold celebrations and chaos football since 2005.",
+    "region": "Africa & Middle East",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=KwameCHE",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "shortName": "CHE",
+      "league": "Premier League",
+      "color": "#034694",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png"
+    }
+  },
+  {
+    "id": "fz-pers-lukas-bayern",
+    "name": "Lukas Weber",
+    "username": "mia_san_lukas",
+    "email": "lukas.bay@fanzone.football",
+    "role": "Bavarian Supporter",
+    "bio": "Bundesliga tactics, Allianz Arena atmospheres, and silverware expectations.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=LukasBayern",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "bayern",
+      "name": "Bayern Munich",
+      "shortName": "BAY",
+      "league": "Bundesliga",
+      "color": "#DC052D",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/132.png"
+    }
+  },
+  {
+    "id": "fz-pers-amelie-psg",
+    "name": "Amélie Laurent",
+    "username": "paris_amelie",
+    "email": "amelie.psg@fanzone.football",
+    "role": "Parisian Fan",
+    "bio": "Ligue 1 & Champions League follower from Paris.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=AmeliePSG",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "psg",
+      "name": "Paris Saint-Germain",
+      "shortName": "PSG",
+      "league": "Ligue 1",
+      "color": "#004170",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/160.png"
+    }
+  },
+  {
+    "id": "fz-pers-mateo-miami",
+    "name": "Mateo Silva",
+    "username": "mateo_futbol",
+    "email": "mateo.mia@fanzone.football",
+    "role": "MLS & Copa Analyst",
+    "bio": "Covering South American exports, MLS growth, and Argentina national team banter.",
+    "region": "North America",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=MateoSilva",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "inter-miami",
+      "name": "Inter Miami CF",
+      "shortName": "MIA",
+      "league": "MLS",
+      "color": "#F7B5CD",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/20232.png"
+    }
+  },
+  {
+    "id": "fz-pers-rafael-fla",
+    "name": "Rafael Costa",
+    "username": "mengao_rafa",
+    "email": "rafael.fla@fanzone.football",
+    "role": "Brasileirão Fan",
+    "bio": "Libertadores nights, Rio derbies, and pure Brazilian flair.",
+    "region": "North America",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=RafaelFla",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "flamengo",
+      "name": "Flamengo",
+      "shortName": "FLA",
+      "league": "Brasileirão",
+      "color": "#C52613",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/819.png"
+    }
+  },
+  {
+    "id": "fz-pers-tariq-nassr",
+    "name": "Tariq Al-Mansoor",
+    "username": "riyadh_tariq",
+    "email": "tariq.nsr@fanzone.football",
+    "role": "Saudi Pro League Fan",
+    "bio": "Tracking global superstars in Riyadh and ACL matchdays.",
+    "region": "Africa & Middle East",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=TariqNSR",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "al-nassr",
+      "name": "Al-Nassr",
+      "shortName": "NSR",
+      "league": "Saudi Pro League",
+      "color": "#FFCD00",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/817.png"
+    }
+  },
+  {
+    "id": "fz-pers-kenji-spurs",
+    "name": "Kenji Takahashi",
+    "username": "kenji_thfc",
+    "email": "kenji.tot@fanzone.football",
+    "role": "Tottenham Supporter",
+    "bio": "Tokyo to North London. High defensive lines and pure entertainment.",
+    "region": "Asia-Pacific",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=KenjiSpurs",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "tottenham",
+      "name": "Tottenham Hotspur",
+      "shortName": "TOT",
+      "league": "Premier League",
+      "color": "#132257",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png"
+    }
+  },
+  {
+    "id": "fz-pers-giulia-juve",
+    "name": "Giulia Conti",
+    "username": "juve_giulia",
+    "email": "giulia.juv@fanzone.football",
+    "role": "Bianconeri Faithful",
+    "bio": "Serie A defensive discipline and Derby d'Italia rivalries.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=GiuliaJuve",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "juventus",
+      "name": "Juventus",
+      "shortName": "JUV",
+      "league": "Serie A",
+      "color": "#111111",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/111.png"
+    }
+  },
+  {
+    "id": "fz-pers-omar-ahly",
+    "name": "Omar Hassan",
+    "username": "cairo_omar",
+    "email": "omar.ahl@fanzone.football",
+    "role": "CAF Champions League Fan",
+    "bio": "Egyptian football, AFCON battles, and Club World Cup dreams.",
+    "region": "Africa & Middle East",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=OmarAhly",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "al-ahly",
+      "name": "Al Ahly SC",
+      "shortName": "AHL",
+      "league": "Egyptian Premier League",
+      "color": "#C8102E",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/3240.png"
+    }
+  },
+  {
+    "id": "fz-pers-sofia-atleti",
+    "name": "Sofía Navarro",
+    "username": "atleti_sofia",
+    "email": "sofia.atm@fanzone.football",
+    "role": "Colchonera",
+    "bio": "Partido a partido. Never underestimate grit in a knockout tie.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=SofiaAtleti",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "atletico",
+      "name": "Atlético Madrid",
+      "shortName": "ATM",
+      "league": "La Liga",
+      "color": "#CB3524",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/1068.png"
+    }
+  },
+  {
+    "id": "fz-pers-diego-bvb",
+    "name": "Diego Morales",
+    "username": "yellowwall_diego",
+    "email": "diego.bvb@fanzone.football",
+    "role": "BVB Fan",
+    "bio": "Developing wonderkids and loving chaotic 4-3 thrillers.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=DiegoBVB",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "dortmund",
+      "name": "Borussia Dortmund",
+      "shortName": "BVB",
+      "league": "Bundesliga",
+      "color": "#FDE100",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/124.png"
+    }
+  },
+  {
+    "id": "fz-pers-zainab-toon",
+    "name": "Zainab Bello",
+    "username": "toon_zainab",
+    "email": "zainab.new@fanzone.football",
+    "role": "Magpies Fan",
+    "bio": "Premier League top-4 chases, St James' atmosphere, and ruthless banter.",
+    "region": "Africa & Middle East",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ZainabNew",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "newcastle",
+      "name": "Newcastle United",
+      "shortName": "NEW",
+      "league": "Premier League",
+      "color": "#241F20",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png"
+    }
+  },
+  {
+    "id": "fz-pers-andrea-milan",
+    "name": "Andrea Lombardi",
+    "username": "rossonero_andrea",
+    "email": "andrea.mil@fanzone.football",
+    "role": "AC Milan Fan",
+    "bio": "7 Champions Leagues, San Siro heritage, and Serie A title races.",
+    "region": "Europe & UK",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=AndreaMilan",
+    "displayPreference": "username",
+    "userType": "seed",
+    "isVerified": true,
+    "favoriteClub": {
+      "id": "ac-milan",
+      "name": "AC Milan",
+      "shortName": "MIL",
+      "league": "Serie A",
+      "color": "#FB090B",
+      "logoUrl": "https://a.espncdn.com/i/teamlogos/soccer/500/103.png"
+    }
+  }
+]

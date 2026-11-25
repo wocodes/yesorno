@@ -1,4 +1,4 @@
-import { Issue, VoteSubmission, CommentReply } from '../types';
+import { AppZone, Issue, VoteSubmission, CommentReply, PollOption } from '../types';
 
 export const LEGACY_MOCK_ISSUE_IDS = new Set([
   'issue-workplace-1',
@@ -125,10 +125,11 @@ export async function pushIssuesToServer(issues: Issue[]): Promise<void> {
 /**
  * Fetches shared issues from the cloud API and merges them with local storage
  */
-export async function fetchServerIssues(): Promise<Issue[] | null> {
+export async function fetchServerIssues(zone?: AppZone | 'all'): Promise<Issue[] | null> {
   if (typeof window === 'undefined') return null;
   try {
-    const endpoint = `/api-issues.php?_t=${Date.now()}`;
+    const zoneQuery = zone && zone !== 'all' ? `&zone=${encodeURIComponent(zone)}` : '';
+    const endpoint = `/api-issues.php?_t=${Date.now()}${zoneQuery}`;
 
     const res = await fetch(endpoint, {
       cache: 'no-store',
@@ -156,7 +157,7 @@ export async function fetchServerIssues(): Promise<Issue[] | null> {
 export async function apiRecordVote(
   submission: VoteSubmission, 
   issueTitle?: string
-): Promise<{ success: boolean; yesCount?: number; noCount?: number; submissionId?: string } | null> {
+): Promise<{ success: boolean; yesCount?: number; noCount?: number; submissionId?: string; options?: PollOption[] } | null> {
   if (typeof window === 'undefined') return null;
   try {
     const res = await fetch('/api-issues.php', {
@@ -246,7 +247,7 @@ export async function apiRecordDeleteIssue(issueId: string): Promise<void> {
   }
 }
 
-export function getUserVotesMap(): Record<string, { choice: 'YES' | 'NO'; responseId?: string }> {
+export function getUserVotesMap(): Record<string, { choice: 'YES' | 'NO'; responseId?: string; optionId?: string; optionLabel?: string }> {
   try {
     const data = localStorage.getItem(STORAGE_KEY_USER_VOTES);
     if (!data) return {};
@@ -257,10 +258,16 @@ export function getUserVotesMap(): Record<string, { choice: 'YES' | 'NO'; respon
   }
 }
 
-export function recordUserVote(issueId: string, choice: 'YES' | 'NO', responseId?: string): void {
+export function recordUserVote(
+  issueId: string,
+  choice: 'YES' | 'NO',
+  responseId?: string,
+  optionId?: string,
+  optionLabel?: string
+): void {
   try {
     const current = getUserVotesMap();
-    current[issueId] = { choice, responseId };
+    current[issueId] = { choice, responseId, ...(optionId ? { optionId, optionLabel } : {}) };
     localStorage.setItem(STORAGE_KEY_USER_VOTES, JSON.stringify(current));
   } catch (err) {
     console.error('Failed to record user vote:', err);

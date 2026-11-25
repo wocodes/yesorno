@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, AlertCircle, Clock, Lock, Globe, 
   Users, Image as ImageIcon, Trash2, Mic, Tag, ShieldCheck, Layers, Plus, Pencil, FileText,
-  Sparkles
+  Sparkles, ListChecks
 } from 'lucide-react';
-import { Issue, IssueCategory, IssueRegion, IssueVisibility, UserProfile, VoiceAttachment, IssueDraft } from '../types';
+import { AppZone, Issue, IssueCategory, IssueRegion, IssueVisibility, PollType, UserProfile, VoiceAttachment, IssueDraft } from '../types';
 import { moderateText, generateCivicAlias, validateIssueQuestion } from '../utils/moderation';
 import { VoiceRecorder } from './VoiceRecorder';
 import { fileToDataUrl } from '../utils/audio';
 import { GeminiTrendSuggestModal } from './GeminiTrendSuggestModal';
+import { FANZONE_CATEGORIES, FANZONE_CATEGORY_META, BINARY_PRESETS, MULTI_OPTION_COLORS, TOP_20_CLUBS } from '../fanzone/config';
+import { ClubBadge } from '../fanzone/ClubBadge';
 
 interface Props {
   isOpen: boolean;
@@ -19,9 +21,10 @@ interface Props {
   onOpenGuidelines: () => void;
   currentUser: UserProfile | null;
   onSaveDraft?: (draft: IssueDraft | null) => void;
+  activeZone?: AppZone;
 }
 
-const CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
+const CIVIC_CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
   { key: 'Counselling', label: 'Counselling', emoji: '🛋️' },
   { key: 'Business', label: 'Business', emoji: '💼' },
   { key: 'Gender', label: 'Gender', emoji: '⚧️' },
@@ -36,6 +39,14 @@ const CATEGORIES: { key: IssueCategory; label: string; emoji: string }[] = [
   { key: 'Education & Campus', label: 'Education', emoji: '🎓' },
   { key: 'Private & Internal', label: 'Private Circle', emoji: '🔒' },
 ];
+
+const FANZONE_CATEGORY_LIST: { key: IssueCategory; label: string; emoji: string }[] = FANZONE_CATEGORIES
+  .filter(k => k !== 'All')
+  .map(k => ({
+    key: k,
+    label: FANZONE_CATEGORY_META[k]?.shortLabel || k,
+    emoji: FANZONE_CATEGORY_META[k]?.emoji || '⚽',
+  }));
 
 interface DurationOption {
   label: string;
@@ -71,16 +82,28 @@ export const CreateIssueModal: React.FC<Props> = ({
   editingIssue,
   onOpenGuidelines,
   currentUser,
-  onSaveDraft
+  onSaveDraft,
+  activeZone = 'civic',
 }) => {
+  const isFanZone = activeZone === 'fanzone' || editingIssue?.zone === 'fanzone';
+  const CATEGORIES = isFanZone ? FANZONE_CATEGORY_LIST : CIVIC_CATEGORIES;
+
   const [title, setTitle] = useState('');
   const [showDescription, setShowDescription] = useState(false);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<IssueCategory>(
-    currentUser?.interests && currentUser.interests.length > 0
-      ? currentUser.interests[0]
-      : 'Workplace & Career'
+    isFanZone
+      ? 'Premier League'
+      : (currentUser?.interests && currentUser.interests.length > 0
+          ? currentUser.interests[0]
+          : 'Workplace & Career')
   );
+  // Poll format state: Binary Presets vs Multi-Option (2-4 options)
+  const [pollType, setPollType] = useState<PollType>('binary');
+  const [yesLabel, setYesLabel] = useState('YES');
+  const [noLabel, setNoLabel] = useState('NO');
+  const [multiOptions, setMultiOptions] = useState<string[]>(['', '']);
+
   // Region always defaults to the user's selected location
   const userRegion: IssueRegion = currentUser?.region || 'Global / Remote';
 
@@ -155,6 +178,14 @@ export const CreateIssueModal: React.FC<Props> = ({
         setInvitedGroups(editingIssue.invitedGroups || []);
         setIsAnonymous(Boolean(editingIssue.isAnonymousAuthor));
         setAuthorName(editingIssue.author);
+        setPollType(editingIssue.pollType || 'binary');
+        setYesLabel(editingIssue.yesLabel || 'YES');
+        setNoLabel(editingIssue.noLabel || 'NO');
+        setMultiOptions(
+          editingIssue.options && editingIssue.options.length >= 2
+            ? editingIssue.options.map(o => o.label)
+            : ['', '']
+        );
         setIsDraftRestored(false);
         const matchDuration = DURATION_OPTIONS.find(d => d.label === editingIssue.durationLabel);
         if (matchDuration) {
@@ -170,6 +201,12 @@ export const CreateIssueModal: React.FC<Props> = ({
         setTagsInput(draft.tagsInput || '');
         setImages(draft.images || []);
         setIsAnonymous(Boolean(draft.isAnonymous));
+        setPollType(draft.pollType || 'binary');
+        setYesLabel(draft.yesLabel || 'YES');
+        setNoLabel(draft.noLabel || 'NO');
+        if (Array.isArray(draft.options) && draft.options.length >= 2) {
+          setMultiOptions(draft.options);
+        }
         if (draft.durationLabel) {
           const matchDuration = DURATION_OPTIONS.find(d => d.label === draft.durationLabel);
           if (matchDuration) setDuration(matchDuration);
@@ -186,15 +223,22 @@ export const CreateIssueModal: React.FC<Props> = ({
         setActiveTool(null);
         setIsAnonymous(false);
         setIsDraftRestored(false);
+        setPollType('binary');
+        setYesLabel('YES');
+        setNoLabel('NO');
+        setMultiOptions(['', '']);
+        if (isFanZone) {
+          setCategory('Premier League');
+        }
         if (currentUser) {
           setAuthorName(currentUser.name || '');
-          if (currentUser.interests && currentUser.interests.length > 0) {
+          if (!isFanZone && currentUser.interests && currentUser.interests.length > 0) {
             setCategory(currentUser.interests[0]);
           }
         }
       }
     }
-  }, [isOpen, editingIssue]);
+  }, [isOpen, editingIssue, isFanZone]);
 
   // Debounced Autosave Draft to server profile (only when not editing an existing issue)
   useEffect(() => {
@@ -214,6 +258,10 @@ export const CreateIssueModal: React.FC<Props> = ({
           visibility,
           isAnonymous,
           images,
+          pollType,
+          yesLabel,
+          noLabel,
+          options: multiOptions,
           updatedAt: new Date().toISOString()
         });
       }
@@ -222,7 +270,7 @@ export const CreateIssueModal: React.FC<Props> = ({
     return () => {
       if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
     };
-  }, [title, description, category, tagsInput, duration, visibility, isAnonymous, images, isOpen, editingIssue]);
+  }, [title, description, category, tagsInput, duration, visibility, isAnonymous, images, pollType, yesLabel, noLabel, multiOptions, isOpen, editingIssue]);
 
   const handleDiscardDraft = () => {
     if (draftDebounceTimer.current) window.clearTimeout(draftDebounceTimer.current);
@@ -232,6 +280,10 @@ export const CreateIssueModal: React.FC<Props> = ({
     setImages([]);
     setCreatorVoice(null);
     setTagsInput('');
+    setPollType('binary');
+    setYesLabel('YES');
+    setNoLabel('NO');
+    setMultiOptions(['', '']);
     setIsDraftRestored(false);
     onSaveDraft?.(null);
   };
@@ -244,10 +296,14 @@ export const CreateIssueModal: React.FC<Props> = ({
     (!titleMod.isAppropriate && titleMod.severity === 'rejected') ||
     (description.trim().length > 0 && !descMod.isAppropriate && descMod.severity === 'rejected');
 
-  // Description is completely optional — only the Yes/No question is required
+  const validMultiOptions = multiOptions.map(o => o.trim()).filter(Boolean);
+  const hasValidOptions = pollType === 'binary' || validMultiOptions.length >= 2;
+
+  // Description is completely optional — only the question (and >=2 options when multi-option) is required
   const isValid = 
     title.trim().length >= 5 && 
     !hasModViolation &&
+    hasValidOptions &&
     (!isAnonymous ? (currentUser?.name || authorName.trim()).length > 0 : true);
 
   const toggleTool = (tool: Exclude<ActiveToolPanel, null>) => {
@@ -314,6 +370,15 @@ export const CreateIssueModal: React.FC<Props> = ({
     // Normalize question mark: strip any trailing ? or . or whitespace and append a single ?
     const normalizedTitle = title.trim().replace(/[?.!\s]+$/, '') + '?';
 
+    const builtOptions = pollType === 'multi'
+      ? validMultiOptions.slice(0, 4).map((label, idx) => ({
+          id: `opt-${idx + 1}`,
+          label,
+          votes: editingIssue?.options?.[idx]?.label === label ? (editingIssue.options[idx].votes || 0) : 0,
+          color: MULTI_OPTION_COLORS[idx % 4],
+        }))
+      : undefined;
+
     if (editingIssue) {
       const durationChanged = duration.label !== editingIssue.durationLabel;
       const closingDate = durationChanged
@@ -322,6 +387,10 @@ export const CreateIssueModal: React.FC<Props> = ({
 
       const updatedIssue: Issue = {
         ...editingIssue,
+        pollType,
+        yesLabel: pollType === 'binary' ? yesLabel : 'YES',
+        noLabel: pollType === 'binary' ? noLabel : 'NO',
+        options: builtOptions,
         title: normalizedTitle,
         description: description.trim(),
         category: visibility === 'private' ? 'Private & Internal' : category,
@@ -355,6 +424,11 @@ export const CreateIssueModal: React.FC<Props> = ({
 
     const newIssue: Issue = {
       id: `issue-${Date.now()}`,
+      zone: isFanZone ? 'fanzone' : 'civic',
+      pollType,
+      yesLabel: pollType === 'binary' ? yesLabel : 'YES',
+      noLabel: pollType === 'binary' ? noLabel : 'NO',
+      options: builtOptions,
       title: normalizedTitle,
       description: description.trim(),
       category: visibility === 'private' ? 'Private & Internal' : category,
@@ -391,6 +465,10 @@ export const CreateIssueModal: React.FC<Props> = ({
     setShowDescription(false);
     setImages([]);
     setCreatorVoice(null);
+    setPollType('binary');
+    setYesLabel('YES');
+    setNoLabel('NO');
+    setMultiOptions(['', '']);
     setDuration(DURATION_OPTIONS[0]);
     setActiveTool(null);
     onClose();
@@ -492,7 +570,11 @@ export const CreateIssueModal: React.FC<Props> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ask a question or pose a debate... (e.g. Should our team adopt a 4-day work week? or 50/50 rent: Yes or No?)"
+              placeholder={
+                isFanZone
+                  ? 'Drop a hot take or football poll... (e.g. Should Arteta be backed or sacked? or Who wins the UCL?)'
+                  : 'Ask a question or pose a debate... (e.g. Should our team adopt a 4-day work week? or 50/50 rent: Yes or No?)'
+              }
               className="w-full text-base sm:text-lg font-bold bg-transparent text-ink-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none leading-snug"
             />
             {title.trim().length > 0 && !titleMod.isAppropriate && (
@@ -512,6 +594,99 @@ export const CreateIssueModal: React.FC<Props> = ({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Poll Format Selector: Binary Presets OR Multi-Options (2-4 options) Toggle */}
+          <div className="p-3 rounded-2xl bg-slate-50/90 dark:bg-ink-950/80 border border-slate-200/70 dark:border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                {pollType === 'multi' ? `Multi-Option Poll (${multiOptions.length}/4)` : `Binary Vote (${yesLabel} / ${noLabel})`}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPollType(prev => (prev === 'binary' ? 'multi' : 'binary'))}
+                title={pollType === 'binary' ? 'Switch to Multi-Options (up to 4 choices)' : 'Switch back to Binary Choice'}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${
+                  pollType === 'multi'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-2xs'
+                    : 'bg-white dark:bg-ink-900 text-slate-700 dark:text-zinc-200 border-slate-200/80 dark:border-white/10 hover:border-emerald-500/40'
+                }`}
+              >
+                <ListChecks className="w-3.5 h-3.5" />
+                <span>{pollType === 'multi' ? 'Multi-Options On' : 'Multi-Options'}</span>
+              </button>
+            </div>
+
+            {pollType === 'binary' ? (
+              isFanZone && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {BINARY_PRESETS.map((preset) => {
+                    const isActive = yesLabel === preset.yesLabel && noLabel === preset.noLabel;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setYesLabel(preset.yesLabel);
+                          setNoLabel(preset.noLabel);
+                        }}
+                        title={preset.description}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer border ${
+                          isActive
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-2xs'
+                            : 'bg-white dark:bg-ink-900 text-slate-600 dark:text-zinc-300 border-slate-200/70 dark:border-white/10 hover:border-emerald-500/40'
+                        }`}
+                      >
+                        {preset.yesLabel} / {preset.noLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <div className="space-y-2 animate-fade-in">
+                {multiOptions.map((optVal, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: MULTI_OPTION_COLORS[idx % 4] }}
+                    />
+                    <input
+                      type="text"
+                      value={optVal}
+                      maxLength={45}
+                      onChange={(e) => {
+                        const next = [...multiOptions];
+                        next[idx] = e.target.value;
+                        setMultiOptions(next);
+                      }}
+                      placeholder={`Option ${idx + 1}${idx < 2 ? ' (required)' : ' (optional)'}`}
+                      className="flex-1 text-xs px-3 py-2 rounded-xl bg-white dark:bg-ink-900 text-ink-950 dark:text-white border border-slate-200/70 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    />
+                    {multiOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setMultiOptions(multiOptions.filter((_, i) => i !== idx))}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
+                        title="Remove option"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {multiOptions.length < 4 && (
+                  <button
+                    type="button"
+                    onClick={() => setMultiOptions([...multiOptions, ''])}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer pt-0.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Option ({multiOptions.length}/4)</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -840,10 +1015,10 @@ export const CreateIssueModal: React.FC<Props> = ({
           )}
 
           {activeTool === 'tags' && (
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 space-y-2 animate-fade-in">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-ink-950 space-y-2.5 animate-fade-in">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
                 <span className="flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-sky-500" /> Topic Tags
+                  <Tag className="w-3.5 h-3.5 text-sky-500" /> {isFanZone ? 'Club & Topic Tags' : 'Topic Tags'}
                 </span>
                 <button type="button" onClick={() => setActiveTool(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                   <X className="w-3.5 h-3.5" />
@@ -854,9 +1029,29 @@ export const CreateIssueModal: React.FC<Props> = ({
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="Comma separated tags (e.g. RemoteWork, Schedule, Q3)"
+                placeholder={isFanZone ? 'Comma separated (e.g. Arsenal, Arteta, UCL)' : 'Comma separated tags (e.g. RemoteWork, Schedule, Q3)'}
                 className="w-full text-xs p-2.5 bg-white dark:bg-ink-900 text-ink-950 dark:text-white rounded-xl"
               />
+              {isFanZone && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                  {TOP_20_CLUBS.slice(0, 10).map((club) => (
+                    <button
+                      key={club.id}
+                      type="button"
+                      onClick={() => {
+                        const existing = tagsInput.split(',').map(s => s.trim()).filter(Boolean);
+                        if (!existing.some(t => t.toLowerCase() === club.name.toLowerCase())) {
+                          setTagsInput(existing.length > 0 ? `${existing.join(', ')}, ${club.name}` : club.name);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-ink-900 border border-slate-200/70 dark:border-white/10 text-[10px] font-bold text-slate-700 dark:text-zinc-200 whitespace-nowrap shrink-0 hover:border-emerald-500/40 cursor-pointer"
+                    >
+                      <ClubBadge club={club} size="xs" />
+                      <span>+{club.shortName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -941,6 +1136,20 @@ export const CreateIssueModal: React.FC<Props> = ({
                 <Layers className="w-4 h-4" />
               </button>
 
+              {/* Tags Icon */}
+              <button
+                type="button"
+                onClick={() => toggleTool('tags')}
+                title={isFanZone ? 'Tag Clubs & Topics' : 'Topic Tags'}
+                className={`p-2 sm:p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                  activeTool === 'tags' || tagsInput.trim().length > 0
+                    ? 'bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                    : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-ink-800 hover:text-sky-500'
+                }`}
+              >
+                <Tag className="w-4 h-4" />
+              </button>
+
               {/* Anonymous Identity Shield Toggle Icon */}
               <button
                 type="button"
@@ -962,11 +1171,11 @@ export const CreateIssueModal: React.FC<Props> = ({
                 disabled={!isValid}
                 className={`py-2 px-4 sm:py-2.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
                   isValid
-                    ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-glow cursor-pointer active:scale-95'
+                    ? (isFanZone ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-glow cursor-pointer active:scale-95' : 'bg-brand-600 hover:bg-brand-500 text-white shadow-glow cursor-pointer active:scale-95')
                     : 'bg-slate-200 dark:bg-ink-800 text-slate-400 dark:text-zinc-500 cursor-not-allowed'
                 }`}
               >
-                {editingIssue ? 'Save Changes' : 'Post Issue'}
+                {editingIssue ? 'Save Changes' : (isFanZone ? 'Post Take' : 'Post Issue')}
               </button>
             </div>
           </div>

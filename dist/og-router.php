@@ -28,6 +28,8 @@ $baseUrl = $protocol . '://' . $host;
 $requestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
 $parsedUrl = parse_url($requestUri);
 $path = isset($parsedUrl['path']) ? trim($parsedUrl['path'], '/') : '';
+$isFanZone = ($path === 'fanzone' || strpos($path, 'fanzone/') === 0);
+$lookupPath = $isFanZone ? trim(substr($path, strlen('fanzone')), '/') : $path;
 
 function build_issue_slug_router($title, $id) {
     $slug = strtolower($title);
@@ -42,9 +44,9 @@ function build_issue_slug_router($title, $id) {
 $targetIssueId = null;
 if (!empty($_GET['issue'])) {
     $targetIssueId = trim($_GET['issue']);
-} else if ($path !== '' && $path !== 'index.html' && $path !== 'og-router.php') {
+} else if ($lookupPath !== '' && $lookupPath !== 'index.html' && $lookupPath !== 'og-router.php') {
     // Matches e.g. "should-remote-workers-pay-more-issue-6cde3e06f68d" or "issue-6cde3e06f68d"
-    if (preg_match('/(issue-[a-zA-Z0-9_-]+)$/', $path, $matches)) {
+    if (preg_match('/(issue-[a-zA-Z0-9_-]+)$/', $lookupPath, $matches)) {
         $targetIssueId = $matches[1];
     }
 }
@@ -63,29 +65,51 @@ if (file_exists($dbPath)) {
         if ($targetIssueId) {
             $stmt = $pdo->prepare("
                 SELECT id, title, description, category, region, tags, author, creator_email,
-                       yes_count, no_count, likes_count, created_at, updated_at
+                       yes_count, no_count, likes_count, created_at, updated_at, zone
                 FROM issues 
                 WHERE id = :id AND is_deleted = 0
                 LIMIT 1
             ");
-            $stmt->execute([':id' => $targetIssueId]);
-            $issue = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$stmt) {
+                $stmt = $pdo->prepare("
+                    SELECT id, title, description, category, region, tags, author, creator_email,
+                           yes_count, no_count, likes_count, created_at, updated_at
+                    FROM issues 
+                    WHERE id = :id AND is_deleted = 0
+                    LIMIT 1
+                ");
+            }
+            if ($stmt) {
+                $stmt->execute([':id' => $targetIssueId]);
+                $issue = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
         }
 
         // If not found by ID, attempt lookup by matching slug
-        if (!$issue && $path !== '' && $path !== 'index.html') {
+        if (!$issue && $lookupPath !== '' && $lookupPath !== 'index.html') {
             $allStmt = $pdo->query("
                 SELECT id, title, description, category, region, tags, author, creator_email,
-                       yes_count, no_count, likes_count, created_at, updated_at
+                       yes_count, no_count, likes_count, created_at, updated_at, zone
                 FROM issues
                 WHERE is_deleted = 0
                 LIMIT 200
             ");
-            while ($row = $allStmt->fetch(PDO::FETCH_ASSOC)) {
-                if (build_issue_slug_router($row['title'], $row['id']) === $path) {
-                    $issue = $row;
-                    $targetIssueId = $row['id'];
-                    break;
+            if (!$allStmt) {
+                $allStmt = $pdo->query("
+                    SELECT id, title, description, category, region, tags, author, creator_email,
+                           yes_count, no_count, likes_count, created_at, updated_at
+                    FROM issues
+                    WHERE is_deleted = 0
+                    LIMIT 200
+                ");
+            }
+            if ($allStmt) {
+                while ($row = $allStmt->fetch(PDO::FETCH_ASSOC)) {
+                    if (build_issue_slug_router($row['title'], $row['id']) === $lookupPath) {
+                        $issue = $row;
+                        $targetIssueId = $row['id'];
+                        break;
+                    }
                 }
             }
         }
@@ -99,8 +123,10 @@ if (file_exists($dbPath)) {
                 ORDER BY likes_count DESC, created_at ASC
                 LIMIT 8
             ");
-            $respStmt->execute([':iid' => $targetIssueId]);
-            $responses = $respStmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($respStmt) {
+                $respStmt->execute([':iid' => $targetIssueId]);
+                $responses = $respStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
         }
     } catch (Exception $e) {
         $issue = null;
@@ -111,16 +137,23 @@ if (file_exists($dbPath)) {
 $titleParam = isset($_GET['q']) ? trim($_GET['q']) : '';
 $descParam = isset($_GET['d']) ? trim($_GET['d']) : '';
 
-if (!$issue && $titleParam === '' && $path !== '' && $path !== 'index.html') {
-    $cleanSlug = preg_replace('/-issue-[a-zA-Z0-9_-]+$/', '', $path);
-    if ($cleanSlug && $cleanSlug !== $path) {
+if (!$issue && $titleParam === '' && $lookupPath !== '' && $lookupPath !== 'index.html') {
+    $cleanSlug = preg_replace('/-issue-[a-zA-Z0-9_-]+$/', '', $lookupPath);
+    if ($cleanSlug && $cleanSlug !== $lookupPath) {
         $words = str_replace('-', ' ', $cleanSlug);
         $titleParam = ucfirst(trim($words)) . '?';
     }
 }
 
-$pageTitle = 'YesOrNo | Vote YES or NO on Issues That Matter to You';
-$pageDesc = 'It takes less than 1 min to make your voice heard and make an impact. Vote YES or NO on family, workplace, communal, religious, group, and policy decisions.';
+$isFanZoneIssue = $isFanZone || ($issue && ($issue['zone'] ?? 'civic') === 'fanzone');
+$siteBrand = $isFanZoneIssue ? 'FanZone' : 'YesOrNo';
+
+$pageTitle = $isFanZoneIssue
+    ? 'FanZone | Global Football Banter, Hot Takes & Live Polls'
+    : 'YesOrNo | Vote YES or NO on Issues That Matter to You';
+$pageDesc = $isFanZoneIssue
+    ? 'Drop your football hot takes, vote on matchday polls, rep your club, and trade 60s voice banter with fans worldwide on FanZone.'
+    : 'It takes less than 1 min to make your voice heard and make an impact. Vote YES or NO on family, workplace, communal, religious, group, and policy decisions.';
 $canonicalUrl = $baseUrl . '/' . $path;
 $imageUrl = $baseUrl . '/og-image.png';
 $jsonLd = '';
@@ -128,22 +161,22 @@ $preRenderedBody = '';
 
 if ($issue) {
     $rawTitle = $issue['title'];
-    $pageTitle = $rawTitle . ' | YesOrNo';
+    $pageTitle = $rawTitle . ' | ' . $siteBrand;
     $calcYes = (int)$issue['yes_count'];
     $calcNo = (int)$issue['no_count'];
     $totalVotes = $calcYes + $calcNo;
     $yesPct = $totalVotes > 0 ? (int)round(($calcYes / $totalVotes) * 100) : 50;
     $noPct = 100 - $yesPct;
 
-    $category = $issue['category'] ?: 'Civic & Community';
-    $region = $issue['region'] ?: 'Africa & Middle East';
-    $author = $issue['author'] ?: 'Civic Member';
+    $category = $issue['category'] ?: ($isFanZoneIssue ? 'Matchday Banter' : 'Civic & Community');
+    $region = $issue['region'] ?: ($isFanZoneIssue ? 'Global / Remote' : 'Africa & Middle East');
+    $author = $issue['author'] ?: ($isFanZoneIssue ? 'Football Fan' : 'Civic Member');
     $createdAt = $issue['created_at'] ?: date('c');
     $formattedDate = date('M j, Y', strtotime($createdAt));
 
-    $rawDesc = !empty($issue['description']) ? trim($issue['description']) : "Vote YES ({$yesPct}%) or NO ({$noPct}%) on \"{$rawTitle}\" on YesOrNo.";
+    $rawDesc = !empty($issue['description']) ? trim($issue['description']) : "Vote YES ({$yesPct}%) or NO ({$noPct}%) on \"{$rawTitle}\" on {$siteBrand}.";
     $pageDesc = strlen($rawDesc) > 165 ? substr($rawDesc, 0, 162) . '...' : $rawDesc;
-    $canonicalUrl = $baseUrl . '/' . build_issue_slug_router($issue['title'], $issue['id']);
+    $canonicalUrl = $baseUrl . ($isFanZoneIssue ? '/fanzone/' : '/') . build_issue_slug_router($issue['title'], $issue['id']);
 
     $safeTitle = htmlspecialchars($rawTitle, ENT_QUOTES, 'UTF-8');
     $safeDesc = htmlspecialchars($pageDesc, ENT_QUOTES, 'UTF-8');
@@ -247,9 +280,9 @@ if ($issue) {
       </article>
     ";
 } else if ($titleParam !== '') {
-    $pageTitle = htmlspecialchars($titleParam, ENT_QUOTES, 'UTF-8') . ' | YesOrNo';
+    $pageTitle = htmlspecialchars($titleParam, ENT_QUOTES, 'UTF-8') . ' | ' . $siteBrand;
     $pageDesc = htmlspecialchars(
-        $descParam !== '' ? $descParam : 'Vote YES or NO on "' . $titleParam . '" on YesOrNo.',
+        $descParam !== '' ? $descParam : 'Vote on "' . $titleParam . '" on ' . $siteBrand . '.',
         ENT_QUOTES,
         'UTF-8'
     );
@@ -260,11 +293,13 @@ $safePageTitle = htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8');
 $safePageDesc = htmlspecialchars($pageDesc, ENT_QUOTES, 'UTF-8');
 $safeCanonical = htmlspecialchars($canonicalUrl, ENT_QUOTES, 'UTF-8');
 $safeImage = htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8');
+$safeSiteBrand = htmlspecialchars($siteBrand, ENT_QUOTES, 'UTF-8');
 
-// Title tags
+// Title & site_name tags
 $html = preg_replace('/<title>.*?<\/title>/is', '<title>' . $safePageTitle . '</title>', $html);
 $html = preg_replace('/<meta\s+name="title"\s+content=".*?"\s*\/?>/i', '<meta name="title" content="' . $safePageTitle . '" />', $html);
 $html = preg_replace('/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i', '<meta property="og:title" content="' . $safePageTitle . '" />', $html);
+$html = preg_replace('/<meta\s+property="og:site_name"\s+content=".*?"\s*\/?>/i', '<meta property="og:site_name" content="' . $safeSiteBrand . '" />', $html);
 $html = preg_replace('/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i', '<meta name="twitter:title" content="' . $safePageTitle . '" />', $html);
 
 // Description tags

@@ -1,11 +1,13 @@
 import React from 'react';
 import { 
   Vote, Plus, ShieldCheck, Search, SlidersHorizontal, 
-  RotateCcw, User, Home, Lock, Download, Compass, Palette, BarChart3 
+  RotateCcw, User, Home, Lock, Download, Compass, Palette, BarChart3, ArrowLeftRight 
 } from 'lucide-react';
-import { IssueCategory, AppView, UserProfile } from '../types';
+import { AppZone, IssueCategory, AppView, UserProfile } from '../types';
 import { ColorTone } from '../utils/theme';
 import { isAdminUser } from '../utils/auth';
+import { FANZONE_CATEGORIES, FANZONE_CATEGORY_META, navigateToZone } from '../fanzone/config';
+import { ClubBadge } from '../fanzone/ClubBadge';
 
 export type FeedSortOption = 'for-you' | 'active' | 'newest' | 'closing' | 'yes' | 'perspectives';
 
@@ -28,9 +30,11 @@ interface Props {
   showSearchMobile?: boolean;
   colorTone: ColorTone;
   onToggleColorTone: () => void;
+  activeZone?: AppZone;
+  onOpenClubPicker?: () => void;
 }
 
-const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
+const CIVIC_CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = [
   { key: 'All', shortLabel: 'All Issues', emoji: '🌐' },
   { key: 'Counselling', shortLabel: 'Counselling', emoji: '🛋️' },
   { key: 'Business', shortLabel: 'Business', emoji: '💼' },
@@ -46,6 +50,12 @@ const CATEGORIES: { key: IssueCategory; shortLabel: string; emoji: string }[] = 
   { key: 'Education & Campus', shortLabel: 'Education', emoji: '🎓' },
   { key: 'Private & Internal', shortLabel: 'Private Circles', emoji: '🔒' },
 ];
+
+const FANZONE_CATEGORY_ITEMS: { key: IssueCategory; shortLabel: string; emoji: string }[] = FANZONE_CATEGORIES.map(k => ({
+  key: k,
+  shortLabel: FANZONE_CATEGORY_META[k]?.shortLabel || k,
+  emoji: FANZONE_CATEGORY_META[k]?.emoji || '⚽',
+}));
 
 export const Navbar: React.FC<Props> = ({
   selectedCategory,
@@ -63,8 +73,13 @@ export const Navbar: React.FC<Props> = ({
   currentUser,
   showSearchMobile = false,
   colorTone,
-  onToggleColorTone
+  onToggleColorTone,
+  activeZone = 'civic',
+  onOpenClubPicker,
 }) => {
+  const isFanZone = activeZone === 'fanzone';
+  const CATEGORIES = isFanZone ? FANZONE_CATEGORY_ITEMS : CIVIC_CATEGORIES;
+
   return (
     <header 
       className="sticky top-0 z-30 bg-white/90 dark:bg-ink-900/90 backdrop-blur-xl shadow-soft transition-colors pwa-safe-top"
@@ -76,16 +91,55 @@ export const Navbar: React.FC<Props> = ({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
         <div className="flex items-center justify-between gap-3">
           {/* Brand — links to dashboard ('app') when logged in */}
-          <div 
-            onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
-            className="flex items-center gap-2.5 cursor-pointer group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-transform">
-              <Vote className="w-5 h-5" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div 
+              onClick={() => onNavigate(isFanZone ? 'app' : (currentUser ? 'app' : 'landing'))}
+              className="flex items-center gap-2.5 cursor-pointer group"
+            >
+              {isFanZone ? (
+                <>
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-transform text-lg">
+                    ⚽
+                  </div>
+                  <span className="font-extrabold text-lg sm:text-xl tracking-tight text-ink-950 dark:text-white font-sans">
+                    Fan<span className="text-emerald-600 dark:text-emerald-400">Zone</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shadow-glow group-hover:scale-105 transition-transform">
+                    <Vote className="w-5 h-5" />
+                  </div>
+                  <span className="font-extrabold text-lg sm:text-xl tracking-tight text-ink-950 dark:text-white font-sans">
+                    Yes<span className="text-gradient">Or</span>No
+                  </span>
+                </>
+              )}
             </div>
-            <span className="font-extrabold text-lg sm:text-xl tracking-tight text-ink-950 dark:text-white font-sans">
-              Yes<span className="text-gradient">Or</span>No
-            </span>
+
+            {/* Zone Switcher Pill */}
+            <button
+              type="button"
+              onClick={() => navigateToZone(isFanZone ? 'civic' : 'fanzone')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer border ${
+                isFanZone
+                  ? 'bg-slate-100 dark:bg-ink-800 text-slate-700 dark:text-zinc-200 border-slate-200/80 dark:border-white/10 hover:border-brand-500/40'
+                  : 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/25'
+              }`}
+              title={isFanZone ? 'Return to YesOrNo Main' : 'Enter FanZone Football Banter & Polls'}
+            >
+              {isFanZone ? (
+                <>
+                  <ArrowLeftRight className="w-3 h-3" />
+                  <span>YesOrNo</span>
+                </>
+              ) : (
+                <>
+                  <span>⚽</span>
+                  <span>FanZone</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Desktop Search */}
@@ -96,7 +150,7 @@ export const Navbar: React.FC<Props> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search issues, tags, or circles..."
+                placeholder={isFanZone ? 'Search football takes, players, or topics...' : 'Search issues, tags, or circles...'}
                 className="w-full text-xs pl-10 pr-3 py-2 bg-zinc-100/80 dark:bg-ink-950 hover:bg-zinc-100 dark:hover:bg-ink-950/80 focus:bg-white dark:focus:bg-ink-900 rounded-xl focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-zinc-400 dark:text-white"
               />
             </div>
@@ -104,6 +158,22 @@ export const Navbar: React.FC<Props> = ({
 
           {/* Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Club Flair Pill in FanZone */}
+            {isFanZone && currentUser && onOpenClubPicker && (
+              <button
+                type="button"
+                onClick={onOpenClubPicker}
+                title="Change your Club Flair"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-500/30 text-xs font-bold transition-all cursor-pointer"
+              >
+                {currentUser.favoriteClub ? (
+                  <ClubBadge club={currentUser.favoriteClub} size="xs" showShortName />
+                ) : (
+                  <span>⚽ Pick Club</span>
+                )}
+              </button>
+            )}
+
             {/* Home link — directs to Dashboard ('app') when logged in */}
             <button
               onClick={() => onNavigate(currentUser ? 'app' : 'landing')}
@@ -228,10 +298,10 @@ export const Navbar: React.FC<Props> = ({
             {/* Create Issue Button */}
             <button
               onClick={onOpenCreateModal}
-              className="btn-brand text-xs py-2 px-3.5 shadow-glow cursor-pointer"
+              className={`${isFanZone ? 'bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-1.5 transition-all' : 'btn-brand'} text-xs py-2 px-3.5 shadow-glow cursor-pointer`}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Issue</span>
+              <span className="hidden sm:inline">{isFanZone ? 'New Take' : 'New Issue'}</span>
             </button>
 
             {/* Reset data (Local Dev Only) */}

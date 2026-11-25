@@ -1,5 +1,25 @@
 export type VoteChoice = 'YES' | 'NO';
+export type AppZone = 'civic' | 'fanzone';
+export type PollType = 'binary' | 'multi';
 export type DisplayPreference = 'username' | 'firstname' | 'name';
+
+export interface PollOption {
+  id: string;
+  label: string;
+  votes: number;
+  color?: string;
+}
+
+export interface FavoriteClub {
+  id: string;
+  name: string;
+  shortName: string;
+  league: string;
+  color: string;
+  logoUrl?: string;
+  aliases?: string[];
+  isTop20?: boolean;
+}
 
 export interface IssueDraft {
   title: string;
@@ -11,6 +31,10 @@ export interface IssueDraft {
   visibility?: IssueVisibility;
   isAnonymous?: boolean;
   images?: string[];
+  pollType?: PollType;
+  yesLabel?: string;
+  noLabel?: string;
+  options?: string[];
   updatedAt?: string;
 }
 
@@ -27,11 +51,13 @@ export interface UserProfile {
   region?: IssueRegion;
   interests?: IssueCategory[];
   followingCreators?: string[];
-  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string }>;
+  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string; optionId?: string; optionLabel?: string }>;
   likedIssueIds?: string[];
   favoriteIssueIds?: string[];
   issueDraft?: IssueDraft | null;
   followersCount?: number;
+  favoriteClub?: FavoriteClub | null;
+  nationalTeam?: string;
   defaultAnonymous?: boolean;
   defaultVoiceFilter?: VoiceFilterType;
   soundEnabled?: boolean;
@@ -99,6 +125,7 @@ export interface CommentReply {
   authorEmail?: string;
   authorAlias?: string;
   authorRole?: string;
+  authorClub?: FavoriteClub | null;
   isAnonymous?: boolean;
   content: string;
   createdAt: string;
@@ -112,6 +139,8 @@ export interface VoteSubmission {
   id: string;
   issueId: string;
   choice: VoteChoice;
+  optionId?: string;
+  optionLabel?: string;
   isAnonymous: boolean;
   authorName: string;
   authorUsername?: string;
@@ -119,6 +148,7 @@ export interface VoteSubmission {
   authorEmail?: string;
   authorAlias?: string; // e.g. "Neighbor #319"
   authorRole?: string; // e.g. "Resident (5 yrs)", "Small Business Owner"
+  authorClub?: FavoriteClub | null;
   displayPreference?: 'username' | 'name' | 'firstname';
   note?: string;
   voiceNote?: VoiceAttachment;
@@ -145,7 +175,16 @@ export type IssueCategory =
   | 'Economy & Finance'
   | 'Education & Campus'
   | 'Private & Internal'
-  | 'Clubs & Groups'; // legacy backwards-compatible alias
+  | 'Clubs & Groups' // legacy backwards-compatible alias
+  | 'Premier League'
+  | 'Champions League'
+  | 'La Liga'
+  | 'Serie A & Bundesliga'
+  | 'International & World Cup'
+  | 'Transfers & Rumors'
+  | 'VAR & Officiating'
+  | 'GOAT & Legacy'
+  | 'Matchday Banter';
 
 export type IssueVisibility = 'public' | 'private';
 
@@ -167,6 +206,11 @@ export interface IssueSummaryInsights {
 
 export interface Issue {
   id: string;
+  zone?: AppZone;
+  pollType?: PollType;
+  yesLabel?: string;
+  noLabel?: string;
+  options?: PollOption[];
   title: string;
   description: string;
   category: IssueCategory;
@@ -240,7 +284,9 @@ export interface PublicUserProfile {
   interests?: IssueCategory[];
   followingCreators?: string[];
   followersCount?: number;
+  favoriteClub?: FavoriteClub | null;
+  nationalTeam?: string;
   isVerified?: boolean;
   verificationBadge?: string;
-  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string } | 'YES' | 'NO'>;
+  votedIssues?: Record<string, { choice: 'YES' | 'NO'; responseId?: string; optionId?: string; optionLabel?: string } | 'YES' | 'NO'>;
 }

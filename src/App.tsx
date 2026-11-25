@@ -26,8 +26,12 @@ import {
   notifyAdminIssueCreated,
   notifyAdminIssueShared,
 } from './utils/emailNotifier';
-import { Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
+import { AppZone, FavoriteClub, Issue, IssueCategory, VoteSubmission, AppView, UserProfile, PublicUserProfile, VoteChoice, CommentReply, IssueDraft } from './types';
 import { applyAnimationsClass, areAnimationsEnabled } from './utils/sound';
+import { detectActiveZone, matchesClubFilter, navigateToZone } from './fanzone/config';
+import { ClubFilterBar } from './fanzone/ClubFilterBar';
+import { ClubPickerModal } from './fanzone/ClubPickerModal';
+import { ClubBadge } from './fanzone/ClubBadge';
 import { Navbar, FeedSortOption } from './components/Navbar';
 import { IssueCard } from './components/IssueCard';
 import { VoteModal } from './components/VoteModal';
@@ -57,7 +61,8 @@ function getInitialView(user: UserProfile | null): AppView {
   const hash = window.location.hash.replace('#', '');
   const params = new URLSearchParams(window.location.search);
   const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
-  const hasSharedIssue = params.has('issue') || Boolean(rawPath && rawPath !== 'index.html');
+  const cleanRoutePath = rawPath === 'fanzone' ? '' : (rawPath.startsWith('fanzone/') ? rawPath.slice('fanzone/'.length) : rawPath);
+  const hasSharedIssue = params.has('issue') || Boolean(cleanRoutePath && cleanRoutePath !== 'index.html');
 
   if (hash === 'landing') {
     return 'landing';
@@ -80,6 +85,8 @@ function getInitialView(user: UserProfile | null): AppView {
 }
 
 export function App() {
+  const activeZone = useMemo<AppZone>(() => detectActiveZone(), []);
+  const isFanZone = activeZone === 'fanzone';
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredUser());
   const [currentView, setCurrentView] = useState<AppView>(() => getInitialView(getStoredUser()));
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
@@ -90,12 +97,15 @@ export function App() {
   const [isInitialLoadingIssues, setIsInitialLoadingIssues] = useState(true);
   const isInitialMountRef = useRef(true);
   const [pendingNewIssues, setPendingNewIssues] = useState<Issue[]>([]);
-  const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string }>>(() => getUserVotesMap());
+  const [userVotes, setUserVotes] = useState<Record<string, { choice: 'YES' | 'NO'; responseId?: string; optionId?: string; optionLabel?: string }>>(() => getUserVotesMap());
   const [userLikes, setUserLikes] = useState<Record<string, boolean>>(() => getUserLikesMap());
   const [userFavorites, setUserFavorites] = useState<Record<string, boolean>>(() => getUserFavoritesMap());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   
   const [selectedCategory, setSelectedCategory] = useState<IssueCategory>('All');
+  const [selectedClub, setSelectedClub] = useState<FavoriteClub | null>(null);
+  const [isClubPickerOpen, setIsClubPickerOpen] = useState(false);
+  const [isPromoDismissed, setIsPromoDismissed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchMobile, setShowSearchMobile] = useState(false);
   const [sortBy, setSortBy] = useState<FeedSortOption>('for-you');
@@ -395,16 +405,22 @@ export function App() {
     const targetIssue = liveDetailIssue || activeShareIssue || null;
     updateDocumentMetaForIssue(targetIssue);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const prefix = isFanZone ? '/fanzone' : '';
       if (targetIssue) {
-        const slugPath = `/${buildIssueSlug(targetIssue)}`;
+        const slugPath = `${prefix}/${buildIssueSlug(targetIssue)}`;
         if (window.location.pathname !== slugPath) {
           window.history.replaceState(null, '', `${slugPath}${window.location.hash}`);
+        }
+      } else if (isFanZone) {
+        const targetBase = '/fanzone';
+        if (window.location.pathname !== targetBase && window.location.pathname !== `${targetBase}/`) {
+          window.history.replaceState(null, '', `${targetBase}${window.location.hash || '#app'}`);
         }
       } else if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
         window.history.replaceState(null, '', `/${window.location.hash || '#app'}`);
       }
     }
-  }, [liveDetailIssue, activeShareIssue]);
+  }, [liveDetailIssue, activeShareIssue, isFanZone]);
 
   // If URL has /{slug-of-the-issue-question}-{id} or ?issue=<id> and user is authenticated, auto-open that issue
   useEffect(() => {
@@ -710,6 +726,8 @@ export function App() {
                 animationsEnabled: serverProf.animationsEnabled !== undefined ? serverProf.animationsEnabled : prev.animationsEnabled,
                 theme: serverProf.theme || prev.theme,
                 colorTone: serverProf.colorTone || prev.colorTone,
+                favoriteClub: serverProf.favoriteClub !== undefined ? serverProf.favoriteClub : prev.favoriteClub,
+                nationalTeam: serverProf.nationalTeam !== undefined ? serverProf.nationalTeam : prev.nationalTeam,
                 onboardingCompleted: serverProf.onboardingCompleted ?? prev.onboardingCompleted,
               };
             });
@@ -992,10 +1010,24 @@ export function App() {
     const existingVote = userVotes[submission.issueId];
     const hasExistingVote = Boolean(existingVote);
     const hasContent = Boolean(submission.note || submission.voiceNote);
+    const isMulti = targetIssue?.pollType === 'multi' && Array.isArray(targetIssue.options) && targetIssue.options.length >= 2;
+
+    const enrichedSubmission: VoteSubmission = {
+      ...submission,
+      authorClub: submission.isAnonymous ? null : (submission.authorClub ?? currentUser?.favoriteClub ?? null),
+    };
 
     // If user has already voted, switching vote/stance is strictly forbidden!
     if (hasExistingVote) {
-      if (existingVote.choice !== submission.choice) {
+      if (isMulti && enrichedSubmission.optionId && existingVote.optionId && existingVote.optionId !== enrichedSubmission.optionId) {
+        addToast(
+          'warning',
+          'Vote is permanent',
+          `You already voted for ${existingVote.optionLabel || 'another option'}. Votes cannot be changed once cast.`
+        );
+        return;
+      }
+      if (!isMulti && existingVote.choice !== enrichedSubmission.choice) {
         addToast(
           'warning',
           'Vote is permanent',
@@ -1007,13 +1039,23 @@ export function App() {
         addToast(
           'info',
           'Already voted',
-          `You already voted ${existingVote.choice} on this issue.`
+          isMulti && existingVote.optionLabel
+            ? `You already voted for ${existingVote.optionLabel}.`
+            : `You already voted ${existingVote.choice} on this issue.`
         );
         // Self-heal: ensure local issue count is at least 1 even if previously desynced
         setIssues(prevIssues => {
           const nextIssues = prevIssues.map(issue => {
-            if (issue.id === submission.issueId) {
-              const isYes = submission.choice === 'YES';
+            if (issue.id === enrichedSubmission.issueId) {
+              if (isMulti && issue.options && enrichedSubmission.optionId) {
+                return {
+                  ...issue,
+                  options: issue.options.map(opt =>
+                    opt.id === enrichedSubmission.optionId && opt.votes === 0 ? { ...opt, votes: 1 } : opt
+                  ),
+                };
+              }
+              const isYes = enrichedSubmission.choice === 'YES';
               const nextYes = isYes && issue.yesCount === 0 ? 1 : issue.yesCount;
               const nextNo = !isYes && issue.noCount === 0 ? 1 : issue.noCount;
               if (nextYes !== issue.yesCount || nextNo !== issue.noCount) {
@@ -1031,8 +1073,20 @@ export function App() {
 
     setIssues(prevIssues => {
       const nextIssues = prevIssues.map(issue => {
-        if (issue.id === submission.issueId) {
-          const isYes = submission.choice === 'YES';
+        if (issue.id === enrichedSubmission.issueId) {
+          if (issue.pollType === 'multi' && issue.options && enrichedSubmission.optionId) {
+            const nextOpts = !hasExistingVote
+              ? issue.options.map(opt =>
+                  opt.id === enrichedSubmission.optionId ? { ...opt, votes: (opt.votes || 0) + 1 } : opt
+                )
+              : issue.options;
+            return {
+              ...issue,
+              options: nextOpts,
+              responses: hasContent ? [enrichedSubmission, ...issue.responses] : issue.responses,
+            };
+          }
+          const isYes = enrichedSubmission.choice === 'YES';
           const nextYes = isYes
             ? (issue.yesCount === 0 ? 1 : (!hasExistingVote ? issue.yesCount + 1 : issue.yesCount))
             : issue.yesCount;
@@ -1044,7 +1098,7 @@ export function App() {
             ...issue,
             yesCount: nextYes,
             noCount: nextNo,
-            responses: hasContent ? [submission, ...issue.responses] : issue.responses
+            responses: hasContent ? [enrichedSubmission, ...issue.responses] : issue.responses
           };
         }
         return issue;
@@ -1053,12 +1107,18 @@ export function App() {
       return nextIssues;
     });
 
-    const savedResponseId = hasContent ? submission.id : existingVote?.responseId;
-    recordUserVote(submission.issueId, submission.choice, savedResponseId);
+    const savedResponseId = hasContent ? enrichedSubmission.id : existingVote?.responseId;
+    const savedOptionId = enrichedSubmission.optionId || existingVote?.optionId;
+    const savedOptionLabel = enrichedSubmission.optionLabel || existingVote?.optionLabel;
+    recordUserVote(enrichedSubmission.issueId, enrichedSubmission.choice, savedResponseId, savedOptionId, savedOptionLabel);
     setUserVotes(prev => {
       const nextVotes = {
         ...prev,
-        [submission.issueId]: { choice: submission.choice, responseId: savedResponseId }
+        [enrichedSubmission.issueId]: {
+          choice: enrichedSubmission.choice,
+          responseId: savedResponseId,
+          ...(savedOptionId ? { optionId: savedOptionId, optionLabel: savedOptionLabel } : {}),
+        }
       };
       if (currentUser) {
         const updatedUser: UserProfile = { ...currentUser, votedIssues: nextVotes };
@@ -1068,15 +1128,24 @@ export function App() {
       return nextVotes;
     });
 
-    apiRecordVote(submission, targetIssue?.title).then(serverResult => {
-      if (serverResult && serverResult.success && typeof serverResult.yesCount === 'number') {
+    apiRecordVote(enrichedSubmission, targetIssue?.title).then(serverResult => {
+      if (serverResult && serverResult.success) {
         setIssues(prev => {
           const updated = prev.map(iss => {
-            if (iss.id === submission.issueId) {
+            if (iss.id === enrichedSubmission.issueId) {
+              const mergedOpts = Array.isArray(serverResult.options) && iss.options
+                ? iss.options.map((opt, idx) => {
+                    const sOpt = serverResult.options?.[idx];
+                    return sOpt && sOpt.id === opt.id
+                      ? { ...opt, votes: Math.max(opt.votes || 0, sOpt.votes || 0) }
+                      : opt;
+                  })
+                : iss.options;
               return {
                 ...iss,
-                yesCount: Math.max(iss.yesCount, serverResult.yesCount as number),
-                noCount: Math.max(iss.noCount, serverResult.noCount as number)
+                yesCount: typeof serverResult.yesCount === 'number' ? Math.max(iss.yesCount, serverResult.yesCount) : iss.yesCount,
+                noCount: typeof serverResult.noCount === 'number' ? Math.max(iss.noCount, serverResult.noCount) : iss.noCount,
+                options: mergedOpts,
               };
             }
             return iss;
@@ -1089,20 +1158,32 @@ export function App() {
 
     // Record telemetry for vote / reply / voice note
     if (!hasExistingVote) {
-      recordEngagementAction(submission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
+      recordEngagementAction(enrichedSubmission.choice === 'YES' ? 'vote_yes' : 'vote_no', targetIssue?.title);
     }
-    if (submission.note) {
+    if (enrichedSubmission.note) {
       recordEngagementAction('inline_reply', targetIssue?.title);
     }
-    if (submission.voiceNote) {
+    if (enrichedSubmission.voiceNote) {
       recordEngagementAction('voice_note', targetIssue?.title);
     }
 
     // Update activeDetailIssue if open
-    if (activeDetailIssue && activeDetailIssue.id === submission.issueId) {
+    if (activeDetailIssue && activeDetailIssue.id === enrichedSubmission.issueId) {
       setActiveDetailIssue(prev => {
         if (!prev) return null;
-        const isYes = submission.choice === 'YES';
+        if (prev.pollType === 'multi' && prev.options && enrichedSubmission.optionId) {
+          const nextOpts = !hasExistingVote
+            ? prev.options.map(opt =>
+                opt.id === enrichedSubmission.optionId ? { ...opt, votes: (opt.votes || 0) + 1 } : opt
+              )
+            : prev.options;
+          return {
+            ...prev,
+            options: nextOpts,
+            responses: hasContent ? [enrichedSubmission, ...prev.responses] : prev.responses,
+          };
+        }
+        const isYes = enrichedSubmission.choice === 'YES';
         const nextYes = !hasExistingVote ? (isYes ? prev.yesCount + 1 : prev.yesCount) : prev.yesCount;
         const nextNo = !hasExistingVote ? (!isYes ? prev.noCount + 1 : prev.noCount) : prev.noCount;
 
@@ -1110,19 +1191,20 @@ export function App() {
           ...prev,
           yesCount: nextYes,
           noCount: nextNo,
-          responses: hasContent ? [submission, ...prev.responses] : prev.responses
+          responses: hasContent ? [enrichedSubmission, ...prev.responses] : prev.responses
         };
       });
     }
 
     // Show toast for new votes or added perspectives
     if (!hasExistingVote) {
+      const displayVote = enrichedSubmission.optionLabel || (enrichedSubmission.choice === 'YES' ? (targetIssue?.yesLabel || 'YES') : (targetIssue?.noLabel || 'NO'));
       addToast(
         'success',
-        `Your ${submission.choice} vote was recorded`,
-        submission.voiceNote 
+        `Your ${displayVote} vote was recorded`,
+        enrichedSubmission.voiceNote 
           ? 'Voice note attached.'
-          : submission.note
+          : enrichedSubmission.note
           ? 'Perspective posted to the thread.'
           : 'Tap Reply below the card if you want to add a quick note or voice clip.'
       );
@@ -1130,7 +1212,7 @@ export function App() {
       addToast(
         'success',
         'Perspective posted',
-        submission.voiceNote
+        enrichedSubmission.voiceNote
           ? 'Voice note attached to your perspective.'
           : 'Your perspective has been posted to the thread.'
       );
@@ -1267,6 +1349,10 @@ export function App() {
   // Handle adding a direct threaded reply to a comment
   const handleAddCommentReply = (issueId: string, submissionId: string, reply: CommentReply) => {
     const targetIssue = issues.find(i => i.id === issueId);
+    const enrichedReply: CommentReply = {
+      ...reply,
+      authorClub: reply.isAnonymous ? null : (reply.authorClub ?? currentUser?.favoriteClub ?? null),
+    };
 
     setIssues(prev => {
       const nextIssues = prev.map(issue => {
@@ -1275,7 +1361,7 @@ export function App() {
           if (resp.id !== submissionId) return resp;
           return {
             ...resp,
-            replies: [...(resp.replies || []), reply]
+            replies: [...(resp.replies || []), enrichedReply]
           };
         });
         return { ...issue, responses: updatedResponses };
@@ -1293,7 +1379,7 @@ export function App() {
             if (resp.id !== submissionId) return resp;
             return {
               ...resp,
-              replies: [...(resp.replies || []), reply]
+              replies: [...(resp.replies || []), enrichedReply]
             };
           })
         };
@@ -1302,7 +1388,7 @@ export function App() {
 
     addToast('success', 'Reply Posted', 'Your direct reply was posted.');
     recordEngagementAction('inline_reply', targetIssue?.title || 'Issue comment reply');
-    apiRecordReply(issueId, submissionId, reply);
+    apiRecordReply(issueId, submissionId, enrichedReply);
 
   };
 
@@ -1681,27 +1767,37 @@ export function App() {
     }
   };
 
+  // Zone-scoped issues (strictly isolates FanZone vs YesOrNo main feed)
+  const zoneIssues = useMemo(
+    () => issues.filter(i => !i.isDeletedByAuthor && (i.zone || 'civic') === activeZone),
+    [issues, activeZone]
+  );
+
   // Category counts
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: issues.length };
-    issues.forEach(issue => {
+    const counts: Record<string, number> = { All: zoneIssues.length };
+    zoneIssues.forEach(issue => {
       counts[issue.category] = (counts[issue.category] || 0) + 1;
     });
     return counts;
-  }, [issues]);
+  }, [zoneIssues]);
 
-  // Overall Statistics
+  // Overall Statistics for the active zone
   const stats = useMemo(() => {
     let totalVotes = 0;
     let totalVoiceNotes = 0;
 
-    issues.forEach(i => {
-      totalVotes += i.yesCount + i.noCount;
+    zoneIssues.forEach(i => {
+      if (i.pollType === 'multi' && Array.isArray(i.options) && i.options.length >= 2) {
+        totalVotes += i.options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
+      } else {
+        totalVotes += i.yesCount + i.noCount;
+      }
       totalVoiceNotes += i.responses.filter(r => !!r.voiceNote).length;
     });
 
-    return { totalVotes, totalVoiceNotes, totalIssues: issues.length };
-  }, [issues]);
+    return { totalVotes, totalVoiceNotes, totalIssues: zoneIssues.length };
+  }, [zoneIssues]);
 
   // Filtered & Sorted Issues: Default ('for-you') blends Trending momentum + Newest issues,
   // prioritized by user interests & region (without hiding posts if user hasn't selected any)
@@ -1718,8 +1814,10 @@ export function App() {
       const ageHours = Math.max(0, (now - issueCreatedTime) / (1000 * 60 * 60));
 
       // 1. Popularity & Engagement Signals:
-      // Votes (7 pts each)
-      const totalVotes = (issue.yesCount || 0) + (issue.noCount || 0);
+      const isMulti = issue.pollType === 'multi' && Array.isArray(issue.options) && issue.options.length >= 2;
+      const totalVotes = isMulti
+        ? issue.options!.reduce((sum, o) => sum + (o.votes || 0), 0)
+        : (issue.yesCount || 0) + (issue.noCount || 0);
 
       // Comments: Top-level responses + threaded replies (14 pts each)
       const topLevelResponses = issue.responses?.length || 0;
@@ -1736,7 +1834,7 @@ export function App() {
 
       // Close split debate bonus (balanced 50/50 ratios generate intense viral engagement)
       let debateBonus = 0;
-      if (totalVotes >= 3) {
+      if (!isMulti && totalVotes >= 3) {
         const splitRatio = Math.min(issue.yesCount, issue.noCount) / Math.max(issue.yesCount, issue.noCount);
         debateBonus = splitRatio * 40; // up to +40 points for contentious 50-50 splits
       }
@@ -1773,17 +1871,19 @@ export function App() {
 
       // 5. Personalized Region Boost (only applied if user selected/saved any):
       let regionScore = 0;
-      if (userRegion && userRegion !== 'Global / Remote') {
-        const issueReg = inferIssueRegion(issue);
-        if (issueReg === userRegion) {
-          regionScore = 140;
-        } else if (issueReg === 'Global / Remote') {
-          regionScore = 45;
-        }
-      } else if (userRegion === 'Global / Remote') {
-        const issueReg = inferIssueRegion(issue);
-        if (issueReg === 'Global / Remote') {
-          regionScore = 55;
+      if (!isFanZone) {
+        if (userRegion && userRegion !== 'Global / Remote') {
+          const issueReg = inferIssueRegion(issue);
+          if (issueReg === userRegion) {
+            regionScore = 140;
+          } else if (issueReg === 'Global / Remote') {
+            regionScore = 45;
+          }
+        } else if (userRegion === 'Global / Remote') {
+          const issueReg = inferIssueRegion(issue);
+          if (issueReg === 'Global / Remote') {
+            regionScore = 55;
+          }
         }
       }
 
@@ -1810,7 +1910,7 @@ export function App() {
       return momentumScore + freshnessScore + featuredScore + interestScore + regionScore + followedScore;
     };
 
-    let result = issues.filter(issue => {
+    let result = zoneIssues.filter(issue => {
       if (issue.isDeletedByAuthor) return false;
       const matchesCategory = selectedCategory === 'All' || issue.category === selectedCategory;
       const query = searchQuery.trim().toLowerCase();
@@ -1821,10 +1921,11 @@ export function App() {
 
       if (!matchesCategory || !matchesSearch) return false;
       if (showFavoritesOnly && !userFavorites[issue.id]) return false;
+      if (isFanZone && selectedClub && !matchesClubFilter(issue, selectedClub)) return false;
 
-      // Region Scope filter: When 'my-region-worldwide' is explicitly active and user selected a specific region,
-      // show issues from that region AND Worldwide ('Global / Remote')
+      // Region Scope filter: applies on Civic Pulse when user selected a regional scope
       if (
+        !isFanZone &&
         regionScope === 'my-region-worldwide' &&
         userRegion &&
         userRegion !== 'Global / Remote'
@@ -1848,8 +1949,8 @@ export function App() {
     });
 
     result = [...result].sort((a, b) => {
-      const totalA = a.yesCount + a.noCount;
-      const totalB = b.yesCount + b.noCount;
+      const totalA = a.pollType === 'multi' && a.options ? a.options.reduce((s, o) => s + (o.votes || 0), 0) : (a.yesCount + a.noCount);
+      const totalB = b.pollType === 'multi' && b.options ? b.options.reduce((s, o) => s + (o.votes || 0), 0) : (b.yesCount + b.noCount);
 
       if (sortBy === 'for-you') {
         const scoreDiff = computeFeedScore(b) - computeFeedScore(a);
@@ -1873,12 +1974,12 @@ export function App() {
     });
 
     return result;
-  }, [issues, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope, showFavoritesOnly, userFavorites]);
+  }, [zoneIssues, isFanZone, selectedClub, selectedCategory, searchQuery, sortBy, currentUser, regionScope, interestScope, showFavoritesOnly, userFavorites]);
 
   // Reset visible batch size when filters/search change
   useEffect(() => {
     setVisibleCount(6);
-  }, [selectedCategory, searchQuery, sortBy, regionScope, interestScope, showFavoritesOnly]);
+  }, [selectedCategory, selectedClub, searchQuery, sortBy, regionScope, interestScope, showFavoritesOnly]);
 
   // Pre-Bottom Infinite Scroll Auto-Loader (IntersectionObserver with 600px lookahead + passive scroll listener)
   useEffect(() => {
@@ -2043,6 +2144,8 @@ export function App() {
         showSearchMobile={showSearchMobile}
         colorTone={colorTone}
         onToggleColorTone={handleToggleColorTone}
+        activeZone={activeZone}
+        onOpenClubPicker={() => setIsClubPickerOpen(true)}
       />
 
       {/* X / Instagram Style Floating New Updates Pill */}
@@ -2071,6 +2174,7 @@ export function App() {
         {currentView === 'profile' && activeProfileUser ? (
           <UserProfilePage
             profile={activeProfileUser}
+            activeZone={activeZone}
             onProfileResolved={(p) => setActiveProfileUser(p)}
             currentUser={currentUser}
             issues={issues}
@@ -2120,6 +2224,7 @@ export function App() {
             onShareIssue={(iss) => setActiveShareIssue(iss)}
             hasUserVoted={liveDetailIssue ? !!userVotes[liveDetailIssue.id] : false}
             userVoteChoice={liveDetailIssue ? userVotes[liveDetailIssue.id]?.choice : undefined}
+            userVoteOptionId={liveDetailIssue ? userVotes[liveDetailIssue.id]?.optionId : undefined}
             isLiked={liveDetailIssue ? !!userLikes[liveDetailIssue.id] : false}
             isFavorited={liveDetailIssue ? !!userFavorites[liveDetailIssue.id] : false}
             onAddCommentReply={handleAddCommentReply}
@@ -2150,7 +2255,7 @@ export function App() {
           />
         ) : currentView === 'discovery' ? (
           <DiscoveryHub
-            issues={issues}
+            issues={zoneIssues}
             currentUser={currentUser}
             onOpenDetails={(iss) => {
               recordUserInterestFromIssue(iss);
@@ -2178,20 +2283,37 @@ export function App() {
           />
         ) : (
           <>
-            {/* Sleek, Compact Command Banner */}
-            <section className="relative overflow-hidden rounded-3xl bg-aurora-dark p-4 sm:p-6 text-white shadow-soft">
-              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
+            {/* Sleek, Compact Command Banner (FanZone vs YesOrNo) */}
+            <section className={`relative overflow-hidden rounded-3xl p-4 sm:p-6 text-white shadow-soft ${isFanZone ? 'bg-gradient-to-br from-emerald-950 via-ink-950 to-teal-950 border border-emerald-500/20' : 'bg-aurora-dark'}`}>
+              <div className={`absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl pointer-events-none ${isFanZone ? 'bg-emerald-500/25' : 'bg-brand-500/20'}`} />
               <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
 
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold whitespace-nowrap max-w-full">
-                    <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span className="sm:hidden">Make your voice heard in under 1 min</span>
-                    <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
+                    {isFanZone ? (
+                      <>
+                        <span>⚽</span>
+                        <span>Global Football Banter, Club Debates &amp; Live Polls</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span className="sm:hidden">Make your voice heard in under 1 min</span>
+                        <span className="hidden sm:inline">It takes less than 1 min to make your voice heard and make an impact</span>
+                      </>
+                    )}
                   </div>
                   <h1 className="text-[12.5px] xs:text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                    Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
+                    {isFanZone ? (
+                      <>
+                        Drop Takes, Back Your Club &amp; <span className="font-serif italic font-normal text-emerald-300">Settle the Banter.</span>
+                      </>
+                    ) : (
+                      <>
+                        Vote Yes or No on Issues That <span className="font-serif italic font-normal text-brand-300">Matter to You.</span>
+                      </>
+                    )}
                   </h1>
                 </div>
 
@@ -2210,26 +2332,87 @@ export function App() {
                     <span className="text-white/15">|</span>
                     <div>
                       <span className="font-mono font-bold text-amber-300 text-xs sm:text-sm">{stats.totalIssues}</span>
-                      <span className="text-zinc-400 ml-1">issues</span>
+                      <span className="text-zinc-400 ml-1">{isFanZone ? 'takes' : 'issues'}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="btn-brand text-xs py-2 sm:py-2.5 px-3.5 sm:px-4 shadow-glow cursor-pointer whitespace-nowrap shrink-0"
+                    className={`${isFanZone ? 'bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-1.5 transition-all' : 'btn-brand'} text-xs py-2 sm:py-2.5 px-3.5 sm:px-4 shadow-glow cursor-pointer whitespace-nowrap shrink-0`}
                   >
                     <Plus className="w-4 h-4 shrink-0" />
-                    <span>New Issue</span>
+                    <span>{isFanZone ? 'New Take' : 'New Issue'}</span>
                   </button>
                 </div>
               </div>
             </section>
 
+            {/* Zone-Specific Feed Header Widget */}
+            {isFanZone ? (
+              <div className="max-w-3xl mx-auto w-full space-y-3">
+                <ClubFilterBar selectedClub={selectedClub} onSelectClub={setSelectedClub} />
+                {currentUser && !currentUser.favoriteClub && (
+                  <div className="p-3 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-500/25 flex items-center justify-between gap-3 text-xs">
+                    <span className="flex items-center gap-2 text-emerald-950 dark:text-emerald-200 font-medium">
+                      <span>⚽</span>
+                      <span>Pick your favorite club to show your crest on every take &amp; reply.</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsClubPickerOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shrink-0 cursor-pointer text-[11px]"
+                    >
+                      Pick Club Flair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              !isPromoDismissed && (
+                <div className="max-w-2xl mx-auto w-full rounded-2xl bg-gradient-to-r from-emerald-950 via-ink-900 to-teal-900 text-white p-3.5 sm:p-4 shadow-soft border border-emerald-500/30 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-xl shrink-0">
+                      ⚽
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500 text-ink-950 text-[9px] font-black uppercase tracking-wider">New</span>
+                        <span className="text-xs sm:text-sm font-extrabold truncate">Enter FanZone — Global Football Banter &amp; Live Polls</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-200/80 truncate">
+                        Same account, zero re-login. Rep your club crest, vote on matchday takes &amp; drop voice banter.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => navigateToZone('fanzone')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-ink-950 font-extrabold text-xs whitespace-nowrap cursor-pointer transition-colors"
+                    >
+                      Open FanZone →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPromoDismissed(true)}
+                      className="p-1.5 text-emerald-200/60 hover:text-white cursor-pointer text-xs"
+                      aria-label="Dismiss FanZone banner"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+
             {/* Section Header */}
             <div className="flex items-center justify-between pt-1 max-w-2xl mx-auto w-full">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                  {selectedCategory === 'All' ? 'Issues' : selectedCategory}
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <span>{selectedCategory === 'All' ? (isFanZone ? 'Football Takes' : 'Issues') : selectedCategory}</span>
+                  {isFanZone && selectedClub && (
+                    <ClubBadge club={selectedClub} size="sm" showShortName className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-500/30" />
+                  )}
                 </h2>
               </div>
 
@@ -2259,29 +2442,33 @@ export function App() {
             </div>
 
             {/* Issues Grid */}
-            {isInitialLoadingIssues && issues.length === 0 ? (
+            {isInitialLoadingIssues && zoneIssues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3">
                 <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
-                <p className="text-xs text-slate-500 dark:text-zinc-400">Loading community issues from database...</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  {isFanZone ? 'Loading FanZone takes & live polls...' : 'Loading community issues from database...'}
+                </p>
               </div>
-            ) : issues.length === 0 ? (
+            ) : zoneIssues.length === 0 ? (
               <div className="card p-10 sm:p-12 text-center space-y-3 border-dashed">
-                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
-                  <Vote className="w-6 h-6" />
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border ${isFanZone ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-400/30 text-2xl' : 'bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 border-brand-100 dark:border-brand-400/30'}`}>
+                  {isFanZone ? <span>⚽</span> : <Vote className="w-6 h-6" />}
                 </div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  No active issues published yet
+                  {isFanZone ? 'No FanZone takes published yet' : 'No active issues published yet'}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-                  Launch the first time-bound YES/NO issue for your workplace, family, community, or private circle.
+                  {isFanZone
+                    ? 'Kick off the matchday banter! Drop the first binary take or 4-option poll for global football fans.'
+                    : 'Launch the first time-bound YES/NO issue for your workplace, family, community, or private circle.'}
                 </p>
                 <div className="pt-2 flex justify-center">
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="btn-brand text-xs py-2.5 px-5 shadow-glow cursor-pointer"
+                    className={`${isFanZone ? 'bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold inline-flex items-center gap-1.5' : 'btn-brand'} text-xs py-2.5 px-5 shadow-glow cursor-pointer`}
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Create First Issue</span>
+                    <span>{isFanZone ? 'Post First Take' : 'Create First Issue'}</span>
                   </button>
                 </div>
               </div>
@@ -2290,8 +2477,18 @@ export function App() {
                 <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-100 dark:border-brand-400/30">
                   <Filter className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching issues found</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {isFanZone && selectedClub ? `No takes found for ${selectedClub.name} yet` : 'No matching issues found'}
+                </h3>
                 <div className="pt-1 flex flex-wrap justify-center gap-2">
+                  {isFanZone && selectedClub && (
+                    <button
+                      onClick={() => setSelectedClub(null)}
+                      className="btn-ghost text-xs"
+                    >
+                      Show All Clubs
+                    </button>
+                  )}
                   <button
                     onClick={() => handleNavigate('discovery')}
                     className="btn-ghost text-xs"
@@ -2302,17 +2499,17 @@ export function App() {
                     onClick={() => setIsCreateModalOpen(true)}
                     className="btn-brand text-xs"
                   >
-                    Create Issue
+                    {isFanZone ? 'Post First Take' : 'Create Issue'}
                   </button>
                 </div>
               </div>
             ) : (
               <>
-                {currentUser && (!currentUser.interests || currentUser.interests.length === 0) && selectedCategory === 'All' && !searchQuery.trim() && !showFavoritesOnly && (
+                {currentUser && (!currentUser.interests || currentUser.interests.length === 0) && selectedCategory === 'All' && !searchQuery.trim() && !showFavoritesOnly && !selectedClub && (
                   <div className="mb-3 p-3 rounded-2xl bg-brand-50/70 dark:bg-brand-500/10 border border-brand-200/60 dark:border-brand-500/20 flex items-center justify-between gap-3 text-xs">
                     <span className="flex items-center gap-2 text-slate-700 dark:text-zinc-300">
                       <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
-                      <span>Showing all trending &amp; new issues. Personalize your feed anytime by picking interests.</span>
+                      <span>Showing all trending &amp; new {isFanZone ? 'takes' : 'issues'}. Personalize your feed anytime by picking interests.</span>
                     </span>
                     <button
                       type="button"
@@ -2347,6 +2544,7 @@ export function App() {
                         onShareIssue={(iss) => setActiveShareIssue(iss)}
                         hasUserVoted={!!voteRecord}
                         userVoteChoice={voteRecord?.choice}
+                        userVoteOptionId={voteRecord?.optionId}
                         isLiked={!!userLikes[issue.id]}
                         isFavorited={!!userFavorites[issue.id]}
                         onOpenProfile={handleOpenProfile}
@@ -2483,6 +2681,29 @@ export function App() {
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
         currentUser={currentUser}
         onSaveDraft={handleSaveIssueDraft}
+        activeZone={activeZone}
+      />
+
+      <ClubPickerModal
+        isOpen={isClubPickerOpen}
+        onClose={() => setIsClubPickerOpen(false)}
+        currentClub={currentUser?.favoriteClub || null}
+        currentNationalTeam={currentUser?.nationalTeam || ''}
+        onSaveClub={(club, natTeam) => {
+          if (!currentUser) return;
+          const updated: UserProfile = {
+            ...currentUser,
+            favoriteClub: club,
+            nationalTeam: natTeam,
+          };
+          setCurrentUser(updated);
+          saveStoredUser(updated);
+          addToast(
+            'success',
+            club ? `Repping ${club.name}!` : 'Club flair cleared',
+            club ? 'Your club crest will now appear on FanZone takes and replies.' : undefined
+          );
+        }}
       />
 
       <CommunityGuidelinesModal
